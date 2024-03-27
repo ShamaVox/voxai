@@ -1,0 +1,90 @@
+import React, { useState, useContext, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { AuthContext } from "./AuthContext";
+import styles from "./LoginStyles";
+import { useNavigation } from "@react-navigation/native";
+
+const MIN_PASSWORD_LENGTH = 6;
+
+const Login = () => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState({});
+  const [isFormValid, setIsFormValid] = useState(false);
+  const { handleLogin } = useContext(AuthContext);
+  const navigation = useNavigation();
+
+  const validateForm = () => {
+    let validationErrors = {};
+
+    // Validate username
+    if (!username.trim()) {
+      validationErrors.username = "Username is required.";
+    }
+
+    // Validate password
+    if (!password.trim()) {
+      validationErrors.password = "Password is required.";
+    } else if (password.length < MIN_PASSWORD_LENGTH) {
+      validationErrors.password = "Password must be at least 6 characters.";
+    }
+
+    setErrors(validationErrors);
+
+    // Form is valid if there are no errors
+    return Object.keys(validationErrors).length === 0;
+  };
+
+  useEffect(() => {
+    // Check form validity whenever username or password changes
+    setIsFormValid(validateForm());
+  }, [username, password]);
+
+  const handleSubmit = async () => {
+    // Call handleLogin from AuthContext if form is valid
+    if (isFormValid) {
+      let isLoginSuccessful = await handleLogin(username, password);
+      if (isLoginSuccessful) {
+        // Navigate to the Dashboard page on successful login
+        navigation.navigate("Dashboard");
+      } else {
+        let validationErrors = {};
+        validationErrors.password = "Invalid credentials.";
+        setErrors(validationErrors);
+        setIsFormValid(false);
+      }
+    } else {
+      console.log("Form has errors; not submitting request.");
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Login</Text> <br />
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+      />
+      {errors.username && <Text style={styles.error}>{errors.username}</Text>}
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      {errors.password && <Text style={styles.error}>{errors.password}</Text>}
+      <TouchableOpacity
+        style={[styles.button, { opacity: isFormValid ? 1 : 0.5 }]}
+        disabled={!isFormValid}
+        onPress={handleSubmit}
+      >
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+export default Login;

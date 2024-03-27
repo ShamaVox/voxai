@@ -1,0 +1,29 @@
+import React from "react";
+import { AuthProvider, AuthContext } from "./AuthContext";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import Home from "./Home";
+import Dashboard from "./Dashboard";
+import Login from "./Login";
+
+const Stack = createStackNavigator();
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen name="Home" component={Home} />
+          <Stack.Screen name="Login" component={Login} />
+          <Stack.Screen name="Dashboard" component={Dashboard} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </AuthProvider>
+  );
+};
+
+const AppContent = () => {
+  const { isLoggedIn } = React.useContext(AuthContext);
+};
+
+export default App;
