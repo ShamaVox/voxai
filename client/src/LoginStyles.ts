@@ -6,7 +6,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f8f8f8",
   },
   title: {
     fontSize: 32,
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    width: "80%",
+    width: "15%",
     fontSize: 16,
     fontFamily: "Sora, sans-serif",
   },
