@@ -1,15 +1,24 @@
 import React, { useContext } from "react";
-import { View, Text, Image, TouchableOpacity } from "react-native";
+import { View, Text, Image, Pressable } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HeaderStyles";
+import { useNavigation } from "@react-navigation/native"; // Import navigation hook
 
 const Header: React.FC = () => {
   const { isLoggedIn, username } = useContext(AuthContext);
+  const navigation = useNavigation(); // Get navigation object
 
   return (
     <View style={styles.container}>
       <Image source={require("../assets/logo.png")} style={styles.logo} />
-      <TouchableOpacity style={styles.profileContainer}>
+      <Pressable
+        style={styles.profileContainer}
+        onPress={() => {
+          if (!isLoggedIn) {
+            navigation.navigate("Login"); // Navigate to Login if not logged in
+          }
+        }}
+      >
         <Image
           source={
             isLoggedIn
@@ -18,10 +27,16 @@ const Header: React.FC = () => {
           }
           style={styles.profileIcon}
         />
-        <Text style={styles.profileText}>
-          {isLoggedIn ? username : "Log In"}
-        </Text>
-      </TouchableOpacity>
+        <View style={styles.profileTextContainer}>
+            <Text style={styles.profileText}>{isLoggedIn ? username : "Log In"}</Text>
+            {isLoggedIn && (
+            <Image
+                source={require("../assets/down-arrow.png")}
+                style={styles.downArrow}
+            />
+            )}
+        </View>
+      </Pressable>
     </View>
   );
 };
