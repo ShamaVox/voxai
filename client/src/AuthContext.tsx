@@ -14,7 +14,7 @@ export const AuthContext = createContext<AuthContextProps>({
   handleLogin: async () => false,
 });
 
-export const AuthProvider: React.FC = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
 

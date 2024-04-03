@@ -6,6 +6,19 @@ import Home from "./Home";
 import Dashboard from "./Dashboard";
 import Login from "./Login";
 import Header from "./Header";
+import Candidates from "./Candidates";
+
+// Fixes TypeScript error in my IDE
+declare global {   
+  namespace ReactNavigation {
+    interface RootParamList {
+      Candidates: undefined;
+      Dashboard: undefined;
+      Home: undefined;
+      Login: undefined;
+    }   
+  } 
+ } 
 
 const Stack = createStackNavigator();
 
@@ -20,14 +33,11 @@ const App: FC = () => {
           <Stack.Screen name="Home" component={Home} />
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Dashboard" component={Dashboard} />
+          <Stack.Screen name="Candidates" component={Candidates} />
         </Stack.Navigator>
       </NavigationContainer>
     </AuthProvider>
   );
-};
-
-const AppContent: FC = () => {
-  const { isLoggedIn } = React.useContext(AuthContext);
 };
 
 export default App;

@@ -6,7 +6,8 @@ import { useNavigation } from "@react-navigation/native"; // Import navigation h
 
 const Header: React.FC = () => {
   const { isLoggedIn, username } = useContext(AuthContext);
-  const navigation = useNavigation(); // Get navigation object
+  const navigation = useNavigation();
+  //const navigation = useNavigation<NativeStackNavigationProp<ParamListBase>>(); // Get navigation object
 
   return (
     <View style={styles.container}>
