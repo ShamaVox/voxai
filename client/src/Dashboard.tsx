@@ -1,6 +1,6 @@
 import React, { FC } from "react";
 import { View, Text } from "react-native";
-import styles from "./LoginStyles"; // Placeholder style
+import styles from "./styles/LoginStyles"; // Placeholder style
 
 const Dashboard: FC = () => {
   return (

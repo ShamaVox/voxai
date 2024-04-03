@@ -1,7 +1,7 @@
 import React, { FC } from "react";
 import { View, Pressable, Text } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import styles from "./LoginStyles"; // Placeholder style
+import styles from "./styles/LoginStyles"; // Placeholder style
 
 const Home: FC = () => {
   const navigation = useNavigation();

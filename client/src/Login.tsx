@@ -1,11 +1,9 @@
 import React, { useState, useContext, useEffect } from "react";
 import { View, Text, TextInput, Pressable} from "react-native";
 import { AuthContext } from "./AuthContext";
-import styles from "./LoginStyles";
+import styles from "./styles/LoginStyles";
 import { MIN_PASSWORD_LENGTH, DEBUG_LOGIN } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
-
-
 
 interface Errors {
   username?: string;
