@@ -2,9 +2,9 @@ import React, { useState, useContext, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./LoginStyles";
+import {MIN_PASSWORD_LENGTH} from "./Constants";
 import { useNavigation } from "@react-navigation/native";
 
-const MIN_PASSWORD_LENGTH = 6;
 
 interface Errors {
   username?: string;
