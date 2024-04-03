@@ -17,21 +17,33 @@ const Login: React.FC = () => {
   const [errors, setErrors] = useState<Errors>({});
   const [isFormValid, setIsFormValid] = useState(false);
 
+  // This isn't very elegant, but I don't want the error messages to show when the user hasn't typed anything
+  const [typedUsername, setTypedUsername] = useState(false);
+  const [typedPassword, setTypedPassword] = useState(false);
+
   const { handleLogin } = useContext(AuthContext);
   const navigation = useNavigation();
 
   const validateForm = (): boolean => {
     let validationErrors: Record<string, string> = {};
 
+    if (username.trim() && !typedUsername) {
+      setTypedUsername(true);
+    }
+
+    if (password.trim() && !typedPassword) {
+      setTypedPassword(true);
+    }
+
     // Validate username
-    if (!username.trim()) {
+    if (!username.trim() && typedUsername) {
       validationErrors.username = "Username is required.";
     }
 
     // Validate password
-    if (!password.trim()) {
+    if (!password.trim() && typedPassword) {
       validationErrors.password = "Password is required.";
-    } else if (password.length < MIN_PASSWORD_LENGTH) {
+    } else if (password.trim() && password.length < MIN_PASSWORD_LENGTH) {
       validationErrors.password = "Password must be at least 6 characters.";
     }
 
