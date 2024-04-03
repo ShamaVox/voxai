@@ -1,5 +1,4 @@
 import { StyleSheet } from "react-native";
-import "@fontsource/sora";
 
 const styles = StyleSheet.create({
   container: {

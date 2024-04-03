@@ -1,9 +1,10 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity } from "react-native";
+import { View, Text, TextInput, Pressable} from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./LoginStyles";
 import { MIN_PASSWORD_LENGTH, DEBUG_LOGIN } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
+
 
 
 interface Errors {
@@ -50,7 +51,7 @@ const Login: React.FC = () => {
     setErrors(validationErrors);
 
     // Form is valid if there are no errors
-    return Object.keys(validationErrors).length === 0;
+    return username.trim() && password.trim() && Object.keys(validationErrors).length === 0;
   };
 
   useEffect(() => {
@@ -79,15 +80,15 @@ const Login: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text> <br />
+    <View style={styles.container} role={"form"}>
+      <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
         placeholder="Username"
         value={username}
         onChangeText={setUsername}
       />
-      {errors.username && <Text style={styles.error}>{errors.username}</Text>}
+      {errors.username && <Text style={styles.error}>{errors.username}</Text>} 
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -96,15 +97,19 @@ const Login: React.FC = () => {
         secureTextEntry
       />
       {errors.password && <Text style={styles.error}>{errors.password}</Text>}
-      <TouchableOpacity
+      <Pressable
         style={[styles.button, { opacity: isFormValid ? 1 : 0.5 }]}
         disabled={!isFormValid}
         onPress={handleSubmit}
       >
         <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 };
+
+/*
+
+*/
 
 export default Login;

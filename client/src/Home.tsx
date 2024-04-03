@@ -12,7 +12,7 @@ const Home: FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text>This is a placeholder page</Text> <br />
+      <Text>This is a placeholder page <br /></Text> 
       <Pressable onPress={handleLoginClick} style={styles.button}>
         <Text> Login </Text>
       </Pressable>
