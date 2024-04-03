@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./LoginStyles";
-import {MIN_PASSWORD_LENGTH} from "./Constants";
+import { MIN_PASSWORD_LENGTH, DEBUG_LOGIN } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
 
 
@@ -72,7 +72,9 @@ const Login: React.FC = () => {
         setIsFormValid(false);
       }
     } else {
-      console.log("Form has errors; not submitting request.");
+      if (DEBUG_LOGIN) {
+        console.log("Form has errors; not submitting request.");
+      }
     }
   };
 

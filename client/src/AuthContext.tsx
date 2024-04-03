@@ -1,5 +1,6 @@
 import React, { createContext, useState } from "react";
 import axios from "axios";
+import { DEBUG_AUTH } from "./Constants";
 
 interface AuthContextProps {
   isLoggedIn: boolean;
@@ -14,7 +15,9 @@ export const AuthContext = createContext<AuthContextProps>({
 export const AuthProvider: React.FC = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  if (DEBUG_AUTH) {
   console.log("AuthProvider rendered"); // Debug statement
+  }
 
   const handleLogin: AuthContextProps["handleLogin"] = async (username, password) => {
     try {
@@ -26,7 +29,9 @@ export const AuthProvider: React.FC = ({ children }) => {
         setIsLoggedIn(true);
         return true;
       } else {
-        console.log("Login failed");
+        if (DEBUG_AUTH) {
+          console.log("Login failed");
+        }
         return false;
       }
     } catch (error) {
@@ -35,7 +40,9 @@ export const AuthProvider: React.FC = ({ children }) => {
     }
   };
 
-  console.log("isLoggedIn value:", isLoggedIn);
+  if (DEBUG_AUTH) {
+    console.log("isLoggedIn value:", isLoggedIn);
+  }
 
   return (
     <AuthContext.Provider value={{ isLoggedIn, handleLogin }}>
