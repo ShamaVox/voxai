@@ -12,7 +12,7 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: "#606060",
     marginBottom: 12,
     fontFamily: "Sora",
@@ -22,12 +22,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
     borderRadius: 10,
+    paddingLeft: 10,
   },
   icon: {
     marginRight: 12,
   },
   buttonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Sora",
   },
   divider: {
@@ -43,9 +44,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#FFFFFF",
     borderRadius: 10,
+    width: 150,
+    paddingLeft: 10,
   },
   selectedButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "Sora",
     fontWeight: "bold",
   },
