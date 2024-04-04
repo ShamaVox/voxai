@@ -2,24 +2,23 @@ import React, { useContext } from "react";
 import { View, Text, Image, Pressable } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HeaderStyles";
-import { useNavigation } from "@react-navigation/native"; // Import navigation hook
+import { useNavigation } from "@react-navigation/native";
 
 const Header: React.FC = () => {
   const { isLoggedIn, username } = useContext(AuthContext);
   const navigation = useNavigation();
-  //const navigation = useNavigation<NativeStackNavigationProp<ParamListBase>>(); // Get navigation object
 
   return (
     <View style={styles.container}>
-     <Pressable
-         onPress={() => {
-            isLoggedIn
+      <Pressable
+        onPress={() => {
+          isLoggedIn
             ? navigation.navigate("Dashboard")
             : navigation.navigate("Home");
-         }}
-      > 
+        }}
+      >
         <Image source={require("../assets/logo.png")} style={styles.logo} />
-    </Pressable>
+      </Pressable>
       <Pressable
         style={styles.profileContainer}
         onPress={() => {
@@ -31,19 +30,21 @@ const Header: React.FC = () => {
         <Image
           source={
             isLoggedIn
-              ? require("../assets/profile-icon-logged-in.png")
-              : require("../assets/profile-icon-logged-out.png")
+              ? require("../assets/icons/profile-icon-logged-in.png")
+              : require("../assets/icons/profile-icon-logged-out.png")
           }
           style={styles.profileIcon}
         />
         <View style={styles.profileTextContainer}>
-            <Text style={styles.profileText}>{isLoggedIn ? username : "Log In"}</Text>
-            {isLoggedIn && (
+          <Text style={styles.profileText}>
+            {isLoggedIn ? username : "Log In"}
+          </Text>
+          {isLoggedIn && (
             <Image
-                source={require("../assets/down-arrow.png")}
-                style={styles.downArrow}
+              source={require("../assets/down-arrow.png")}
+              style={styles.downArrow}
             />
-            )}
+          )}
         </View>
       </Pressable>
     </View>

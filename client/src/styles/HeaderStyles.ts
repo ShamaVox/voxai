@@ -17,7 +17,7 @@ const styles = StyleSheet.create({
   profileContainer: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
   },
   profileTextContainer: {
     flexDirection: "row",
@@ -31,15 +31,15 @@ const styles = StyleSheet.create({
   profileText: {
     fontSize: 16,
     fontWeight: "bold",
-    resizeMode: "contain"
+    resizeMode: "contain",
   },
   downArrow: {
     width: 25,
     height: 25,
     resizeMode: "contain",
     leftPadding: 10,
-    rightPadding: 10
-  }
+    rightPadding: 10,
+  },
 });
 
 export default styles;

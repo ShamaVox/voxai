@@ -1,8 +1,8 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, Pressable} from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
-import { MIN_PASSWORD_LENGTH, DEBUG_LOGIN } from "./Constants";
+import { MIN_PASSWORD_LENGTH, LOGIN_LOGGING } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
 
 interface Errors {
@@ -49,7 +49,11 @@ const Login: React.FC = () => {
     setErrors(validationErrors);
 
     // Form is valid if there are no errors
-    return username.trim() && password.trim() && Object.keys(validationErrors).length === 0;
+    return (
+      username.trim() &&
+      password.trim() &&
+      Object.keys(validationErrors).length === 0
+    );
   };
 
   useEffect(() => {
@@ -71,7 +75,7 @@ const Login: React.FC = () => {
         setIsFormValid(false);
       }
     } else {
-      if (DEBUG_LOGIN) {
+      if (LOGIN_LOGGING) {
         console.log("Form has errors; not submitting request.");
       }
     }
@@ -86,7 +90,7 @@ const Login: React.FC = () => {
         value={username}
         onChangeText={setUsername}
       />
-      {errors.username && <Text style={styles.error}>{errors.username}</Text>} 
+      {errors.username && <Text style={styles.error}>{errors.username}</Text>}
       <TextInput
         style={styles.input}
         placeholder="Password"

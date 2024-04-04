@@ -6,17 +6,20 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+let isAccepted = false;
+
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  // 50% chance to accept 
-  const isAccepted = Math.random() < 0.5;
+  // reject the first, accept the second
 
   if (isAccepted) {
     res.status(200).json({ message: "Login successful" });
   } else {
     res.status(401).json({ message: "Login failed" });
   }
+
+  isAccepted = !isAccepted;
 });
 
 const PORT = process.env.PORT || 5000;

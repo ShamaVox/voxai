@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    width: "15%",
+    width: 200,
     fontSize: 16,
     fontFamily: "Sora, sans-serif",
   },

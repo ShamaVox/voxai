@@ -1,6 +1,6 @@
 import React, { createContext, useState } from "react";
 import axios from "axios";
-import { DEBUG_AUTH } from "./Constants";
+import { AUTH_LOGGING } from "./Constants";
 
 interface AuthContextProps {
   isLoggedIn: boolean;
@@ -14,15 +14,20 @@ export const AuthContext = createContext<AuthContextProps>({
   handleLogin: async () => false,
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState("");
 
-  if (DEBUG_AUTH) {
+  if (AUTH_LOGGING) {
     console.log("AuthProvider rendered");
   }
 
-  const handleLogin: AuthContextProps["handleLogin"] = async (username, password) => {
+  const handleLogin: AuthContextProps["handleLogin"] = async (
+    username,
+    password
+  ) => {
     try {
       const response = await axios.post("http://localhost:5000/login", {
         username,
@@ -33,7 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUsername(username);
         return true;
       } else {
-        if (DEBUG_AUTH) {
+        if (AUTH_LOGGING) {
           console.log("Login failed");
         }
         return false;
@@ -44,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  if (DEBUG_AUTH) {
+  if (AUTH_LOGGING) {
     console.log("isLoggedIn value:", isLoggedIn);
     console.log("username value:", username);
   }
