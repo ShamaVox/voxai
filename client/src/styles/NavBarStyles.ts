@@ -2,9 +2,11 @@ import { StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   container: {
-    width: 200,
+    width: 250,
     padding: 24,
     flexDirection: "column",
+    backgroundColor: "#F2F2F2",
+    height: "100%",
   },
   section: {
     marginBottom: 3,
@@ -19,6 +21,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 16,
+    borderRadius: 10,
   },
   icon: {
     marginRight: 12,
@@ -35,8 +38,11 @@ const styles = StyleSheet.create({
   selectedButton: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
-    backgroundColor: "#E0E0E0",
+    marginBottom: 16,
+    backgroundColor: "#FFFFFF95",
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    borderRadius: 10,
   },
   selectedButtonText: {
     fontSize: 20,
