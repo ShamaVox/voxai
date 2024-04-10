@@ -22,6 +22,28 @@ app.post("/login", (req, res) => {
   isAccepted = !isAccepted;
 });
 
+function getRandom(max, negative = false) {
+  if (!negative) {
+    return Math.round(Math.random() * max);
+  } else {
+    return Math.round((Math.random() - 0.5) * (max * 2));
+  }
+}
+
+app.get("/insights", (req, res) => {
+  const insights = {
+    candidateStage: getRandom(5),
+    fittingJobApplication: getRandom(10),
+    fittingJobApplicationPercentage: getRandom(25, true),
+    averageInterviewPace: getRandom(7),
+    averageInterviewPacePercentage: getRandom(25, true),
+    lowerCompensationRange: getRandom(100000),
+    upperCompensationRange: getRandom(200000),
+  };
+
+  res.json(insights);
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
