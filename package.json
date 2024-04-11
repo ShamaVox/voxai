@@ -6,8 +6,8 @@
   "scripts": {
     "server": "cd server && npm start",
     "client": "cd client && npm start",
-    "start": "concurrently \"npm run server\" \"npm run client\"",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "flask": "cd server && venv/bin/flask  run"
   },
   "keywords": [],
   "author": "",
