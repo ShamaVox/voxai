@@ -28,6 +28,13 @@ const InsightsScreen = () => {
     return <Text>Loading...</Text>;
   }
 
+  function addPlusSignIfNeeded(metric: string): string {
+    if (metric.includes("-")) {
+      return metric;
+    }
+    return "+" + metric;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Insights</Text>
@@ -39,19 +46,19 @@ const InsightsScreen = () => {
         />
         <InsightBox
           icon="icon2"
-          value={insights.fittingJobApplication}
+          value={insights.fittingJobApplication + " %"}
           percentage={insights.fittingJobApplicationPercentage}
           title="Fitting Job Application"
         />
         <InsightBox
           icon="icon3"
-          value={insights.averageInterviewPace}
+          value={insights.averageInterviewPace + " days"}
           percentage={insights.averageInterviewPacePercentage}
           title="Average Interview Pace"
         />
         <InsightBox
           icon="icon4"
-          value={`${insights.lowerCompensationRange} - ${insights.upperCompensationRange}`}
+          value={`${insights.lowerCompensationRange}K - ${insights.upperCompensationRange}K`}
           title="Compensation Range"
         />
       </View>
@@ -77,7 +84,10 @@ const InsightBox = ({ icon, value, title, percentage = NaN }) => {
                 : styles.negativePercentage,
             ]}
           >
-            <Text style={styles.percentageText}>{percentage}%</Text>
+            <Text style={styles.percentageText}>
+              {percentage > 0 && "+"}
+              {percentage}%
+            </Text>
           </View>
         )}
       </View>

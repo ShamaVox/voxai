@@ -31,14 +31,15 @@ function getRandom(max, negative = false) {
 }
 
 app.get("/insights", (req, res) => {
+  let lowerCompensationRange = getRandom(100);
   const insights = {
     candidateStage: getRandom(5),
     fittingJobApplication: getRandom(10),
     fittingJobApplicationPercentage: getRandom(25, true),
     averageInterviewPace: getRandom(7),
     averageInterviewPacePercentage: getRandom(25, true),
-    lowerCompensationRange: getRandom(100000),
-    upperCompensationRange: getRandom(200000),
+    lowerCompensationRange: lowerCompensationRange,
+    upperCompensationRange: lowerCompensationRange + getRandom(100),
   };
 
   res.json(insights);
