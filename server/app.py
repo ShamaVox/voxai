@@ -4,7 +4,7 @@ from flask_cors import CORS
 from datetime import date, timedelta
 import random # temporary
 
-app = Flask(__name__, static_folder='../client/web-build')
+app = Flask(__name__, static_folder='../client/dist')
 CORS(app, resources={r"/*": {"origins": ["http://localhost:8081", "http://localhost:5000"]}})
 
 isAccepted = False
@@ -49,7 +49,7 @@ def get_random_item(array):
     return random.choice(array)
 
 def get_random_date():
-    start_date = date(2024, 1, 1)
+    start_date = date(2024, 5, 1)
     end_date = date(2024, 11, 30)
     random_delta = timedelta(days=random.randint(0, (end_date - start_date).days))
     return (start_date + random_delta).isoformat()
