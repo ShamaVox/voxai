@@ -50,6 +50,16 @@ const NavBar: React.FC = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>General</Text>
         <Pressable
+          style={getButtonStyle("Home")}
+          onPress={() => navigation.navigate("Home")}
+        >
+          <Image
+            source={require("../assets/icons/dashboard.png")}
+            style={styles.icon}
+          />
+          <Text style={getTextStyle("Home")}>Overview</Text>
+        </Pressable>
+        <Pressable
           style={getButtonStyle("Dashboard")}
           onPress={() => navigation.navigate("Dashboard")}
         >
@@ -57,7 +67,7 @@ const NavBar: React.FC = () => {
             source={require("../assets/icons/dashboard.png")}
             style={styles.icon}
           />
-          <Text style={getTextStyle("Dashboard")}>Overview</Text>
+          <Text style={getTextStyle("Dashboard")}>Dashboard</Text>
         </Pressable>
         <Pressable
           style={getButtonStyle("Candidates")}

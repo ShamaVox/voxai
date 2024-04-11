@@ -28,13 +28,6 @@ const InsightsScreen = () => {
     return <Text>Loading...</Text>;
   }
 
-  function addPlusSignIfNeeded(metric: string): string {
-    if (metric.includes("-")) {
-      return metric;
-    }
-    return "+" + metric;
-  }
-
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Insights</Text>

@@ -67,7 +67,7 @@ const Login: React.FC = () => {
       const isLoginSuccessful = await handleLogin(username, password);
       if (isLoginSuccessful) {
         // Navigate to the Dashboard page on successful login
-        navigation.navigate("Dashboard");
+        navigation.navigate("Home");
       } else {
         const validationErrors: Record<string, string> = {};
         validationErrors.password = "Invalid credentials.";
