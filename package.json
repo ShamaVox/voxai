@@ -7,7 +7,8 @@
     "server": "cd server && npm start",
     "client": "cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "flask": "cd server && venv/bin/flask  run"
+    "flask": "concurrently \"npm run client\" \"cd server && venv/bin/flask  run --debug\"",
+    "start": "concurrently \"npm run client\" \"cd server && venv/bin/flask  run --debug\""
   },
   "keywords": [],
   "author": "",

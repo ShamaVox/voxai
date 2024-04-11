@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
-import { SERVER_URL } from "./Constants";
+import { SERVER_ENDPOINT } from "./Constants";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
@@ -23,7 +23,7 @@ const Home: FC = () => {
 
   const fetchInterviews = async () => {
     try {
-      const response = await axios.get(SERVER_URL + "interviews");
+      const response = await axios.get(SERVER_ENDPOINT("interviews"));
       setInterviews(response.data);
     } catch (error) {
       console.error("Error fetching interviews:", error);

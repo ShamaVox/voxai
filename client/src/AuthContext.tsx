@@ -1,6 +1,6 @@
 import React, { createContext, useState } from "react";
 import axios from "axios";
-import { AUTH_LOGGING, SERVER_URL } from "./Constants";
+import { AUTH_LOGGING, SERVER_ENDPOINT } from "./Constants";
 
 interface AuthContextProps {
   isLoggedIn: boolean;
@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     password
   ) => {
     try {
-      const response = await axios.post(SERVER_URL + "login", {
+      const response = await axios.post(SERVER_ENDPOINT("login"), {
         username,
         password,
       });

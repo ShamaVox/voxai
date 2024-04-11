@@ -2,7 +2,7 @@ import React, { FC, useState, useEffect } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_URL } from "./Constants";
+import { SERVER_ENDPOINT } from "./Constants";
 
 const Dashboard: FC = () => {
   return <InsightsScreen />;
@@ -17,7 +17,7 @@ const InsightsScreen = () => {
 
   const fetchInsights = async () => {
     try {
-      const response = await axios.get(SERVER_URL + "insights");
+      const response = await axios.get(SERVER_ENDPOINT("insights"));
       setInsights(response.data);
     } catch (error) {
       console.error("Error fetching insights:", error);

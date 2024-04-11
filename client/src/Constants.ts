@@ -6,6 +6,9 @@ export const APP_LOGGING = false;
 
 // Server
 export const SERVER_URL = "http://localhost:5000/";
+export function SERVER_ENDPOINT(endpoint_name: string): string {
+  return SERVER_URL + "api/" + endpoint_name;
+}
 
 // Login page
 export const MIN_PASSWORD_LENGTH = 6;
