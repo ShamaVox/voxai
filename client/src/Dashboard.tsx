@@ -2,7 +2,7 @@ import React, { FC, useState, useEffect } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_URL } from "./Constants";
+import { SERVER_ENDPOINT } from "./Constants";
 
 const Dashboard: FC = () => {
   return <InsightsScreen />;
@@ -17,7 +17,7 @@ const InsightsScreen = () => {
 
   const fetchInsights = async () => {
     try {
-      const response = await axios.get(SERVER_URL + "insights");
+      const response = await axios.get(SERVER_ENDPOINT("insights"));
       setInsights(response.data);
     } catch (error) {
       console.error("Error fetching insights:", error);
@@ -39,19 +39,19 @@ const InsightsScreen = () => {
         />
         <InsightBox
           icon="icon2"
-          value={insights.fittingJobApplication}
+          value={insights.fittingJobApplication + " %"}
           percentage={insights.fittingJobApplicationPercentage}
           title="Fitting Job Application"
         />
         <InsightBox
           icon="icon3"
-          value={insights.averageInterviewPace}
+          value={insights.averageInterviewPace + " days"}
           percentage={insights.averageInterviewPacePercentage}
           title="Average Interview Pace"
         />
         <InsightBox
           icon="icon4"
-          value={`${insights.lowerCompensationRange} - ${insights.upperCompensationRange}`}
+          value={`${insights.lowerCompensationRange}K - ${insights.upperCompensationRange}K`}
           title="Compensation Range"
         />
       </View>
@@ -77,7 +77,10 @@ const InsightBox = ({ icon, value, title, percentage = NaN }) => {
                 : styles.negativePercentage,
             ]}
           >
-            <Text style={styles.percentageText}>{percentage}%</Text>
+            <Text style={styles.percentageText}>
+              {percentage > 0 && "+"}
+              {percentage}%
+            </Text>
           </View>
         )}
       </View>
