@@ -1,5 +1,6 @@
 {
   "watch": ["client/src/**/*.ts", "client/src/**/*.tsx"],
   "ext": "ts,tsx",
-  "exec": "npm run build"
+  "exec": "npm run build",
+  "ignore": ["src/ServerUrl.ts", "src/config/*.ts"]
 }

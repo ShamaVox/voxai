@@ -1,0 +1,8 @@
+# For AWS server to load virtual environment and nvm on reboot
+
+source server/venv/bin/activate
+
+# Something is wrong with nvm installation on AWS currently; these commands need to be run manually each time a shell instance is started 
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm

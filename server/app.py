@@ -5,7 +5,7 @@ from datetime import date, timedelta
 import random # temporary
 
 app = Flask(__name__, static_folder='../client/dist')
-CORS(app, resources={r"/*": {"origins": ["http://localhost:8081", "http://localhost:5000"]}})
+CORS(app, resources={r"/*": {"origins": ["http://localhost:8081", "http://localhost:5000", "http://localhost:80"]}})
 
 isAccepted = False
 
