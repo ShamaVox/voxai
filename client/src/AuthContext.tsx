@@ -4,13 +4,17 @@ import { AUTH_LOGGING, SERVER_ENDPOINT } from "./Constants";
 
 interface AuthContextProps {
   isLoggedIn: boolean;
-  username: string;
-  handleLogin: (username: string, password: string) => Promise<boolean>;
+  email: string;
+  sendVerificationCode: (email: string) => Promise<boolean>;
+  validateVerificationCode: (email: string, code: string) => Promise<boolean>;
+  handleLogin: (email: string) => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
   isLoggedIn: false,
-  username: "",
+  email: "",
+  sendVerificationCode: async () => false,
+  validateVerificationCode: async () => false,
   handleLogin: async () => false,
 });
 
@@ -18,31 +22,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
 
   if (AUTH_LOGGING) {
     console.log("AuthProvider rendered");
   }
 
-  const handleLogin: AuthContextProps["handleLogin"] = async (
-    username,
-    password
-  ) => {
+  const sendVerificationCode = async (email: string) => {
     try {
-      const response = await axios.post(SERVER_ENDPOINT("login"), {
-        username,
-        password,
+      const response = await axios.post(SERVER_ENDPOINT("send_code"), {
+        email,
       });
       if (response.status === 200) {
-        setIsLoggedIn(true);
-        setUsername(username);
+        setEmail(email);
         return true;
       } else {
         if (AUTH_LOGGING) {
-          console.log("Login failed");
+          console.log("Sending verification code failed");
         }
         return false;
       }
+    } catch (error) {
+      console.error("Error during sending verification code:", error);
+      return false;
+    }
+  };
+
+  const validateVerificationCode = async (email: string, code: string) => {
+    try {
+      const response = await axios.post(SERVER_ENDPOINT("validate_code"), {
+        email,
+        code,
+      });
+      if (response.status === 200) {
+        return true;
+      } else {
+        if (AUTH_LOGGING) {
+          console.log("Verification code validation failed");
+        }
+        return false;
+      }
+    } catch (error) {
+      console.error("Error during verification code validation:", error);
+      return false;
+    }
+  };
+
+  const handleLogin = async (email: string) => {
+    try {
+      setIsLoggedIn(true);
+      setEmail(email);
+      return true;
     } catch (error) {
       console.error("Error during login:", error);
       return false;
@@ -51,11 +81,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   if (AUTH_LOGGING) {
     console.log("isLoggedIn value:", isLoggedIn);
-    console.log("username value:", username);
+    console.log("email value:", email);
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, username, handleLogin }}>
+    <AuthContext.Provider
+      value={{
+        isLoggedIn,
+        email,
+        sendVerificationCode,
+        validateVerificationCode,
+        handleLogin,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

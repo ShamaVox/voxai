@@ -2,81 +2,74 @@ import React, { useState, useContext, useEffect } from "react";
 import { View, Text, TextInput, Pressable } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
-import { MIN_PASSWORD_LENGTH, LOGIN_LOGGING } from "./Constants";
+import { LOGIN_LOGGING } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
 
 interface Errors {
-  username?: string;
-  password?: string;
+  email?: string;
+  code?: string;
 }
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Errors>({});
-  const [isFormValid, setIsFormValid] = useState(false);
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [showCodeField, setShowCodeField] = useState(false);
+  const [isCodeValid, setIsCodeValid] = useState(false);
 
-  // This isn't very elegant, but I don't want the error messages to show when the user hasn't typed anything
-  const [typedUsername, setTypedUsername] = useState(false);
-  const [typedPassword, setTypedPassword] = useState(false);
-
-  const { handleLogin } = useContext(AuthContext);
+  const {
+    handleLogin,
+    sendVerificationCode,
+    validateVerificationCode,
+  } = useContext(AuthContext);
   const navigation = useNavigation();
 
-  const validateForm = (): boolean => {
-    let validationErrors: Record<string, string> = {};
-
-    if (username.trim() && !typedUsername) {
-      setTypedUsername(true);
-    }
-
-    if (password.trim() && !typedPassword) {
-      setTypedPassword(true);
-    }
-
-    // Validate username
-    if (!username.trim() && typedUsername) {
-      validationErrors.username = "Username is required.";
-    }
-
-    // Validate password
-    if (!password.trim() && typedPassword) {
-      validationErrors.password = "Password is required.";
-    } else if (password.trim() && password.length < MIN_PASSWORD_LENGTH) {
-      validationErrors.password = "Password must be at least 6 characters.";
-    }
-
-    setErrors(validationErrors);
-
-    // Form is valid if there are no errors
-    return (
-      username.trim() &&
-      password.trim() &&
-      Object.keys(validationErrors).length === 0
-    );
+  const validateEmail = (): boolean => {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   useEffect(() => {
-    // Check form validity whenever username or password changes
-    setIsFormValid(validateForm());
-  }, [username, password]);
+    setIsEmailValid(validateEmail());
+  }, [email]);
+
+  const handleSendCode = async () => {
+    const success = await sendVerificationCode(email);
+    if (success) {
+      setShowCodeField(true);
+    } else {
+      setErrors({ email: "Invalid email" });
+    }
+  };
+
+  const validateCode = (): boolean => {
+    // Validate the verification code (6 digits)
+    const codeRegex = /^\d{6}$/;
+    return codeRegex.test(code);
+  };
+
+  useEffect(() => {
+    setIsCodeValid(validateCode());
+  }, [code]);
 
   const handleSubmit = async () => {
-    // Call handleLogin from AuthContext if form is valid
-    if (isFormValid) {
-      const isLoginSuccessful = await handleLogin(username, password);
-      if (isLoginSuccessful) {
-        // Navigate to the Dashboard page on successful login
-        navigation.navigate("Home");
+    if (isCodeValid) {
+      const success = await validateVerificationCode(email, code);
+      if (success) {
+        const isLoginSuccessful = await handleLogin(email);
+        if (isLoginSuccessful) {
+          navigation.navigate("Home");
+        } else {
+          setErrors({ code: "Invalid code" });
+        }
       } else {
-        const validationErrors: Record<string, string> = {};
-        validationErrors.password = "Invalid credentials.";
-        setErrors(validationErrors);
-        setIsFormValid(false);
+        setErrors({ code: "Invalid code" });
       }
     } else {
       if (LOGIN_LOGGING) {
-        console.log("Form has errors; not submitting request.");
+        console.log("Code is invalid; not submitting request.");
       }
     }
   };
@@ -86,26 +79,39 @@ const Login: React.FC = () => {
       <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
       />
-      {errors.username && <Text style={styles.error}>{errors.username}</Text>}
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      {errors.password && <Text style={styles.error}>{errors.password}</Text>}
-      <Pressable
-        style={[styles.button, { opacity: isFormValid ? 1 : 0.5 }]}
-        disabled={!isFormValid}
-        onPress={handleSubmit}
-      >
-        <Text style={styles.buttonText}>Login</Text>
-      </Pressable>
+      {errors.email && <Text style={styles.error}>{errors.email}</Text>}
+      {showCodeField && (
+        <TextInput
+          style={styles.input}
+          placeholder="Verification code"
+          value={code}
+          onChangeText={setCode}
+          keyboardType="numeric"
+        />
+      )}
+      {errors.code && <Text style={styles.error}>{errors.code}</Text>}
+      {!showCodeField ? (
+        <Pressable
+          style={[styles.button, { opacity: isEmailValid ? 1 : 0.5 }]}
+          disabled={!isEmailValid}
+          onPress={handleSendCode}
+        >
+          <Text style={styles.buttonText}>Send code</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          style={[styles.button, { opacity: isCodeValid ? 1 : 0.5 }]}
+          disabled={!isCodeValid}
+          onPress={handleSubmit}
+        >
+          <Text style={styles.buttonText}>Validate code</Text>
+        </Pressable>
+      )}
     </View>
   );
 };

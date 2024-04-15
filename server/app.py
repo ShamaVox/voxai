@@ -3,6 +3,7 @@ import os
 from flask_cors import CORS
 from datetime import date, timedelta
 import random # temporary
+import re
 
 app = Flask(__name__, static_folder='../client/dist')
 CORS(app, resources={r"/*": {"origins": ["http://localhost:8081", "http://localhost:5000", "http://localhost:80"]}})
@@ -59,6 +60,25 @@ def get_random_time():
     minutes = random.randint(0, 59)
     return f"{hours:02d}:{minutes:02d}"
 
+def generate_verification_code():
+    # Placeholder
+    return 123123
+
+def send_verification_code(email, code):
+    # Placeholder
+    pass 
+
+def is_valid_verification_code(email, code): 
+    # Placeholder
+    if code == "123123":
+        return True 
+    return False
+
+def is_valid_email(email):
+    # Regular expression pattern for email validation
+    email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return re.match(email_pattern, email) is not None
+
 # Serve React Native app
 @app.route('/', defaults={'path': ''})
 
@@ -69,21 +89,40 @@ def serve(path):
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
-@app.route('/api/login', methods=['POST'])
-def login():
-    global isAccepted
+@app.route('/api/send_code', methods=['POST'])
+def send_code():
     if request.method == 'POST':
-        if isAccepted:
+        email = request.json.get('email')
+        if is_valid_email(email):
+            # Generate and send verification code to the email
+            verification_code = generate_verification_code()
+            send_verification_code(email, verification_code)
             data = {
-                "message": "Login successful",
+                "message": "Verification code sent successfully",
             }
             return_code = 200
-        else: 
+        else:
             data = {
-                "message": "Login successful",
+                "message": "Invalid email",
+            }
+            return_code = 400
+        return jsonify(data), return_code
+
+@app.route('/api/validate_code', methods=['POST'])
+def validate_code():
+    if request.method == 'POST':
+        email = request.json.get('email')
+        code = request.json.get('code')
+        if is_valid_verification_code(email, code):
+            data = {
+                "message": "Verification code is valid",
+            }
+            return_code = 200
+        else:
+            data = {
+                "message": "Invalid verification code",
             }
             return_code = 401
-        isAccepted = not isAccepted
         return jsonify(data), return_code
 
 @app.route("/api/insights")
