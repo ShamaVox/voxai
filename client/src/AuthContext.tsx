@@ -13,6 +13,7 @@ interface AuthContextProps {
 export const AuthContext = createContext<AuthContextProps>({
   isLoggedIn: false,
   email: "",
+  username: "",
   sendVerificationCode: async () => false,
   validateVerificationCode: async () => false,
   handleLogin: async () => false,
@@ -23,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
 
   if (AUTH_LOGGING) {
     console.log("AuthProvider rendered");
@@ -72,6 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setIsLoggedIn(true);
       setEmail(email);
+      setUsername(email.split("@")[0]);
+      if (AUTH_LOGGING) {
+        console.log("Username set to: ", username);
+      }
       return true;
     } catch (error) {
       console.error("Error during login:", error);
@@ -89,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         isLoggedIn,
         email,
+        username,
         sendVerificationCode,
         validateVerificationCode,
         handleLogin,

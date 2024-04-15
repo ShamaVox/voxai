@@ -17,6 +17,9 @@ const Login: React.FC = () => {
   const [isEmailValid, setIsEmailValid] = useState(false);
   const [showCodeField, setShowCodeField] = useState(false);
   const [isCodeValid, setIsCodeValid] = useState(false);
+  // This isn't very elegant, but I don't want the error messages to show when the user hasn't typed anything
+  const [typedEmail, setTypedEmail] = useState(false);
+  const [typedCode, setTypedCode] = useState(false);
 
   const {
     handleLogin,
@@ -25,15 +28,19 @@ const Login: React.FC = () => {
   } = useContext(AuthContext);
   const navigation = useNavigation();
 
+  if (email.trim() && !typedEmail) {
+    setTypedEmail(true);
+  }
+
+  if (code.trim() && !typedCode) {
+    setTypedCode(true);
+  }
+
   const validateEmail = (): boolean => {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
-
-  useEffect(() => {
-    setIsEmailValid(validateEmail());
-  }, [email]);
 
   const handleSendCode = async () => {
     const success = await sendVerificationCode(email);
@@ -50,9 +57,25 @@ const Login: React.FC = () => {
     return codeRegex.test(code);
   };
 
+  const validateForm = (): boolean => {
+    if (typedEmail && !validateEmail()) {
+      setErrors({ email: "Invalid email" });
+    } else if (showCodeField && typedCode && !validateCode()) {
+      setErrors({ code: "Verfication code should be be 6 digits" });
+    } else {
+      if (typedEmail) {
+        setIsEmailValid(true);
+      }
+      if (showCodeField && typedCode) {
+        setIsCodeValid(true);
+      }
+      setErrors({});
+    }
+  };
+
   useEffect(() => {
-    setIsCodeValid(validateCode());
-  }, [code]);
+    validateForm();
+  }, [email, code]);
 
   const handleSubmit = async () => {
     if (isCodeValid) {
