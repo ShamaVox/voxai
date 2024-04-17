@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, Text, TextInput, Pressable, Picker } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
 import { LOGIN_LOGGING } from "./Constants";
@@ -17,9 +17,15 @@ const Login: React.FC = () => {
   const [isEmailValid, setIsEmailValid] = useState(false);
   const [showCodeField, setShowCodeField] = useState(false);
   const [isCodeValid, setIsCodeValid] = useState(false);
+  const [name, setName] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [accountType, setAccountType] = useState("Recruiter");
+  const [showNewAccountFields, setShowNewAccountFields] = useState(false);
   // This isn't very elegant, but I don't want the error messages to show when the user hasn't typed anything
   const [typedEmail, setTypedEmail] = useState(false);
   const [typedCode, setTypedCode] = useState(false);
+  const [typedName, setTypedName] = useState(false);
+  const [typedOrganization, setTypedOrganization] = useState(false);
 
   const {
     handleLogin,
@@ -36,16 +42,35 @@ const Login: React.FC = () => {
     setTypedCode(true);
   }
 
+  if (name.trim() && !typedName) {
+    setTypedName(true);
+  }
+
+  if (organization.trim() && !typedOrganization) {
+    setTypedOrganization(true);
+  }
+
   const validateEmail = (): boolean => {
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  const validateName = () => name.trim() !== "";
+  const validateOrganization = () => organization.trim() !== "";
+
   const handleSendCode = async () => {
-    const success = await sendVerificationCode(email);
-    if (success) {
+    const response = await sendVerificationCode(email);
+    if (response !== null && response.status >= 200 && response.status <= 299) {
       setShowCodeField(true);
+      if (!response.data.account_exists) {
+        if (LOGIN_LOGGING) {
+          console.log(
+            "response.account_exists is " + response.data.account_exists
+          );
+        }
+        setShowNewAccountFields(true);
+      }
     } else {
       setErrors({ email: "Invalid email" });
     }
@@ -62,11 +87,23 @@ const Login: React.FC = () => {
       setErrors({ email: "Invalid email" });
     } else if (showCodeField && typedCode && !validateCode()) {
       setErrors({ code: "Verfication code should be be 6 digits" });
+    } else if (showNewAccountFields && typedName && !validateName()) {
+      setErrors({ name: "Please enter your name" });
+    } else if (
+      showNewAccountFields &&
+      typedOrganization &&
+      !validateOrganization()
+    ) {
+      setErrors({ organization: "Please enter your organization" });
     } else {
       if (typedEmail) {
         setIsEmailValid(true);
       }
-      if (showCodeField && typedCode) {
+      if (
+        showCodeField &&
+        typedCode &&
+        (!showNewAccountFields || (typedName && typedOrganization))
+      ) {
         setIsCodeValid(true);
       }
       setErrors({});
@@ -75,13 +112,19 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     validateForm();
-  }, [email, code]);
+  }, [email, code, name, organization]);
 
   const handleSubmit = async () => {
     if (isCodeValid) {
-      const success = await validateVerificationCode(email, code);
-      if (success) {
-        const isLoginSuccessful = await handleLogin(email);
+      const name_from_response = await validateVerificationCode(
+        email,
+        code,
+        name,
+        organization,
+        accountType
+      );
+      if (name_from_response) {
+        const isLoginSuccessful = await handleLogin(email, name_from_response);
         if (isLoginSuccessful) {
           navigation.navigate("Home");
         } else {
@@ -117,7 +160,38 @@ const Login: React.FC = () => {
           keyboardType="numeric"
         />
       )}
-      {errors.code && <Text style={styles.error}>{errors.code}</Text>}
+      {showCodeField && errors.code && (
+        <Text style={styles.error}>{errors.code}</Text>
+      )}
+      {showNewAccountFields && (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+          />
+          {errors.name && <Text style={styles.error}>{errors.name}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Organization"
+            value={organization}
+            onChangeText={setOrganization}
+          />
+          {errors.organization && (
+            <Text style={styles.error}>{errors.organization}</Text>
+          )}
+          <Text> Account type: </Text>
+          <Picker
+            selectedValue={accountType}
+            onValueChange={(itemValue) => setAccountType(itemValue)}
+          >
+            <Picker.Item label="Recruiter" value="Recruiter" />
+            <Picker.Item label="Hiring Manager" value="HiringManager" />
+          </Picker>
+        </>
+      )}
       {!showCodeField ? (
         <Pressable
           style={[styles.button, { opacity: isEmailValid ? 1 : 0.5 }]}

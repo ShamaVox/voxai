@@ -26,6 +26,7 @@ def send_code():
             verification.send_verification_code(email, verification_code)
             data = {
                 "message": "Verification code sent successfully",
+                "account_exists": database.Account.query.filter_by(email=email).first() is not None
             }
             return_code = 200
         else:
@@ -43,9 +44,7 @@ def validate_code():
 
         # Check code is valid 
         # Temporary: Account type is assigned based on verification code
-        new_account_type = verification.is_valid_verification_code(email, code)
-
-        if new_account_type is None: 
+        if not verification.is_valid_verification_code(email, code):
             data = {
                     "message": "Invalid verification code",
                 }
@@ -67,19 +66,36 @@ def validate_code():
                 
             else:
                 # Email doesn't exist, create a new entry
-                name = email.split("@")[0]
 
-                new_account = database.Account(email=email, name=name, account_type=new_account_type)
-                database.db.session.add(new_account)
-                database.db.session.commit()
+                # TODO: Move this to input_validation.py and run stronger validation
+                if not request.json.get('name'):
+                    data = {
+                        "message": "A name is needed to create an account"
+                    }
+                    return_code = 401
+                elif not request.json.get('organization'):
+                    data = {
+                        "message": "An organization is needed to create an account"
+                    }
+                    return_code = 401
+                elif not request.json.get('accountType'):
+                    data = {
+                        "message": "An account type is needed to create an account"
+                    }
+                    return_code = 401
+                else: 
+                    new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('account_type'))
+                    database.db.session.add(new_account)
+                    database.db.session.commit()
 
-                data = {
-                    "message": "Account created",
-                    "name": name,
-                    "account_type": new_account_type,
-                    "email": email
-                }
-                return_code = 201 
+                    data = {
+                        "message": "Account created",
+                        "name": request.json.get('name'),
+                        "organization": request.json.get('organization'),
+                        "account_type": request.json.get('account_type'),
+                        "email": email
+                    }
+                    return_code = 201 
 
         return jsonify(data), return_code
 
