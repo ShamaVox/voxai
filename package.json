@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "server": "cd server && npm start",
-    "client": "client/src/ServerUrl.ts && cd client && npm start",
+    "client": "cp client/src/config/ServerUrlLocal.ts client/src/config/ServerUrl.ts && cd client && npm start",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "start": "concurrently \"cd client && nodemon\" \"cd server && authbind --deep venv/bin/flask  run --debug --host=0.0.0.0 --port=80\"",
+    "start": "concurrently \"cd client && nodemon\" \"cd server && authbind --deep  venv/bin/flask  run --debug --host=0.0.0.0 --port=80\"",
     "local": "concurrently \"cd client && nodemon\" \"cd server && venv/bin/flask  run --debug\""
   },
   "keywords": [],
