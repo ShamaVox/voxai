@@ -2,7 +2,7 @@
 
 source server/venv/bin/activate
 
-# Something is wrong with nvm installation on AWS currently; these commands need to be run manually each time a shell instance is started 
+# If I connect from command line, these commands need to be run manually each time a shell instance is started; they do not need to be run from IDE
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm

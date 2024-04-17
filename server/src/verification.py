@@ -8,6 +8,9 @@ def send_verification_code(email, code):
 
 def is_valid_verification_code(email, code): 
     # Placeholder
+    # For now, code determines account type 
     if code == "123123":
-        return True 
-    return False
+        return "Recruiter"
+    elif code == "321321":
+        return "Hiring Manager"
+    return None 

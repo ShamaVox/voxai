@@ -1,7 +1,7 @@
 from flask import send_from_directory, request, jsonify
 import os
 from flask_cors import CORS
-from . import utils, verification, synthetic_data, input_validation
+from . import utils, verification, synthetic_data, input_validation, database
 from .app import app as app
 
 isAccepted = False
@@ -40,16 +40,47 @@ def validate_code():
     if request.method == 'POST':
         email = request.json.get('email')
         code = request.json.get('code')
-        if verification.is_valid_verification_code(email, code):
+
+        # Check code is valid 
+        # Temporary: Account type is assigned based on verification code
+        new_account_type = verification.is_valid_verification_code(email, code)
+
+        if new_account_type is None: 
             data = {
-                "message": "Verification code is valid",
-            }
-            return_code = 200
-        else:
-            data = {
-                "message": "Invalid verification code",
-            }
+                    "message": "Invalid verification code",
+                }
             return_code = 401
+        
+        else: 
+            # Check if email exists in the table
+            existing_account = database.Account.query.filter_by(email=email).first()
+
+            if existing_account:
+                # Email exists, fetch name and account type
+                data = {
+                    "message": "Verification code is valid",
+                    "name": existing_account.name,
+                    "account_type": existing_account.account_type,
+                    "email": email
+                }
+                return_code = 200
+                
+            else:
+                # Email doesn't exist, create a new entry
+                name = email.split("@")[0]
+
+                new_account = database.Account(email=email, name=name, account_type=new_account_type)
+                database.db.session.add(new_account)
+                database.db.session.commit()
+
+                data = {
+                    "message": "Account created",
+                    "name": name,
+                    "account_type": new_account_type,
+                    "email": email
+                }
+                return_code = 201 
+
         return jsonify(data), return_code
 
 @app.route("/api/insights")

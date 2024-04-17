@@ -35,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const response = await axios.post(SERVER_ENDPOINT("send_code"), {
         email,
       });
-      if (response.status === 200) {
+      if (response.status >= 200 && response.status <= 299) {
         setEmail(email);
         return true;
       } else {
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         email,
         code,
       });
-      if (response.status === 200) {
+      if (response.status >= 200 && response.status <= 299) {
         return true;
       } else {
         if (AUTH_LOGGING) {
