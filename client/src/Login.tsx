@@ -2,12 +2,15 @@ import React, { useState, useContext, useEffect } from "react";
 import { View, Text, TextInput, Pressable, Picker } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
-import { LOGIN_LOGGING } from "./Constants";
+import { LOGIN_LOGGING, SERVER_ENDPOINT } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
 
 interface Errors {
   email?: string;
   code?: string;
+  name?: string;
+  organization?: string;
 }
 
 const Login: React.FC = () => {
@@ -27,11 +30,7 @@ const Login: React.FC = () => {
   const [typedName, setTypedName] = useState(false);
   const [typedOrganization, setTypedOrganization] = useState(false);
 
-  const {
-    handleLogin,
-    sendVerificationCode,
-    validateVerificationCode,
-  } = useContext(AuthContext);
+  const { handleLogin } = useContext(AuthContext);
   const navigation = useNavigation();
 
   if (email.trim() && !typedEmail) {
@@ -58,23 +57,6 @@ const Login: React.FC = () => {
 
   const validateName = () => name.trim() !== "";
   const validateOrganization = () => organization.trim() !== "";
-
-  const handleSendCode = async () => {
-    const response = await sendVerificationCode(email);
-    if (response !== null && response.status >= 200 && response.status <= 299) {
-      setShowCodeField(true);
-      if (!response.data.account_exists) {
-        if (LOGIN_LOGGING) {
-          console.log(
-            "response.account_exists is " + response.data.account_exists
-          );
-        }
-        setShowNewAccountFields(true);
-      }
-    } else {
-      setErrors({ email: "Invalid email" });
-    }
-  };
 
   const validateCode = (): boolean => {
     // Validate the verification code (6 digits)
@@ -114,24 +96,61 @@ const Login: React.FC = () => {
     validateForm();
   }, [email, code, name, organization]);
 
+  const handleSendCode = async () => {
+    try {
+      const response = await axios.post(SERVER_ENDPOINT("send_code"), {
+        email,
+      });
+      if (response.status < 200 || response.status > 299) {
+        if (LOGIN_LOGGING) {
+          console.log("Sending verification code failed");
+        }
+        setErrors({ email: "Invalid email" });
+        return;
+      }
+      setShowCodeField(true);
+      if (!response.data.account_exists) {
+        if (LOGIN_LOGGING) {
+          console.log(
+            "response.account_exists is " + response.data.account_exists
+          );
+        }
+        setShowNewAccountFields(true);
+      }
+    } catch (error) {
+      console.error("Error sending verification code:", error);
+      setErrors({ email: "Invalid email" });
+      return;
+    }
+  };
+
   const handleSubmit = async () => {
     if (isCodeValid) {
-      const name_from_response = await validateVerificationCode(
-        email,
-        code,
-        name,
-        organization,
-        accountType
-      );
-      if (name_from_response) {
-        const isLoginSuccessful = await handleLogin(email, name_from_response);
-        if (isLoginSuccessful) {
-          navigation.navigate("Home");
-        } else {
+      try {
+        const response = await axios.post(SERVER_ENDPOINT("validate_code"), {
+          email,
+          code,
+          name,
+          organization,
+          accountType,
+        });
+        if (
+          response.status < 200 ||
+          response.status > 299 ||
+          !response.data.name
+        ) {
+          if (AUTH_LOGGING) {
+            console.log("Verification code validation failed");
+          }
           setErrors({ code: "Invalid code" });
+          return;
         }
-      } else {
+        handleLogin(email, response.data.name);
+        navigation.navigate("Home");
+      } catch (error) {
+        console.error("Error during verification code validation:", error);
         setErrors({ code: "Invalid code" });
+        return;
       }
     } else {
       if (LOGIN_LOGGING) {
