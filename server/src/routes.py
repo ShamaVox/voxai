@@ -43,7 +43,6 @@ def validate_code():
         code = request.json.get('code')
 
         # Check code is valid 
-        # Temporary: Account type is assigned based on verification code
         if not verification.is_valid_verification_code(email, code):
             data = {
                     "message": "Invalid verification code",
@@ -84,7 +83,7 @@ def validate_code():
                     }
                     return_code = 401
                 else: 
-                    new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('account_type'))
+                    new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
                     database.db.session.add(new_account)
                     database.db.session.commit()
 
@@ -92,7 +91,7 @@ def validate_code():
                         "message": "Account created",
                         "name": request.json.get('name'),
                         "organization": request.json.get('organization'),
-                        "account_type": request.json.get('account_type'),
+                        "account_type": request.json.get('accountType'),
                         "email": email
                     }
                     return_code = 201 
