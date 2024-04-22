@@ -1,82 +1,141 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, Text, TextInput, Pressable, Picker } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
-import { MIN_PASSWORD_LENGTH, LOGIN_LOGGING } from "./Constants";
+import { LOGIN_LOGGING } from "./Constants";
 import { useNavigation } from "@react-navigation/native";
 
 interface Errors {
-  username?: string;
-  password?: string;
+  email?: string;
+  code?: string;
 }
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Errors>({});
-  const [isFormValid, setIsFormValid] = useState(false);
-
+  const [isEmailValid, setIsEmailValid] = useState(false);
+  const [showCodeField, setShowCodeField] = useState(false);
+  const [isCodeValid, setIsCodeValid] = useState(false);
+  const [name, setName] = useState("");
+  const [organization, setOrganization] = useState("");
+  const [accountType, setAccountType] = useState("Recruiter");
+  const [showNewAccountFields, setShowNewAccountFields] = useState(false);
   // This isn't very elegant, but I don't want the error messages to show when the user hasn't typed anything
-  const [typedUsername, setTypedUsername] = useState(false);
-  const [typedPassword, setTypedPassword] = useState(false);
+  const [typedEmail, setTypedEmail] = useState(false);
+  const [typedCode, setTypedCode] = useState(false);
+  const [typedName, setTypedName] = useState(false);
+  const [typedOrganization, setTypedOrganization] = useState(false);
 
-  const { handleLogin } = useContext(AuthContext);
+  const {
+    handleLogin,
+    sendVerificationCode,
+    validateVerificationCode,
+  } = useContext(AuthContext);
   const navigation = useNavigation();
 
+  if (email.trim() && !typedEmail) {
+    setTypedEmail(true);
+  }
+
+  if (code.trim() && !typedCode) {
+    setTypedCode(true);
+  }
+
+  if (name.trim() && !typedName) {
+    setTypedName(true);
+  }
+
+  if (organization.trim() && !typedOrganization) {
+    setTypedOrganization(true);
+  }
+
+  const validateEmail = (): boolean => {
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateName = () => name.trim() !== "";
+  const validateOrganization = () => organization.trim() !== "";
+
+  const handleSendCode = async () => {
+    const response = await sendVerificationCode(email);
+    if (response !== null && response.status >= 200 && response.status <= 299) {
+      setShowCodeField(true);
+      if (!response.data.account_exists) {
+        if (LOGIN_LOGGING) {
+          console.log(
+            "response.account_exists is " + response.data.account_exists
+          );
+        }
+        setShowNewAccountFields(true);
+      }
+    } else {
+      setErrors({ email: "Invalid email" });
+    }
+  };
+
+  const validateCode = (): boolean => {
+    // Validate the verification code (6 digits)
+    const codeRegex = /^\d{6}$/;
+    return codeRegex.test(code);
+  };
+
   const validateForm = (): boolean => {
-    let validationErrors: Record<string, string> = {};
-
-    if (username.trim() && !typedUsername) {
-      setTypedUsername(true);
+    if (typedEmail && !validateEmail()) {
+      setErrors({ email: "Invalid email" });
+    } else if (showCodeField && typedCode && !validateCode()) {
+      setErrors({ code: "Verfication code should be be 6 digits" });
+    } else if (showNewAccountFields && typedName && !validateName()) {
+      setErrors({ name: "Please enter your name" });
+    } else if (
+      showNewAccountFields &&
+      typedOrganization &&
+      !validateOrganization()
+    ) {
+      setErrors({ organization: "Please enter your organization" });
+    } else {
+      if (typedEmail) {
+        setIsEmailValid(true);
+      }
+      if (
+        showCodeField &&
+        typedCode &&
+        (!showNewAccountFields || (typedName && typedOrganization))
+      ) {
+        setIsCodeValid(true);
+      }
+      setErrors({});
     }
-
-    if (password.trim() && !typedPassword) {
-      setTypedPassword(true);
-    }
-
-    // Validate username
-    if (!username.trim() && typedUsername) {
-      validationErrors.username = "Username is required.";
-    }
-
-    // Validate password
-    if (!password.trim() && typedPassword) {
-      validationErrors.password = "Password is required.";
-    } else if (password.trim() && password.length < MIN_PASSWORD_LENGTH) {
-      validationErrors.password = "Password must be at least 6 characters.";
-    }
-
-    setErrors(validationErrors);
-
-    // Form is valid if there are no errors
-    return (
-      username.trim() &&
-      password.trim() &&
-      Object.keys(validationErrors).length === 0
-    );
   };
 
   useEffect(() => {
-    // Check form validity whenever username or password changes
-    setIsFormValid(validateForm());
-  }, [username, password]);
+    validateForm();
+  }, [email, code, name, organization]);
 
   const handleSubmit = async () => {
-    // Call handleLogin from AuthContext if form is valid
-    if (isFormValid) {
-      const isLoginSuccessful = await handleLogin(username, password);
-      if (isLoginSuccessful) {
-        // Navigate to the Dashboard page on successful login
-        navigation.navigate("Home");
+    if (isCodeValid) {
+      const name_from_response = await validateVerificationCode(
+        email,
+        code,
+        name,
+        organization,
+        accountType
+      );
+      if (name_from_response) {
+        const isLoginSuccessful = await handleLogin(email, name_from_response);
+        if (isLoginSuccessful) {
+          navigation.navigate("Home");
+        } else {
+          setErrors({ code: "Invalid code" });
+        }
       } else {
-        const validationErrors: Record<string, string> = {};
-        validationErrors.password = "Invalid credentials.";
-        setErrors(validationErrors);
-        setIsFormValid(false);
+        setErrors({ code: "Invalid code" });
       }
     } else {
       if (LOGIN_LOGGING) {
-        console.log("Form has errors; not submitting request.");
+        console.log("Code is invalid; not submitting request.");
       }
     }
   };
@@ -86,26 +145,70 @@ const Login: React.FC = () => {
       <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
+        placeholder="Email"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
       />
-      {errors.username && <Text style={styles.error}>{errors.username}</Text>}
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      {errors.password && <Text style={styles.error}>{errors.password}</Text>}
-      <Pressable
-        style={[styles.button, { opacity: isFormValid ? 1 : 0.5 }]}
-        disabled={!isFormValid}
-        onPress={handleSubmit}
-      >
-        <Text style={styles.buttonText}>Login</Text>
-      </Pressable>
+      {errors.email && <Text style={styles.error}>{errors.email}</Text>}
+      {showCodeField && (
+        <TextInput
+          style={styles.input}
+          placeholder="Verification code"
+          value={code}
+          onChangeText={setCode}
+          keyboardType="numeric"
+        />
+      )}
+      {showCodeField && errors.code && (
+        <Text style={styles.error}>{errors.code}</Text>
+      )}
+      {showNewAccountFields && (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Name"
+            value={name}
+            onChangeText={setName}
+          />
+          {errors.name && <Text style={styles.error}>{errors.name}</Text>}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Organization"
+            value={organization}
+            onChangeText={setOrganization}
+          />
+          {errors.organization && (
+            <Text style={styles.error}>{errors.organization}</Text>
+          )}
+          <Text> Account type: </Text>
+          <Picker
+            selectedValue={accountType}
+            onValueChange={(itemValue) => setAccountType(itemValue)}
+          >
+            <Picker.Item label="Recruiter" value="Recruiter" />
+            <Picker.Item label="Hiring Manager" value="HiringManager" />
+          </Picker>
+        </>
+      )}
+      {!showCodeField ? (
+        <Pressable
+          style={[styles.button, { opacity: isEmailValid ? 1 : 0.5 }]}
+          disabled={!isEmailValid}
+          onPress={handleSendCode}
+        >
+          <Text style={styles.buttonText}>Send code</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          style={[styles.button, { opacity: isCodeValid ? 1 : 0.5 }]}
+          disabled={!isCodeValid}
+          onPress={handleSubmit}
+        >
+          <Text style={styles.buttonText}>Validate code</Text>
+        </Pressable>
+      )}
     </View>
   );
 };

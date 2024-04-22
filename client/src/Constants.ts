@@ -1,3 +1,5 @@
+import { server_url } from "./ServerUrl";
+
 // Debug
 export const LOGIN_LOGGING = false;
 export const AUTH_LOGGING = false;
@@ -5,7 +7,7 @@ export const NAV_BAR_LOGGING = false;
 export const APP_LOGGING = false;
 
 // Server
-export const SERVER_URL = "http://localhost:5000/";
+export const SERVER_URL = server_url;
 export function SERVER_ENDPOINT(endpoint_name: string): string {
   return SERVER_URL + "api/" + endpoint_name;
 }
