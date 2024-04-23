@@ -17,9 +17,14 @@ const Header: React.FC = () => {
             : navigation.navigate("Home");
         }}
       >
-        <Image source={require("../assets/logo.png")} style={styles.logo} />
+        <Image
+          testID="logo"
+          source={require("../assets/logo.png")}
+          style={styles.logo}
+        />
       </Pressable>
       <Pressable
+        testID="profile-container"
         style={styles.profileContainer}
         onPress={() => {
           if (!isLoggedIn) {
@@ -28,6 +33,9 @@ const Header: React.FC = () => {
         }}
       >
         <Image
+          testID={
+            isLoggedIn ? "profile-icon-logged-in" : "profile-icon-logged-out"
+          }
           source={
             isLoggedIn
               ? require("../assets/icons/profile-icon-logged-in.png")
