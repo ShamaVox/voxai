@@ -15,8 +15,10 @@ const NavBar: React.FC = () => {
         console.log(e);
       }
       if (e.data.state !== undefined) {
-        console.log(e.data.state.routes.slice(-1));
-        console.log(e.data.state.routes.slice(-1).name);
+        if (NAV_BAR_LOGGING) {
+          console.log(e.data.state.routes.slice(-1));
+          console.log(e.data.state.routes.slice(-1).name);
+        }
         setActiveRouteName(e.data.state.routes.slice(-1)[0].name);
       }
     });
@@ -46,10 +48,11 @@ const NavBar: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.section}>
+    <View testID="nav-bar" style={styles.container}>
+      <View testID="section-general" style={styles.section}>
         <Text style={styles.sectionTitle}>General</Text>
         <Pressable
+          testID="nav-button-home"
           style={getButtonStyle("Home")}
           onPress={() => navigation.navigate("Home")}
         >
@@ -60,6 +63,7 @@ const NavBar: React.FC = () => {
           <Text style={getTextStyle("Home")}>Overview</Text>
         </Pressable>
         <Pressable
+          testID="nav-button-dashboard"
           style={getButtonStyle("Dashboard")}
           onPress={() => navigation.navigate("Dashboard")}
         >
@@ -70,6 +74,7 @@ const NavBar: React.FC = () => {
           <Text style={getTextStyle("Dashboard")}>Dashboard</Text>
         </Pressable>
         <Pressable
+          testID="nav-button-candidates"
           style={getButtonStyle("Candidates")}
           onPress={() => navigation.navigate("Candidates")}
         >
@@ -81,9 +86,10 @@ const NavBar: React.FC = () => {
         </Pressable>
       </View>
       <View style={styles.divider} />
-      <View style={styles.section}>
+      <View testID="section-support" style={styles.section}>
         <Text style={styles.sectionTitle}>Support</Text>
         <Pressable
+          testID="nav-button-settings"
           style={getButtonStyle("Settings")}
           onPress={() => navigation.navigate("Candidates")} // temporary as there is no settings page
         >

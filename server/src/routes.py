@@ -3,6 +3,7 @@ import os
 from flask_cors import CORS
 from . import utils, verification, synthetic_data, input_validation, database
 from .app import app as app
+from os import environ
 
 isAccepted = False
 
@@ -43,7 +44,6 @@ def validate_code():
         code = request.json.get('code')
 
         # Check code is valid 
-        # Temporary: Account type is assigned based on verification code
         if not verification.is_valid_verification_code(email, code):
             data = {
                     "message": "Invalid verification code",
@@ -84,7 +84,7 @@ def validate_code():
                     }
                     return_code = 401
                 else: 
-                    new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('account_type'))
+                    new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
                     database.db.session.add(new_account)
                     database.db.session.commit()
 
@@ -92,7 +92,7 @@ def validate_code():
                         "message": "Account created",
                         "name": request.json.get('name'),
                         "organization": request.json.get('organization'),
-                        "account_type": request.json.get('account_type'),
+                        "account_type": request.json.get('accountType'),
                         "email": email
                     }
                     return_code = 201 
@@ -111,6 +111,17 @@ def get_insights():
         "lowerCompensationRange": lower_compensation,
         "upperCompensationRange": lower_compensation + utils.get_random(100),
     }
+    if 'TEST' in environ:
+        # Temporary until there is a table in the database which can be configured for integration testing
+        insights = {
+            "candidateStage": 3,
+            "fittingJobApplication": 85,
+            "fittingJobApplicationPercentage": 29,
+            "averageInterviewPace": 6,
+            "averageInterviewPacePercentage": -10,
+            "lowerCompensationRange": 20,
+            "upperCompensationRange": 129,
+        }
     return jsonify(insights)
 
 @app.route("/api/interviews")
@@ -126,4 +137,7 @@ def get_interviews():
             "interviewers": f"{utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}, {utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}",
             "role": utils.get_random_item(synthetic_data.roles),
         })
+    if 'TEST' in environ:
+        # Temporary until there is a table in the database which can be configured for integration testing
+        interviews[0]["candidateName"] = "John Doe"
     return jsonify(interviews)
