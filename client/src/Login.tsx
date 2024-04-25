@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, Pressable, Picker } from "react-native";
+import { View, Text, TextInput, Pressable } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
 import { LOGIN_LOGGING, SERVER_ENDPOINT } from "./Constants";
@@ -68,7 +69,7 @@ const Login: React.FC = () => {
     if (typedEmail && !validateEmail()) {
       setErrors({ email: "Invalid email" });
     } else if (showCodeField && typedCode && !validateCode()) {
-      setErrors({ code: "Verfication code should be be 6 digits" });
+      setErrors({ code: "Verification code should be 6 digits" });
     } else if (showNewAccountFields && typedName && !validateName()) {
       setErrors({ name: "Please enter your name" });
     } else if (
@@ -118,7 +119,9 @@ const Login: React.FC = () => {
         setShowNewAccountFields(true);
       }
     } catch (error) {
-      console.error("Error sending verification code:", error);
+      if (LOGIN_LOGGING) {
+        console.log("Error sending verification code:", error);
+      }
       setErrors({ email: "Invalid email" });
       return;
     }
@@ -148,7 +151,9 @@ const Login: React.FC = () => {
         handleLogin(email, response.data.name);
         navigation.navigate("Home");
       } catch (error) {
-        console.error("Error during verification code validation:", error);
+        if (LOGIN_LOGGING) {
+          console.log("Error during verification code validation:", error);
+        }
         setErrors({ code: "Invalid code" });
         return;
       }
@@ -163,6 +168,7 @@ const Login: React.FC = () => {
     <View style={styles.container} role={"form"}>
       <Text style={styles.title}>Login</Text>
       <TextInput
+        testID="email-input"
         style={styles.input}
         placeholder="Email"
         value={email}
@@ -172,6 +178,7 @@ const Login: React.FC = () => {
       {errors.email && <Text style={styles.error}>{errors.email}</Text>}
       {showCodeField && (
         <TextInput
+          testID="code-input"
           style={styles.input}
           placeholder="Verification code"
           value={code}
@@ -185,6 +192,7 @@ const Login: React.FC = () => {
       {showNewAccountFields && (
         <>
           <TextInput
+            testID="name-input"
             style={styles.input}
             placeholder="Name"
             value={name}
@@ -193,6 +201,7 @@ const Login: React.FC = () => {
           {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
           <TextInput
+            testID="organization-input"
             style={styles.input}
             placeholder="Organization"
             value={organization}

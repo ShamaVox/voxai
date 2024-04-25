@@ -31,14 +31,13 @@ const styles = StyleSheet.create({
   profileText: {
     fontSize: 16,
     fontWeight: "bold",
-    resizeMode: "contain",
   },
   downArrow: {
     width: 25,
     height: 25,
     resizeMode: "contain",
-    leftPadding: 10,
-    rightPadding: 10,
+    paddingLeft: 10,
+    paddingRight: 10,
   },
 });
 

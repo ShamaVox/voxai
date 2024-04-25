@@ -1,7 +1,7 @@
 // Header.test.tsx
 
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native"; // Optional, for better interaction testing
+import { render, fireEvent } from "@testing-library/react-native";
 import Header from "../src/Header";
 import { AuthContext } from "../src/AuthContext";
 import { useNavigation } from "@react-navigation/native";

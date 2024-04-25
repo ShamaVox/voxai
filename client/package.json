@@ -18,6 +18,7 @@
     "@react-navigation/stack": "^6.3.29",
     "@types/react": "~18.2.45",
     "axios": "^1.6.8",
+    "babel-plugin-styled-components": "^2.1.4",
     "expo": "~50.0.14",
     "expo-status-bar": "~1.11.1",
     "metro-cache": "^0.80.8",
@@ -25,14 +26,19 @@
     "react-dom": "18.2.0",
     "react-native": "0.73.6",
     "react-native-web": "~0.19.6",
+    "react-test-renderer": "^18.2.0",
+    "styled-components": "^6.1.8",
     "typescript": "^5.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@react-native-picker/picker": "^2.7.5",
     "@testing-library/react": "^15.0.2",
     "@testing-library/react-native": "^12.4.5",
     "@types/react-navigation": "^3.4.0",
-    "jest-expo": "^50.0.4"
+    "axios-mock-adapter": "^1.22.0",
+    "jest-expo": "^50.0.4",
+    "jest-styled-components": "^7.2.0"
   },
   "private": true
 }
