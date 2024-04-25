@@ -2,45 +2,53 @@ import {
   mockAccountExists,
   mockNewAccount,
   mockValidCode,
+  mockUpcomingInterviews,
 } from "../utils/MockRequests";
-import { render, fireEvent } from "@testing-library/react-native";
+import { fireEvent, waitFor } from "@testing-library/react-native";
 
-export const sendCodeSuccess = (
+export const sendCodeSuccess = async (
   getByTestId,
   getByText,
-  newAccount: boolean = false,
-  mock: boolean = true
+  newAccount: number = 0
 ) => {
-  if (mock) {
-    if (newAccount) {
-      mockNewAccount();
-    } else {
-      mockAccountExists();
-    }
+  let email;
+  if (newAccount) {
+    mockNewAccount();
+    email = "new" + newAccount.toString() + "@email.com";
+  } else {
+    mockAccountExists();
+    email = "existing@email.com";
   }
 
-  fireEvent.changeText(getByTestId("email-input"), "valid@email.com");
-  fireEvent.press(getByText("Send code"));
+  await waitFor(() => {
+    fireEvent.changeText(getByTestId("email-input"), email);
+    fireEvent.press(getByText("Send code"));
+  });
 };
 
 export const validateCodeSuccess = async (
   findByPlaceholderText,
   getByTestId,
   getByText,
-  newAccount: boolean = false,
-  mock: boolean = true
+  newAccount: number = 0
 ) => {
-  if (mock) {
-    mockValidCode();
-  }
+  mockValidCode();
   if (newAccount) {
     await findByPlaceholderText("Name");
-    fireEvent.changeText(getByTestId("name-input"), "New User");
-    fireEvent.changeText(getByTestId("organization-input"), "Test Org");
+    await waitFor(() => {
+      fireEvent.changeText(getByTestId("name-input"), "New User");
+    });
+    await waitFor(() => {
+      fireEvent.changeText(getByTestId("organization-input"), "Test Org");
+    });
   }
   await findByPlaceholderText("Verification code");
-  fireEvent.changeText(getByTestId("code-input"), "123123"); // Valid code
-  fireEvent.press(getByText("Validate code"));
+  await waitFor(() => {
+    fireEvent.changeText(getByTestId("code-input"), "123123"); // Valid code
+  });
+  await waitFor(() => {
+    fireEvent.press(getByText("Validate code"));
+  });
 
   // Wait for login to complete
   await new Promise(process.nextTick);
@@ -50,21 +58,16 @@ export const loginSuccess = async (
   findByPlaceholderText,
   getByTestId,
   getByText,
-  newAccount: boolean = false,
-  mock: boolean = true
+  newAccount: number = 0
 ) => {
-  sendCodeSuccess(
-    getByTestId,
-    getByText,
-    (newAccount = newAccount),
-    (mock = mock)
-  );
+  await sendCodeSuccess(getByTestId, getByText, (newAccount = newAccount));
+
+  mockUpcomingInterviews();
 
   await validateCodeSuccess(
     findByPlaceholderText,
     getByTestId,
     getByText,
-    (newAccount = newAccount),
-    (mock = mock)
+    (newAccount = newAccount)
   );
 };

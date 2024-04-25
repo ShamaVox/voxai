@@ -15,8 +15,10 @@ const NavBar: React.FC = () => {
         console.log(e);
       }
       if (e.data.state !== undefined) {
-        console.log(e.data.state.routes.slice(-1));
-        console.log(e.data.state.routes.slice(-1).name);
+        if (NAV_BAR_LOGGING) {
+          console.log(e.data.state.routes.slice(-1));
+          console.log(e.data.state.routes.slice(-1).name);
+        }
         setActiveRouteName(e.data.state.routes.slice(-1)[0].name);
       }
     });

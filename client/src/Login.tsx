@@ -119,6 +119,7 @@ const Login: React.FC = () => {
         setShowNewAccountFields(true);
       }
     } catch (error) {
+      console.error(error);
       if (LOGIN_LOGGING) {
         console.log("Error sending verification code:", error);
       }

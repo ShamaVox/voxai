@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
-import { SERVER_ENDPOINT } from "./Constants";
+import { SERVER_ENDPOINT, HOME_LOGGING } from "./Constants";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
@@ -26,7 +26,9 @@ const Home: FC = () => {
       const response = await axios.get(SERVER_ENDPOINT("interviews"));
       setInterviews(response.data);
     } catch (error) {
-      console.error("Error fetching interviews:", error);
+      if (HOME_LOGGING) {
+        console.log("Error fetching interviews:", error);
+      }
     }
   };
 
@@ -35,7 +37,7 @@ const Home: FC = () => {
   };
 
   const renderInterviewItem = ({ item }) => (
-    <View style={styles.interviewItem}>
+    <View testID="interview-table-entry" style={styles.interviewItem}>
       <View style={styles.interviewColumn}>
         <Text style={styles.interviewDate}>{item.date}</Text>
         <Text style={styles.interviewTime}>{item.time}</Text>
@@ -66,6 +68,7 @@ const Home: FC = () => {
               <Text style={styles.interviewsTitle}>My Interviews</Text>
               <View style={styles.interviewsTabs}>
                 <Pressable
+                  testID="upcoming-tab"
                   style={[
                     styles.tabButton,
                     selectedTab === "Upcoming" && styles.selectedTabButton,
@@ -83,6 +86,7 @@ const Home: FC = () => {
                   </Text>
                 </Pressable>
                 <Pressable
+                  testID="completed-tab"
                   style={[
                     styles.tabButton,
                     selectedTab === "Completed" && styles.selectedTabButton,
@@ -102,6 +106,7 @@ const Home: FC = () => {
               </View>
             </View>
             <FlatList
+              testID="interview-list"
               data={selectedTab === "Upcoming" ? interviews : []}
               renderItem={renderInterviewItem}
               keyExtractor={(item) => item.id.toString()}
@@ -115,7 +120,11 @@ const Home: FC = () => {
       ) : (
         <>
           <Text>This is a placeholder homepage</Text>
-          <Pressable onPress={handleLoginClick} style={styles.button}>
+          <Pressable
+            testID="homepage-login"
+            onPress={handleLoginClick}
+            style={styles.button}
+          >
             <Text>Login</Text>
           </Pressable>
         </>

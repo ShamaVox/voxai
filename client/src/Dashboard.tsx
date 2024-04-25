@@ -2,7 +2,7 @@ import React, { FC, useState, useEffect } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_ENDPOINT } from "./Constants";
+import { SERVER_ENDPOINT, DASHBOARD_LOGGING } from "./Constants";
 
 const Dashboard: FC = () => {
   return <InsightsScreen />;
@@ -20,7 +20,9 @@ const InsightsScreen = () => {
       const response = await axios.get(SERVER_ENDPOINT("insights"));
       setInsights(response.data);
     } catch (error) {
-      console.error("Error fetching insights:", error);
+      if (DASHBOARD_LOGGING) {
+        console.log("Error fetching insights:", error);
+      }
     }
   };
 

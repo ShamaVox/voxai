@@ -3,6 +3,7 @@ import os
 from flask_cors import CORS
 from . import utils, verification, synthetic_data, input_validation, database
 from .app import app as app
+from os import environ
 
 isAccepted = False
 
@@ -110,6 +111,17 @@ def get_insights():
         "lowerCompensationRange": lower_compensation,
         "upperCompensationRange": lower_compensation + utils.get_random(100),
     }
+    if 'TEST' in environ:
+        # Temporary until there is a table in the database which can be configured for integration testing
+        insights = {
+            "candidateStage": 3,
+            "fittingJobApplication": 85,
+            "fittingJobApplicationPercentage": 29,
+            "averageInterviewPace": 6,
+            "averageInterviewPacePercentage": -10,
+            "lowerCompensationRange": 20,
+            "upperCompensationRange": 129,
+        }
     return jsonify(insights)
 
 @app.route("/api/interviews")
@@ -125,4 +137,7 @@ def get_interviews():
             "interviewers": f"{utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}, {utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}",
             "role": utils.get_random_item(synthetic_data.roles),
         })
+    if 'TEST' in environ:
+        # Temporary until there is a table in the database which can be configured for integration testing
+        interviews[0]["candidateName"] = "John Doe"
     return jsonify(interviews)

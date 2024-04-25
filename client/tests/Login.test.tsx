@@ -123,21 +123,29 @@ test("handles successful login", async () => {
   );
 
   // Assert that handleLogin was called with the correct arguments
-  expect(mockHandleLogin).toHaveBeenCalledWith("valid@email.com", "Test Name");
+  expect(mockHandleLogin).toHaveBeenCalledWith(
+    "existing@email.com",
+    "Test Name"
+  );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });
 
 test("handles successful account creation and login", async () => {
   const { getByTestId, getByText, findByPlaceholderText } = renderLogin();
 
+  let account_number = Math.random() * 99999999999999999999;
+
   await loginSuccess(
     findByPlaceholderText,
     getByTestId,
     getByText,
-    (newAccount = true)
+    (newAccount = account_number)
   );
 
   // Assert handleLogin was called and navigation occurred
-  expect(mockHandleLogin).toHaveBeenCalledWith("valid@email.com", "Test Name");
+  expect(mockHandleLogin).toHaveBeenCalledWith(
+    "new" + account_number + "@email.com",
+    "Test Name"
+  );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });
