@@ -1,5 +1,5 @@
 import React, { createContext, useState } from "react";
-import { AUTH_LOGGING } from "./Constants";
+import { AUTH_LOGGING } from "./utils/Constants";
 
 interface AuthContextProps {
   isLoggedIn: boolean;

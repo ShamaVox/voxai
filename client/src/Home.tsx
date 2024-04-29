@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
-import { SERVER_ENDPOINT, HOME_LOGGING } from "./Constants";
+import { SERVER_ENDPOINT, HOME_LOGGING } from "./utils/Constants";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date

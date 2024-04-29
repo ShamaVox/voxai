@@ -41,21 +41,21 @@ beforeEach(() => {
 test("shows error message for invalid email", () => {
   const { getByTestId, getByText } = renderLogin();
 
-  mockAccountExists();
-
   // Enter an invalid email
   fireEvent.changeText(getByTestId("email-input"), "invalid_email");
+  fireEvent.press(getByText("Send code"));
 
   // Check for error message
   expect(getByText("Invalid email")).toBeTruthy();
 });
 
 test("shows no error message for valid email", () => {
-  const { getByTestId, queryByText } = renderLogin();
+  const { getByTestId, queryByText, getByText } = renderLogin();
 
   mockAccountExists();
 
   fireEvent.changeText(getByTestId("email-input"), "valid@email.com");
+  fireEvent.press(getByText("Send code"));
 
   expect(queryByText("Invalid email")).toBeNull();
 });

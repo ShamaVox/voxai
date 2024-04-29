@@ -1,11 +1,12 @@
 import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, Pressable } from "react-native";
+import { View, Text, TextInput, Pressable, Keyboard } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
-import { LOGIN_LOGGING, SERVER_ENDPOINT } from "./Constants";
+import { LOGIN_LOGGING, SERVER_ENDPOINT } from "./utils/Constants";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
+import { checkStatus } from "./utils/Requests";
 
 interface Errors {
   email?: string;
@@ -14,95 +15,132 @@ interface Errors {
   organization?: string;
 }
 
+/**
+ * Component that renders an input field with an error message.
+ */
+const InputWithError = ({
+  value,
+  onChangeText,
+  placeholder,
+  keyboardType,
+  error,
+  testID,
+  ...props
+}) => {
+  return (
+    <>
+      <TextInput
+        testID={testID}
+        style={styles.input}
+        placeholder={placeholder}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        {...props}
+      />
+      {error && <Text style={styles.error}>{error}</Text>}
+    </>
+  );
+};
+
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [isEmailValid, setIsEmailValid] = useState(false);
   const [showCodeField, setShowCodeField] = useState(false);
-  const [isCodeValid, setIsCodeValid] = useState(false);
   const [name, setName] = useState("");
   const [organization, setOrganization] = useState("");
   const [accountType, setAccountType] = useState("Recruiter");
   const [showNewAccountFields, setShowNewAccountFields] = useState(false);
-  // This isn't very elegant, but I don't want the error messages to show when the user hasn't typed anything
-  const [typedEmail, setTypedEmail] = useState(false);
-  const [typedCode, setTypedCode] = useState(false);
-  const [typedName, setTypedName] = useState(false);
-  const [typedOrganization, setTypedOrganization] = useState(false);
-
+  const [pressedSendCode, setPressedSendCode] = useState(false);
+  const [pressedSubmit, setPressedSubmit] = useState(false);
   const { handleLogin } = useContext(AuthContext);
   const navigation = useNavigation();
 
-  if (email.trim() && !typedEmail) {
-    setTypedEmail(true);
-  }
-
-  if (code.trim() && !typedCode) {
-    setTypedCode(true);
-  }
-
-  if (name.trim() && !typedName) {
-    setTypedName(true);
-  }
-
-  if (organization.trim() && !typedOrganization) {
-    setTypedOrganization(true);
-  }
-
+  /**
+   * Validates the email address using a regular expression.
+   * @returns {boolean} true if the email is valid, false otherwise
+   */
   const validateEmail = (): boolean => {
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
+  /**
+   * Validates the name field ensuring it's not empty.
+   * @returns {boolean} true if the name is valid, false otherwise
+   */
   const validateName = () => name.trim() !== "";
+
+  /**
+   * Validates the organization field ensuring it's not empty.
+   * @returns {boolean} true if the organization is valid, false otherwise
+   */
   const validateOrganization = () => organization.trim() !== "";
 
+  /**
+   * Validates the verification code ensuring it's 6 digits.
+   * @returns {boolean} true if the code is valid, false otherwise
+   */
   const validateCode = (): boolean => {
-    // Validate the verification code (6 digits)
     const codeRegex = /^\d{6}$/;
     return codeRegex.test(code);
   };
 
-  const validateForm = (): boolean => {
-    if (typedEmail && !validateEmail()) {
-      setErrors({ email: "Invalid email" });
-    } else if (showCodeField && typedCode && !validateCode()) {
-      setErrors({ code: "Verification code should be 6 digits" });
-    } else if (showNewAccountFields && typedName && !validateName()) {
-      setErrors({ name: "Please enter your name" });
-    } else if (
-      showNewAccountFields &&
-      typedOrganization &&
-      !validateOrganization()
-    ) {
-      setErrors({ organization: "Please enter your organization" });
-    } else {
-      if (typedEmail) {
-        setIsEmailValid(true);
-      }
-      if (
-        showCodeField &&
-        typedCode &&
-        (!showNewAccountFields || (typedName && typedOrganization))
-      ) {
-        setIsCodeValid(true);
-      }
-      setErrors({});
-    }
+  /**
+   * Validates the form based on the current state and updates errors.
+   */
+  const validateForm = (): void => {
+    const emailError = !validateEmail() ? "Invalid email" : undefined;
+    const codeError =
+      showCodeField && !validateCode()
+        ? "Verification code should be 6 digits"
+        : undefined;
+    const nameError =
+      showNewAccountFields && !validateName()
+        ? "Please enter your name"
+        : undefined;
+    const organizationError =
+      showNewAccountFields && !validateOrganization()
+        ? "Please enter your organization"
+        : undefined;
+
+    setErrors({
+      email: emailError,
+      code: codeError,
+      name: nameError,
+      organization: organizationError,
+    });
   };
+
+  /**
+   * Checks whether there are any errors preventing the code validation request from being sent.
+   */
+
+  function canSubmit() {
+    return (
+      showCodeField &&
+      errors.code === undefined &&
+      errors.name === undefined &&
+      errors.organization === undefined
+    );
+  }
 
   useEffect(() => {
     validateForm();
   }, [email, code, name, organization]);
 
+  /**
+   * Handles sending the verification code to the provided email.
+   */
   const handleSendCode = async () => {
+    setPressedSendCode(true);
     try {
       const response = await axios.post(SERVER_ENDPOINT("send_code"), {
         email,
       });
-      if (response.status < 200 || response.status > 299) {
+      if (!checkStatus(response, "OK")) {
         if (LOGIN_LOGGING) {
           console.log("Sending verification code failed");
         }
@@ -128,8 +166,12 @@ const Login: React.FC = () => {
     }
   };
 
+  /**
+   * Handles submitting the form and validating the code.
+   */
   const handleSubmit = async () => {
-    if (isCodeValid) {
+    setPressedSubmit(true);
+    if (validateCode()) {
       try {
         const response = await axios.post(SERVER_ENDPOINT("validate_code"), {
           email,
@@ -138,11 +180,7 @@ const Login: React.FC = () => {
           organization,
           accountType,
         });
-        if (
-          response.status < 200 ||
-          response.status > 299 ||
-          !response.data.name
-        ) {
+        if (!checkStatus(response, "OK") || !response.data.name) {
           if (AUTH_LOGGING) {
             console.log("Verification code validation failed");
           }
@@ -165,52 +203,57 @@ const Login: React.FC = () => {
     }
   };
 
+  /**
+   * Handles submitting the form when the Enter key is pressed. (Doesn't work yet)
+   */
+  //   const handleKeyPress = (e) => {
+  //     if (e.key === "Enter") {
+  //       e.preventDefault();
+  //       if (showCodeField()) {
+  //         handleSubmit();
+  //       } else {
+  //         handleSendCode();
+  //       }
+  //     }
+  //   };
+
   return (
-    <View style={styles.container} role={"form"}>
+    <View style={styles.container} role={"form"} onKeyPress={handleKeyPress}>
       <Text style={styles.title}>Login</Text>
-      <TextInput
+      <InputWithError
         testID="email-input"
-        style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        error={pressedSendCode && errors.email}
       />
-      {errors.email && <Text style={styles.error}>{errors.email}</Text>}
       {showCodeField && (
-        <TextInput
+        <InputWithError
           testID="code-input"
-          style={styles.input}
           placeholder="Verification code"
           value={code}
           onChangeText={setCode}
           keyboardType="numeric"
+          error={pressedSubmit && errors.code}
         />
-      )}
-      {showCodeField && errors.code && (
-        <Text style={styles.error}>{errors.code}</Text>
       )}
       {showNewAccountFields && (
         <>
-          <TextInput
+          <InputWithError
             testID="name-input"
-            style={styles.input}
             placeholder="Name"
             value={name}
             onChangeText={setName}
+            error={pressedSubmit && errors.name}
           />
-          {errors.name && <Text style={styles.error}>{errors.name}</Text>}
-
-          <TextInput
+          <InputWithError
             testID="organization-input"
-            style={styles.input}
             placeholder="Organization"
             value={organization}
             onChangeText={setOrganization}
+            error={pressedSubmit && errors.organization}
           />
-          {errors.organization && (
-            <Text style={styles.error}>{errors.organization}</Text>
-          )}
           <Text> Account type: </Text>
           <Picker
             selectedValue={accountType}
@@ -223,16 +266,17 @@ const Login: React.FC = () => {
       )}
       {!showCodeField ? (
         <Pressable
-          style={[styles.button, { opacity: isEmailValid ? 1 : 0.5 }]}
-          disabled={!isEmailValid}
+          style={[
+            styles.button,
+            { opacity: errors.email === undefined ? 1 : 0.5 },
+          ]}
           onPress={handleSendCode}
         >
           <Text style={styles.buttonText}>Send code</Text>
         </Pressable>
       ) : (
         <Pressable
-          style={[styles.button, { opacity: isCodeValid ? 1 : 0.5 }]}
-          disabled={!isCodeValid}
+          style={[styles.button, { opacity: canSubmit() ? 1 : 0.5 }]}
           onPress={handleSubmit}
         >
           <Text style={styles.buttonText}>Validate code</Text>

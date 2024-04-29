@@ -9,7 +9,7 @@ import Login from "./Login";
 import Header from "./Header";
 import Candidates from "./Candidates";
 import NavBar from "./NavBar";
-import { APP_LOGGING } from "./Constants";
+import { APP_LOGGING } from "./utils/Constants";
 import styles from "./styles/AppStyles";
 
 // Fixes TypeScript error in my IDE
@@ -26,7 +26,7 @@ declare global {
 
 const Stack = createStackNavigator();
 
-const App: FC = () => {
+const App: FC = (): FC => {
   return (
     <AuthProvider>
       <NavigationContainer>
@@ -36,7 +36,7 @@ const App: FC = () => {
   );
 };
 
-const AppContent: FC = () => {
+const AppContent: FC = (): FC => {
   const navigation = useNavigation();
 
   const { isLoggedIn } = useContext(AuthContext);

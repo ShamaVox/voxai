@@ -2,7 +2,7 @@ import React, { FC, useState, useEffect } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_ENDPOINT, DASHBOARD_LOGGING } from "./Constants";
+import { SERVER_ENDPOINT, DASHBOARD_LOGGING } from "./utils/Constants";
 
 const Dashboard: FC = () => {
   return <InsightsScreen />;
