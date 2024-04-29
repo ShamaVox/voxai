@@ -26,6 +26,8 @@ function renderHeader(isLoggedIn: boolean, username = "") {
         username: username,
         email: "",
         handleLogin: async () => {},
+        authToken: "",
+        handleLogout: async () => {}
       }}
     >
       <Header />

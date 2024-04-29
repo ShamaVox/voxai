@@ -33,6 +33,8 @@ function renderLogin() {
         handleLogin: mockHandleLogin,
         username: "",
         email: "",
+        authToken: "",
+        handleLogout: async () => {},
       }}
     >
       <Login />
@@ -121,7 +123,8 @@ test("handles successful login", async () => {
   // Assert that handleLogin was called with the correct arguments
   expect(mockHandleLogin).toHaveBeenCalledWith(
     "existing@email.com",
-    "Test Name"
+    "Test Name",
+    "AUTHTOKEN"
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });
@@ -136,7 +139,8 @@ test("handles successful account creation and login", async () => {
   // Assert handleLogin was called and navigation occurred
   expect(mockHandleLogin).toHaveBeenCalledWith(
     "new" + accountNumber + "@email.com",
-    "Test Name"
+    "Test Name",
+    "AUTHTOKEN"
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });

@@ -25,6 +25,8 @@ function renderHome(isLoggedIn: boolean) {
         username: "",
         email: "",
         handleLogin: async () => {},
+        authToken: "",
+        handleLogout: async () => {},
       }}
     >
       <Home />

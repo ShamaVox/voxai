@@ -20,6 +20,8 @@ const renderNavBar = (isLoggedIn: boolean) => {
         email: "",
         username: "",
         handleLogin: async () => {},
+        authToken: "",
+        handleLogout: async () => {},
       }}
     >
       <NavBar />

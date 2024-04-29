@@ -1,12 +1,13 @@
-import React, { useContext, FC } from "react";
-import { View, Text, Image, Pressable } from "react-native";
+import React, { useContext, FC, useState } from "react";
+import { View, Text, Image, Pressable, Modal } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HeaderStyles";
 import { useNavigation } from "@react-navigation/native";
 
 const Header: FC = () => {
-  const { isLoggedIn, username } = useContext(AuthContext);
+  const { isLoggedIn, username, handleLogout } = useContext(AuthContext);
   const navigation = useNavigation();
+  const [showDropdown, setShowDropdown] = useState(false);
 
   return (
     <View style={styles.container}>
@@ -23,12 +24,15 @@ const Header: FC = () => {
           style={styles.logo}
         />
       </Pressable>
+
       <Pressable
         testID="profile-container"
         style={styles.profileContainer}
         onPress={() => {
-          if (!isLoggedIn) {
-            navigation.navigate("Login"); // Navigate to Login if not logged in
+          if (isLoggedIn) {
+            setShowDropdown(!showDropdown); // Toggle dropdown on profile click
+          } else {
+            navigation.navigate("Login");
           }
         }}
       >
@@ -55,6 +59,19 @@ const Header: FC = () => {
           )}
         </View>
       </Pressable>
+
+      <Modal visible={showDropdown} transparent>
+        <Pressable
+          style={styles.dropdownOverlay}
+          onPress={() => setShowDropdown(false)}
+        >
+          <View style={styles.dropdownMenu}>
+            <Pressable style={styles.dropdownItem} onPress={handleLogout}>
+              <Text>Logout</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 };

@@ -60,6 +60,7 @@ export const mockValidCode = () => {
       name: "Test Name",
       account_type: "Recruiter",
       email: "test@email.com", // Don't check this value: it will be different in integration tests
+      authToken: "AUTHTOKEN",
     });
   }
 };

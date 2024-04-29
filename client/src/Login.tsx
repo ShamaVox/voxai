@@ -173,7 +173,6 @@ const Login: FC = () => {
         setShowNewAccountFields(true);
       }
     } catch (error) {
-      console.error(error);
       if (LOGIN_LOGGING) {
         console.log("Error sending verification code:", error);
       }
@@ -196,14 +195,18 @@ const Login: FC = () => {
           organization,
           accountType,
         });
-        if (!checkStatus(response, "OK") || !response.data.name) {
+        if (
+          !checkStatus(response, "OK") ||
+          !response.data.name ||
+          !response.data.authToken
+        ) {
           if (LOGIN_LOGGING) {
             console.log("Verification code validation failed");
           }
           setErrors({ code: "Invalid code" });
           return;
         }
-        handleLogin(email, response.data.name);
+        handleLogin(email, response.data.name, response.data.authToken);
         navigation.navigate("Home");
       } catch (error) {
         if (LOGIN_LOGGING) {

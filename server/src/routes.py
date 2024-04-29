@@ -7,6 +7,9 @@ from os import environ
 
 isAccepted = False
 
+# Temporary, to test client cookie handling
+sessions = {} 
+
 # Serve React Native app
 @app.route('/', defaults={'path': ''})
 
@@ -56,11 +59,15 @@ def validate_code():
 
             if existing_account:
                 # Email exists, fetch name and account type
+                auth_token = utils.get_random_string(36)
+                sessions[auth_token] = request.json.get('email')
+
                 data = {
                     "message": "Verification code is valid",
                     "name": existing_account.name,
                     "account_type": existing_account.account_type,
-                    "email": email
+                    "email": email,
+                    "authToken": auth_token
                 }
                 return_code = 200
                 
@@ -88,12 +95,15 @@ def validate_code():
                     database.db.session.add(new_account)
                     database.db.session.commit()
 
+                    auth_token = utils.get_random_string(36)
+                    sessions[auth_token] = request.json.get('email')
                     data = {
                         "message": "Account created",
                         "name": request.json.get('name'),
                         "organization": request.json.get('organization'),
                         "account_type": request.json.get('accountType'),
-                        "email": email
+                        "email": email,
+                        "authToken": auth_token
                     }
                     return_code = 201 
 

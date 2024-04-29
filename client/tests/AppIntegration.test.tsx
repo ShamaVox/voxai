@@ -4,6 +4,11 @@ import App from "../src/App";
 import { SERVER_ENDPOINT } from "../src/utils/Axios";
 import { randomAccountNumber } from "./utils/Random";
 import { loginAndNavigateAll } from "./actions/AppIntegrationActions";
+import { clearCookies } from "./utils/Render";
+
+beforeEach(() => {
+  clearCookies();
+});
 
 test("Login with existing account and navigate to Dashboard and Home", async () => {
   render(<App />);
