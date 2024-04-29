@@ -1,5 +1,7 @@
 {
   "compilerOptions": {},
   "extends": "expo/tsconfig.base",
-  "incremental": true
+  "incremental": true,
+  "strict": true,
+  "noImplicitAny": true
 }

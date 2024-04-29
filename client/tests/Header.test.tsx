@@ -1,7 +1,7 @@
 // Header.test.tsx
 
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, screen } from "@testing-library/react-native";
 import Header from "../src/Header";
 import { AuthContext } from "../src/AuthContext";
 import { useNavigation } from "@react-navigation/native";
@@ -18,49 +18,48 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test("renders logo and logged out profile icon", () => {
-  const { getByTestId } = render(
-    <AuthContext.Provider value={{ isLoggedIn: false }}>
+function renderHeader(isLoggedIn: boolean, username = "") {
+  return render(
+    <AuthContext.Provider
+      value={{
+        isLoggedIn: isLoggedIn,
+        username: username,
+        email: "",
+        handleLogin: async () => {},
+      }}
+    >
       <Header />
     </AuthContext.Provider>
   );
+}
 
-  expect(getByTestId("logo")).toBeTruthy();
-  expect(getByTestId("profile-icon-logged-out")).toBeTruthy();
+test("renders logo and logged out profile icon", () => {
+  renderHeader(false);
+
+  expect(screen.getByTestId("logo")).toBeTruthy();
+  expect(screen.getByTestId("profile-icon-logged-out")).toBeTruthy();
 });
 
 test("renders logo and logged in profile icon", () => {
-  const { getByTestId } = render(
-    <AuthContext.Provider value={{ isLoggedIn: true, username: "TestUser" }}>
-      <Header />
-    </AuthContext.Provider>
-  );
+  renderHeader(true, "TestUser");
 
-  expect(getByTestId("logo")).toBeTruthy();
-  expect(getByTestId("profile-icon-logged-in")).toBeTruthy();
+  expect(screen.getByTestId("logo")).toBeTruthy();
+  expect(screen.getByTestId("profile-icon-logged-in")).toBeTruthy();
 });
 
 test("navigates to Home on logo press when logged out", () => {
-  const { getByTestId } = render(
-    <AuthContext.Provider value={{ isLoggedIn: false }}>
-      <Header />
-    </AuthContext.Provider>
-  );
+  renderHeader(false);
 
-  fireEvent.press(getByTestId("logo"));
+  fireEvent.press(screen.getByTestId("logo"));
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 
-  fireEvent.press(getByTestId("profile-container"));
+  fireEvent.press(screen.getByTestId("profile-container"));
   expect(mockNavigate).toHaveBeenCalledWith("Login");
 });
 
 test("navigates to Dashboard on logo press when logged in", () => {
-  const { getByTestId } = render(
-    <AuthContext.Provider value={{ isLoggedIn: true }}>
-      <Header />
-    </AuthContext.Provider>
-  );
+  renderHeader(true);
 
-  fireEvent.press(getByTestId("logo"));
+  fireEvent.press(screen.getByTestId("logo"));
   expect(mockNavigate).toHaveBeenCalledWith("Dashboard");
 });

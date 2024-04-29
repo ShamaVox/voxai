@@ -1,25 +1,21 @@
-import React, { createContext, useState } from "react";
+import React, { createContext, useState, FC, ReactNode } from "react";
 import { AUTH_LOGGING } from "./utils/Constants";
 
 interface AuthContextProps {
   isLoggedIn: boolean;
   email: string;
   username: string;
-  sendVerificationCode: (email: string) => Promise<boolean>;
-  validateVerificationCode: (email: string, code: string) => Promise<boolean>;
-  handleLogin: (email: string, name: string) => Promise<boolean>;
+  handleLogin: (email: string, name: string) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
   isLoggedIn: false,
   email: "",
   username: "",
-  handleLogin: async () => false,
+  handleLogin: async (email: string, name: string) => {},
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -28,7 +24,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     console.log("AuthProvider rendered");
   }
 
-  const handleLogin = async (email: string, name: string) => {
+  const handleLogin: (email: string, name: string) => Promise<void> = async (
+    email: string,
+    name: string
+  ) => {
     setIsLoggedIn(true);
     setEmail(email);
     setUsername(name);

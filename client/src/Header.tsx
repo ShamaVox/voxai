@@ -1,10 +1,10 @@
-import React, { useContext } from "react";
+import React, { useContext, FC } from "react";
 import { View, Text, Image, Pressable } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HeaderStyles";
 import { useNavigation } from "@react-navigation/native";
 
-const Header: React.FC = () => {
+const Header: FC = () => {
   const { isLoggedIn, username } = useContext(AuthContext);
   const navigation = useNavigation();
 

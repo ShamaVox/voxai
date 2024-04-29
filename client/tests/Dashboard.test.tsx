@@ -7,8 +7,8 @@ import { verifyInsightsData } from "./actions/DashboardActions";
 
 test("fetches insights data", async () => {
   mockInsights();
-  const { findByText } = render(<Dashboard />);
+  render(<Dashboard />);
 
   // Assert that insights data is displayed
-  await verifyInsightsData(findByText);
+  await verifyInsightsData();
 });

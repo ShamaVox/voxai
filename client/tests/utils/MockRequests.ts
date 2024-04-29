@@ -1,6 +1,6 @@
 import axios from "axios";
 import { SERVER_ENDPOINT } from "../../src/utils/Constants";
-import mock from "../config/Config.ts";
+import mock from "../config/Config";
 import MockAdapter from "axios-mock-adapter";
 
 let mockAdapter = null;

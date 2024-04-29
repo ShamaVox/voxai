@@ -1,12 +1,19 @@
-import React, { useState, useContext, useEffect } from "react";
-import { View, Text, TextInput, Pressable, Keyboard } from "react-native";
+import React, { FC, useState, useContext, useEffect } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  Keyboard,
+  KeyboardTypeOptions,
+} from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
 import { LOGIN_LOGGING, SERVER_ENDPOINT } from "./utils/Constants";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import { checkStatus } from "./utils/Requests";
+import { checkStatus } from "./utils/Responses";
 
 interface Errors {
   email?: string;
@@ -18,14 +25,23 @@ interface Errors {
 /**
  * Component that renders an input field with an error message.
  */
-const InputWithError = ({
+
+interface InputWithErrorProps {
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  keyboardType?: KeyboardTypeOptions;
+  error?: string;
+  testID: string;
+}
+
+const InputWithError: FC<InputWithErrorProps> = ({
   value,
   onChangeText,
   placeholder,
   keyboardType,
   error,
   testID,
-  ...props
 }) => {
   return (
     <>
@@ -36,14 +52,13 @@ const InputWithError = ({
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
-        {...props}
       />
       {error && <Text style={styles.error}>{error}</Text>}
     </>
   );
 };
 
-const Login: React.FC = () => {
+const Login: FC = () => {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Errors>({});
@@ -118,14 +133,14 @@ const Login: React.FC = () => {
    * Checks whether there are any errors preventing the code validation request from being sent.
    */
 
-  function canSubmit() {
+  const canSubmit: () => boolean = () => {
     return (
       showCodeField &&
       errors.code === undefined &&
       errors.name === undefined &&
       errors.organization === undefined
     );
-  }
+  };
 
   useEffect(() => {
     validateForm();
@@ -169,7 +184,7 @@ const Login: React.FC = () => {
   /**
    * Handles submitting the form and validating the code.
    */
-  const handleSubmit = async () => {
+  const handleSubmit: () => Promise<void> = async () => {
     setPressedSubmit(true);
     if (validateCode()) {
       try {
@@ -181,7 +196,7 @@ const Login: React.FC = () => {
           accountType,
         });
         if (!checkStatus(response, "OK") || !response.data.name) {
-          if (AUTH_LOGGING) {
+          if (LOGIN_LOGGING) {
             console.log("Verification code validation failed");
           }
           setErrors({ code: "Invalid code" });
@@ -217,8 +232,10 @@ const Login: React.FC = () => {
   //     }
   //   };
 
+  // in top level of below view: onKeyPress={handleKeyPress}
+
   return (
-    <View style={styles.container} role={"form"} onKeyPress={handleKeyPress}>
+    <View style={styles.container} role={"form"}>
       <Text style={styles.title}>Login</Text>
       <InputWithError
         testID="email-input"
@@ -245,6 +262,7 @@ const Login: React.FC = () => {
             placeholder="Name"
             value={name}
             onChangeText={setName}
+            keyboardType="default"
             error={pressedSubmit && errors.name}
           />
           <InputWithError
@@ -252,6 +270,7 @@ const Login: React.FC = () => {
             placeholder="Organization"
             value={organization}
             onChangeText={setOrganization}
+            keyboardType="default"
             error={pressedSubmit && errors.organization}
           />
           <Text> Account type: </Text>

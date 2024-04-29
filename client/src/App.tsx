@@ -26,7 +26,7 @@ declare global {
 
 const Stack = createStackNavigator();
 
-const App: FC = (): FC => {
+const App: FC = () => {
   return (
     <AuthProvider>
       <NavigationContainer>
@@ -36,7 +36,7 @@ const App: FC = (): FC => {
   );
 };
 
-const AppContent: FC = (): FC => {
+const AppContent: FC = () => {
   const navigation = useNavigation();
 
   const { isLoggedIn } = useContext(AuthContext);
