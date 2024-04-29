@@ -1,5 +1,5 @@
 import axios from "axios";
-import { SERVER_ENDPOINT } from "../../src/utils/Constants";
+import { SERVER_ENDPOINT } from "../../src/utils/Axios";
 import mock from "../config/Config";
 import MockAdapter from "axios-mock-adapter";
 

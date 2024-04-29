@@ -10,10 +10,11 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/LoginStyles";
-import { LOGIN_LOGGING, SERVER_ENDPOINT } from "./utils/Constants";
+import { LOGIN_LOGGING } from "./config/Logging";
+import { SERVER_ENDPOINT } from "./utils/Axios";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
-import { checkStatus } from "./utils/Responses";
+import { checkStatus } from "./utils/Axios";
 
 interface Errors {
   email?: string;

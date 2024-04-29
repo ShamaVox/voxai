@@ -2,7 +2,8 @@ import React, { FC, useState, useEffect } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_ENDPOINT, DASHBOARD_LOGGING } from "./utils/Constants";
+import { SERVER_ENDPOINT } from "./utils/Axios";
+import { DASHBOARD_LOGGING } from "./config/Logging";
 
 interface InsightBoxProps {
   testID: string;
