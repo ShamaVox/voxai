@@ -10,11 +10,19 @@ isAccepted = False
 # Temporary, to test client cookie handling
 sessions = {} 
 
-# Serve React Native app
 @app.route('/', defaults={'path': ''})
 
 @app.route('/<path:path>')
 def serve(path):
+    """
+    Serves the React Native application.
+
+    Args:
+        path: The path of the requested resource.
+
+    Returns:
+        The requested file or the index.html file.
+    """
     if path != "" and os.path.exists(app.static_folder + '/' + path):
         return send_from_directory(app.static_folder, path)
     else:
@@ -22,6 +30,11 @@ def serve(path):
 
 @app.route('/api/send_code', methods=['POST'])
 def send_code():
+    """Handles requests to send a verification code to a user's email. 
+
+    Returns:
+        A JSON response with a message and a flag indicating if the account exists.
+    """
     if request.method == 'POST':
         email = request.json.get('email')
         if input_validation.is_valid_email(email):
@@ -42,6 +55,11 @@ def send_code():
 
 @app.route('/api/validate_code', methods=['POST'])
 def validate_code():
+    """Validates a verification code and handles account creation or login.
+
+    Returns:
+        A JSON response with a message, user data, and an authentication token.
+    """ 
     email = request.json.get('email')
     code = request.json.get('code')
 
@@ -110,6 +128,7 @@ def validate_code():
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
+    """Handles user logout by removing the authentication token from the session."""
     authToken = request.json.get('authToken')
     if authToken in sessions: 
         del sessions[authToken]
@@ -117,10 +136,12 @@ def logout():
 
 @app.route('/api/check_token', methods=['POST'])
 def check_token():
+    """Checks if a provided authentication token is valid.""" 
     return jsonify({"validToken": request.json.get('authToken') in sessions})
 
 @app.route("/api/insights")
 def get_insights():
+    """Provides synthetic insights data."""
     lower_compensation = utils.get_random(100)
     insights = {
         "candidateStage": utils.get_random(5),
@@ -146,6 +167,7 @@ def get_insights():
 
 @app.route("/api/interviews")
 def get_interviews():
+    """Provides synthetic interview data."""
     interviews = []
     for _ in range(10):
         interviews.append({
