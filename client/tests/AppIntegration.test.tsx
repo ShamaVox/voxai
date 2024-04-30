@@ -39,9 +39,6 @@ test("Login persists after refresh", async () => {
 });
 
 test("logs in automatically when cookie is present", async () => {
-  setCookies({
-    auth: getAuthCookies(),
-  });
   mockValidToken();
   mockUpcomingInterviews();
   render(<App />);

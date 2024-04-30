@@ -26,6 +26,9 @@ declare global {
 
 const Stack = createStackNavigator();
 
+/**
+ * Main application component that handles navigation and authentication.
+ */
 const App: FC = () => {
   return (
     <NavigationContainer>
@@ -36,6 +39,9 @@ const App: FC = () => {
   );
 };
 
+/**
+ * Component responsible for rendering the app content based on authentication state.
+ */
 const AppContent: FC = () => {
   const navigation = useNavigation();
 

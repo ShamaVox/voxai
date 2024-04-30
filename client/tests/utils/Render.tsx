@@ -5,6 +5,13 @@ import Home from "../../src/Home";
 import Login from "../../src/Login";
 import NavBar from "../../src/NavBar";
 
+/**
+ * Renders the Header component within an AuthContext provider.
+ *
+ * @param isLoggedIn Whether the user is currently logged in.
+ * @param username (Optional) The username to display in the header.
+ * @returns The rendered Header component.
+ */
 export const renderHeader: (
   isLoggedIn: boolean,
   username?: string
@@ -25,6 +32,11 @@ export const renderHeader: (
   );
 };
 
+/**
+ * Renders the Home component with the specified login state.
+ *
+ * @param isLoggedIn - Boolean indicating whether the user is logged in.
+ */
 export const renderHome: (isLoggedIn: boolean) => Object = (isLoggedIn) => {
   return render(
     <AuthContext.Provider
@@ -61,6 +73,11 @@ export const renderLoginFromMock: (
   );
 };
 
+/**
+ * Renders the NavBar component based on the login state.
+ *
+ * @param isLoggedIn - Boolean indicating whether the user is logged in.
+ */
 export const renderNavBar: (a: boolean) => Object = (isLoggedIn: boolean) => {
   return render(
     <AuthContext.Provider

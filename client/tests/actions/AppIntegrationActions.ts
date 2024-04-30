@@ -5,6 +5,12 @@ import { verifyLoggedOutHomepage, verifyHomeElements } from "./HomeActions";
 import { verifyHeader } from "./HeaderActions";
 import { waitFor, screen } from "@testing-library/react-native";
 
+/**
+ * Navigates to the Login screen and performs a login, optionally creating a new account.
+ *
+ * @param newAccount (Optional) Set to a number to create a new account with that number as part of the email. Defaults to 0 (existing account).
+ * @returns The username of the logged-in user.
+ */
 export const navigateAndLogin = async (newAccount: number = 0) => {
   let username: string = "Test Name";
   if (newAccount) {
@@ -23,6 +29,11 @@ export const navigateAndLogin = async (newAccount: number = 0) => {
   return username;
 };
 
+/**
+ * Performs a complete login and navigation flow, verifying elements on each screen.
+ *
+ * @param newAccount - Optional account number for creating a new account. Defaults to 0 (existing account).
+ */
 export const loginAndNavigateAll = async (newAccount: number = 0) => {
   // Verify homepage when logged out
   let username: string = await navigateAndLogin(newAccount);

@@ -4,6 +4,9 @@ import { AuthContext } from "./AuthContext";
 import styles from "./styles/HeaderStyles";
 import { useNavigation } from "@react-navigation/native";
 
+/**
+ * The Header component displays the app logo and provides access to profile or login options based on the user's login status.
+ */
 const Header: FC = () => {
   const { isLoggedIn, username, handleLogout } = useContext(AuthContext);
   const navigation = useNavigation();

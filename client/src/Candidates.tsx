@@ -2,7 +2,7 @@ import React, { FC } from "react";
 import { View, Text } from "react-native";
 import styles from "./styles/LoginStyles"; // Placeholder style
 
-const Home: FC = () => {
+const Candidates: FC = () => {
   // const navigation = useNavigation();
 
   return (
@@ -14,4 +14,4 @@ const Home: FC = () => {
   );
 };
 
-export default Home;
+export default Candidates;

@@ -14,6 +14,9 @@ beforeEach(() => {
   }
 });
 
+/**
+ * Mocks the API response for fetching upcoming interviews.
+ */
 export const mockUpcomingInterviews = () => {
   if (mock) {
     mockAdapter.onGet(SERVER_ENDPOINT("interviews")).reply(200, [
@@ -27,6 +30,9 @@ export const mockUpcomingInterviews = () => {
   }
 };
 
+/**
+ * Mocks the API response for checking if an account exists.
+ */
 export const mockAccountExists = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("send_code")).reply(200, {
@@ -36,6 +42,9 @@ export const mockAccountExists = () => {
   }
 };
 
+/**
+ * Mocks a response indicating a new account was created when sending a verification code.
+ */
 export const mockNewAccount = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("send_code")).reply(201, {
@@ -45,6 +54,9 @@ export const mockNewAccount = () => {
   }
 };
 
+/**
+ * Mocks a response for an invalid verification code during login.
+ */
 export const mockInvalidCode = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("validate_code")).reply(400, {
@@ -53,6 +65,11 @@ export const mockInvalidCode = () => {
   }
 };
 
+/**
+ * Mocks a successful verification code validation with provided user details.
+ *
+ * @param name The name associated with the validated account.
+ */
 export const mockValidCode: (name: string) => void = (name) => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("validate_code")).reply(200, {
@@ -65,6 +82,9 @@ export const mockValidCode: (name: string) => void = (name) => {
   }
 };
 
+/**
+ * Mocks a successful response for fetching insights data.
+ */
 export const mockInsights = () => {
   if (mock) {
     mockAdapter.onGet(SERVER_ENDPOINT("insights")).reply(200, {
@@ -79,6 +99,9 @@ export const mockInsights = () => {
   }
 };
 
+/**
+ * Mocks a response for a valid authentication token.
+ */
 export const mockValidToken = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("check_token")).reply(200, {

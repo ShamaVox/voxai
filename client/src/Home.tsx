@@ -17,6 +17,10 @@ import { SERVER_ENDPOINT } from "./utils/Axios";
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
 
+/**
+ * The Home component displays upcoming interviews and other relevant information for logged-in users.
+ * For logged-out users, it shows a placeholder homepage.
+ */
 const Home: FC = () => {
   const navigation = useNavigation();
   const { isLoggedIn } = useContext(AuthContext);
@@ -29,6 +33,9 @@ const Home: FC = () => {
     }
   }, [isLoggedIn]);
 
+  /**
+   * Fetches interview data from the server and updates the state.
+   */
   const fetchInterviews: () => void = async () => {
     try {
       const response = await axios.get(SERVER_ENDPOINT("interviews"));
@@ -40,12 +47,20 @@ const Home: FC = () => {
     }
   };
 
+  /**
+   * Handles the login button click by navigating to the Login screen.
+   * @param arg The GestureResponderEvent object.
+   */
   const handleLoginClick: (
     arg: GestureResponderEvent
   ) => Promise<void> = async () => {
     await navigation.navigate("Login");
   };
 
+  /**
+   * Renders a single interview item within the interview list.
+   * @param item The interview data object to be rendered.
+   */
   const renderInterviewItem: ListRenderItem<any> = ({ item }) => (
     <View testID="interview-table-entry" style={styles.interviewItem}>
       <View style={styles.interviewColumn}>

@@ -1,6 +1,11 @@
 import { fireEvent, waitFor, screen } from "@testing-library/react-native";
 import { mockUpcomingInterviews, mockInsights } from "../utils/MockRequests";
 
+/**
+ * Navigates to the specified screen and mocks API responses if necessary.
+ *
+ * @param screenName - The name of the screen to navigate to.
+ */
 export const navigateTo = async (screenName: string) => {
   // Mock API responses based on the screen
   if (screenName === "Home") {

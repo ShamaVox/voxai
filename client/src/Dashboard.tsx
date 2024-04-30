@@ -13,6 +13,9 @@ interface InsightBoxProps {
   percentage?: number;
 }
 
+/**
+ * Renders an insight box with an icon, value, title, and optional percentage change.
+ */
 const InsightBox: FC<InsightBoxProps> = ({
   testID,
   icon,
@@ -49,6 +52,9 @@ const InsightBox: FC<InsightBoxProps> = ({
   );
 };
 
+/**
+ * Screen displaying insights data fetched from the server.
+ */
 const InsightsScreen: FC = () => {
   const [insights, setInsights] = useState(null);
 
@@ -56,6 +62,9 @@ const InsightsScreen: FC = () => {
     fetchInsights();
   }, []);
 
+  /**
+   * Fetches insights data from the server and updates the state.
+   */
   const fetchInsights: () => Promise<void> = async () => {
     try {
       const response = await axios.get(SERVER_ENDPOINT("insights"));
@@ -106,6 +115,9 @@ const InsightsScreen: FC = () => {
   );
 };
 
+/**
+ * The Dashboard component displays insights and data visualizations related to the user's recruitment activities.
+ */
 const Dashboard: FC = () => {
   return <InsightsScreen />;
 };

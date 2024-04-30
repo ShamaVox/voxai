@@ -23,10 +23,6 @@ interface Errors {
   organization?: string;
 }
 
-/**
- * Component that renders an input field with an error message.
- */
-
 interface InputWithErrorProps {
   value: string;
   onChangeText: (text: string) => void;
@@ -36,6 +32,9 @@ interface InputWithErrorProps {
   testID: string;
 }
 
+/**
+ * Component that renders an input field with an error message.
+ */
 const InputWithError: FC<InputWithErrorProps> = ({
   value,
   onChangeText,
@@ -59,6 +58,9 @@ const InputWithError: FC<InputWithErrorProps> = ({
   );
 };
 
+/**
+ * The Login component handles user authentication, allowing users to log in with existing accounts or create new ones.
+ */
 const Login: FC = () => {
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -133,7 +135,6 @@ const Login: FC = () => {
   /**
    * Checks whether there are any errors preventing the code validation request from being sent.
    */
-
   const canSubmit: () => boolean = () => {
     return (
       showCodeField &&

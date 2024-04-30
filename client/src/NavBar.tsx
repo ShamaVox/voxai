@@ -5,6 +5,9 @@ import styles from "./styles/NavBarStyles";
 import { NAV_BAR_LOGGING } from "./config/Logging";
 import { useNavigation } from "@react-navigation/native";
 
+/**
+ * The NavBar component provides navigation options for logged-in users, allowing them to access different sections of the app.
+ */
 const NavBar: React.FC = () => {
   const [activeRouteName, setActiveRouteName] = useState("");
   const navigation = useNavigation();
@@ -35,12 +38,24 @@ const NavBar: React.FC = () => {
     return null;
   }
 
+  /**
+   * Determines the style for a navigation button based on the active route.
+   *
+   * @param routeName The name of the route associated with the button.
+   * @returns The appropriate button style object.
+   */
   const getButtonStyle = (routeName: string) => {
     return activeRouteName === routeName
       ? styles.selectedButton
       : styles.button;
   };
 
+  /**
+   * Determines the text style for a navigation button based on the active route.
+   *
+   * @param routeName The name of the route associated with the button.
+   * @returns The appropriate text style object.
+   */
   const getTextStyle = (routeName: string) => {
     return activeRouteName === routeName
       ? styles.selectedButtonText

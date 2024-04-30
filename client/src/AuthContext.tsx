@@ -34,6 +34,10 @@ export const AuthContext = createContext<AuthContextProps>({
   handleLogout: async () => {},
 });
 
+/**
+ * The AuthProvider component manages the authentication state and provides
+ * functions for login, logout, and access to user information.
+ */
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState("");
@@ -85,6 +89,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   }, [isLoggedIn]);
 
+  /**
+   * Handles user login by setting authentication state and storing information in cookies.
+   *
+   * @param email The user's email address.
+   * @param name The user's name.
+   * @param authToken The authentication token.
+   */
   const handleLogin: (
     a: string,
     b: string,
@@ -99,6 +110,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setIsLoggedIn(true);
   };
 
+  /**
+   * Handles user logout by clearing authentication state and removing cookies.
+   */
   const handleLogout: () => Promise<void> = async () => {
     setCookie("voxai", {
       auth: null,
