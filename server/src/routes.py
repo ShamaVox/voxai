@@ -1,7 +1,7 @@
 from flask import send_from_directory, request, jsonify
 import os
 from flask_cors import CORS
-from . import utils, verification, synthetic_data, input_validation, database
+from . import utils, verification, synthetic_data, input_validation, database, migrations
 from .app import app as app
 from os import environ
 
