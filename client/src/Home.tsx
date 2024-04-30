@@ -40,8 +40,10 @@ const Home: FC = () => {
     }
   };
 
-  const handleLoginClick: (arg: GestureResponderEvent) => void = () => {
-    navigation.navigate("Login");
+  const handleLoginClick: (
+    arg: GestureResponderEvent
+  ) => Promise<void> = async () => {
+    await navigation.navigate("Login");
   };
 
   const renderInterviewItem: ListRenderItem<any> = ({ item }) => (
@@ -138,7 +140,9 @@ const Home: FC = () => {
           <Text>This is a placeholder homepage</Text>
           <Pressable
             testID="homepage-login"
-            onPress={handleLoginClick}
+            onPress={async (e: GestureResponderEvent) => {
+              await handleLoginClick(e);
+            }}
             style={styles.button}
           >
             <Text>Login</Text>

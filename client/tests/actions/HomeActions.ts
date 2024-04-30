@@ -19,8 +19,9 @@ export const verifyTabSwitch = async (
   } else {
     // Click on the specified tab
     if (tabName === "Completed") {
-      fireEvent.press(screen.getByTestId("completed-tab"));
-      await screen.findByText("This is a placeholder for the Completed tab");
+      await waitFor(() => {
+        fireEvent.press(screen.getByTestId("completed-tab"));
+      });
       // await waitFor(async () => {
       //   fireEvent.press(screen.getByTestId("completed-tab"));
       //   await screen.findByText("This is a placeholder for the Completed tab");
@@ -37,14 +38,14 @@ export const verifyTabSwitch = async (
   }
   // Assert visibility of interviews based on the selected tab
   if (tabName === "Completed") {
-    await waitFor(() => {
-      //expect(screen.queryAllByTestId("interview-list")[0].props.data.length).toBe(0);
-    });
+    await screen.findByText("This is a placeholder for the Completed tab");
+    //expect(screen.queryAllByTestId("interview-list")[0].props.data.length).toBe(0);
   } else if (tabName === "Upcoming") {
     await verifyUpcomingInterviews();
   }
 };
 
 export const verifyHomeElements = async () => {
+  // Will check other home elements when they are added
   await verifyTabSwitch("Both");
 };

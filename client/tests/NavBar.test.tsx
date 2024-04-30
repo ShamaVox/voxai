@@ -1,7 +1,7 @@
 import React from "react";
 import { render, fireEvent, screen } from "@testing-library/react-native";
-import NavBar from "../src/NavBar";
 import { AuthContext } from "../src/AuthContext";
+import {renderNavBar} from "./utils/Render";
 // import "jest-styled-components";
 
 const mockNavigate = jest.fn();
@@ -11,23 +11,6 @@ jest.mock("@react-navigation/native", () => ({
     addListener: () => jest.fn(),
   }),
 }));
-
-const renderNavBar = (isLoggedIn: boolean) => {
-  return render(
-    <AuthContext.Provider
-      value={{
-        isLoggedIn: isLoggedIn,
-        email: "",
-        username: "",
-        handleLogin: async () => {},
-        authToken: "",
-        handleLogout: async () => {},
-      }}
-    >
-      <NavBar />
-    </AuthContext.Provider>
-  );
-};
 
 beforeEach(() => {
   jest.clearAllMocks();

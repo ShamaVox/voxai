@@ -206,8 +206,8 @@ const Login: FC = () => {
           setErrors({ code: "Invalid code" });
           return;
         }
-        handleLogin(email, response.data.name, response.data.authToken);
-        navigation.navigate("Home");
+        await handleLogin(email, response.data.name, response.data.authToken);
+        await navigation.navigate("Home");
       } catch (error) {
         if (LOGIN_LOGGING) {
           console.log("Error during verification code validation:", error);
@@ -293,14 +293,18 @@ const Login: FC = () => {
             styles.button,
             { opacity: errors.email === undefined ? 1 : 0.5 },
           ]}
-          onPress={handleSendCode}
+          onPress={async () => {
+            await handleSendCode();
+          }}
         >
           <Text style={styles.buttonText}>Send code</Text>
         </Pressable>
       ) : (
         <Pressable
           style={[styles.button, { opacity: canSubmit() ? 1 : 0.5 }]}
-          onPress={handleSubmit}
+          onPress={async () => {
+            await handleSubmit();
+          }}
         >
           <Text style={styles.buttonText}>Validate code</Text>
         </Pressable>

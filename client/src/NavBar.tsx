@@ -54,7 +54,9 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-home"
           style={getButtonStyle("Home")}
-          onPress={() => navigation.navigate("Home")}
+          onPress={async () => {
+            await navigation.navigate("Home");
+          }}
         >
           <Image
             source={require("../assets/icons/dashboard.png")}
@@ -65,7 +67,9 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-dashboard"
           style={getButtonStyle("Dashboard")}
-          onPress={() => navigation.navigate("Dashboard")}
+          onPress={async () => {
+            await navigation.navigate("Dashboard");
+          }}
         >
           <Image
             source={require("../assets/icons/dashboard.png")}
@@ -76,7 +80,9 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-candidates"
           style={getButtonStyle("Candidates")}
-          onPress={() => navigation.navigate("Candidates")}
+          onPress={async () => {
+            await navigation.navigate("Candidates");
+          }}
         >
           <Image
             source={require("../assets/icons/candidates.png")}
@@ -91,7 +97,10 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-settings"
           style={getButtonStyle("Settings")}
-          onPress={() => navigation.navigate("Candidates")} // temporary as there is no settings page
+          onPress={async () => {
+            // temporary as there is no settings page
+            await navigation.navigate("Candidates");
+          }}
         >
           <Image
             source={require("../assets/icons/settings.png")}

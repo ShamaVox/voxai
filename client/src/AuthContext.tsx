@@ -67,7 +67,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
           });
       }
     } else {
-      console.log(cookies);
+      if (AUTH_LOGGING) {
+        console.log(cookies);
+      }
       // Update the cookie if it is different
       let currentAuthCookie: Record<string, string> = {
         email: email,
@@ -130,3 +132,5 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthContext;

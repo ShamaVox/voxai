@@ -12,7 +12,7 @@ const Header: FC = () => {
   return (
     <View style={styles.container}>
       <Pressable
-        onPress={() => {
+        onPress={async () => {
           isLoggedIn
             ? navigation.navigate("Dashboard")
             : navigation.navigate("Home");
@@ -28,11 +28,11 @@ const Header: FC = () => {
       <Pressable
         testID="profile-container"
         style={styles.profileContainer}
-        onPress={() => {
+        onPress={async () => {
           if (isLoggedIn) {
             setShowDropdown(!showDropdown); // Toggle dropdown on profile click
           } else {
-            navigation.navigate("Login");
+            await navigation.navigate("Login");
           }
         }}
       >
@@ -48,7 +48,7 @@ const Header: FC = () => {
           style={styles.profileIcon}
         />
         <View style={styles.profileTextContainer}>
-          <Text style={styles.profileText}>
+          <Text style={styles.profileText} testID="header-username">
             {isLoggedIn ? username : "Log In"}
           </Text>
           {isLoggedIn && (

@@ -53,11 +53,11 @@ export const mockInvalidCode = () => {
   }
 };
 
-export const mockValidCode = () => {
+export const mockValidCode: (name: string) => void = (name) => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("validate_code")).reply(200, {
       message: "Verification code is valid",
-      name: "Test Name",
+      name: name,
       account_type: "Recruiter",
       email: "test@email.com", // Don't check this value: it will be different in integration tests
       authToken: "AUTHTOKEN",
@@ -75,6 +75,14 @@ export const mockInsights = () => {
       averageInterviewPacePercentage: -10,
       lowerCompensationRange: 20,
       upperCompensationRange: 129,
+    });
+  }
+};
+
+export const mockValidToken = () => {
+  if (mock) {
+    mockAdapter.onPost(SERVER_ENDPOINT("check_token")).reply(200, {
+      validToken: true,
     });
   }
 };

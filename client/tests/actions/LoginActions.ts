@@ -6,6 +6,31 @@ import {
 } from "../utils/MockRequests";
 import { fireEvent, waitFor, screen } from "@testing-library/react-native";
 
+export const loginFormEntry = async (
+  formData: Record<string, string>,
+  buttonText: string,
+  expectedError: string = "",
+  errorDisplays: boolean = true
+) => {
+  await waitFor(() => {
+    for (var testId in formData) {
+      fireEvent.changeText(screen.getByTestId(testId), formData[testId]);
+    }
+  });
+  await waitFor(() => {
+    fireEvent.press(screen.getByText(buttonText));
+  });
+  if (expectedError) {
+    if (errorDisplays) {
+      await screen.findByText(expectedError);
+    } else {
+      await waitFor(() => {
+        expect(screen.queryByText("Invalid email")).toBeNull();
+      });
+    }
+  }
+};
+
 export const sendCodeSuccess = async (newAccount: number = 0) => {
   let email;
   if (newAccount) {
@@ -15,40 +40,34 @@ export const sendCodeSuccess = async (newAccount: number = 0) => {
     mockAccountExists();
     email = "existing@email.com";
   }
-
-  await waitFor(() => {
-    fireEvent.changeText(screen.getByTestId("email-input"), email);
-    fireEvent.press(screen.getByText("Send code"));
-  });
+  await loginFormEntry({ "email-input": email }, "Send code");
 };
 
-export const validateCodeSuccess = async (newAccount: number = 0) => {
-  mockValidCode();
+export const validateCodeSuccess = async (
+  newAccount: number = 0,
+  validateNavigation: boolean = false
+) => {
+  mockValidCode(newAccount ? "New User" : "Test Name");
+  var formData: Record<string, string> = { "code-input": "123123" };
   if (newAccount) {
-    await screen.findByPlaceholderText("Name");
-    await waitFor(() => {
-      fireEvent.changeText(screen.getByTestId("name-input"), "New User");
-    });
-    await waitFor(() => {
-      fireEvent.changeText(
-        screen.getByTestId("organization-input"),
-        "Test Org"
-      );
-    });
+    formData["name-input"] = "New User";
+    formData["organization-input"] = "Test Org";
   }
-  await screen.findByPlaceholderText("Verification code");
-  await waitFor(() => {
-    fireEvent.changeText(screen.getByTestId("code-input"), "123123"); // Valid code
-  });
-  await waitFor(() => {
-    fireEvent.press(screen.getByText("Validate code"));
-  });
+  await loginFormEntry(
+    formData,
+    "Validate code",
+    validateNavigation ? "My Interviews" : ""
+  );
+  await waitFor(() => {});
 };
 
-export const loginSuccess = async (newAccount: number = 0) => {
+export const loginSuccess = async (
+  newAccount: number = 0,
+  validateNavigation: boolean = false
+) => {
   await sendCodeSuccess(newAccount);
 
   mockUpcomingInterviews();
 
-  await validateCodeSuccess(newAccount);
+  await validateCodeSuccess(newAccount, validateNavigation);
 };
