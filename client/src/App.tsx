@@ -28,11 +28,11 @@ const Stack = createStackNavigator();
 
 const App: FC = () => {
   return (
-    <AuthProvider>
-      <NavigationContainer>
+    <NavigationContainer>
+      <AuthProvider>
         <AppContent />
-      </NavigationContainer>
-    </AuthProvider>
+      </AuthProvider>
+    </NavigationContainer>
   );
 };
 

@@ -66,7 +66,13 @@ const Header: FC = () => {
           onPress={() => setShowDropdown(false)}
         >
           <View style={styles.dropdownMenu}>
-            <Pressable style={styles.dropdownItem} onPress={handleLogout}>
+            <Pressable
+              style={styles.dropdownItem}
+              onPress={async () => {
+                await handleLogout();
+                setShowDropdown(false);
+              }}
+            >
               <Text>Logout</Text>
             </Pressable>
           </View>
