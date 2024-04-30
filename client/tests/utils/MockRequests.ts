@@ -1,6 +1,6 @@
 import axios from "axios";
-import { SERVER_ENDPOINT } from "../../src/Constants";
-import mock from "../config/Config.ts";
+import { SERVER_ENDPOINT } from "../../src/utils/Axios";
+import mock from "../config/Config";
 import MockAdapter from "axios-mock-adapter";
 
 let mockAdapter = null;
@@ -60,6 +60,7 @@ export const mockValidCode = () => {
       name: "Test Name",
       account_type: "Recruiter",
       email: "test@email.com", // Don't check this value: it will be different in integration tests
+      authToken: "AUTHTOKEN",
     });
   }
 };

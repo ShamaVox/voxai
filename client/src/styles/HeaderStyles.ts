@@ -39,6 +39,31 @@ const styles = StyleSheet.create({
     paddingLeft: 10,
     paddingRight: 10,
   },
+  dropdownOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  dropdownMenu: {
+    backgroundColor: "white",
+    position: "absolute",
+    top: 64,
+    right: 10,
+    borderRadius: 5,
+    elevation: 5,
+    shadowColor: "black",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  dropdownItem: {
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+  },
 });
 
 export default styles;

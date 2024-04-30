@@ -1,48 +1,21 @@
 import React from "react";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import App from "../src/App";
-import { SERVER_ENDPOINT } from "../src/Constants";
+import { SERVER_ENDPOINT } from "../src/utils/Axios";
+import { randomAccountNumber } from "./utils/Random";
 import { loginAndNavigateAll } from "./actions/AppIntegrationActions";
+import { clearCookies } from "./utils/Render";
+
+beforeEach(() => {
+  clearCookies();
+});
 
 test("Login with existing account and navigate to Dashboard and Home", async () => {
-  const {
-    getByText,
-    getByTestId,
-    queryByTestId,
-    queryByText,
-    findByText,
-    findByPlaceholderText,
-    queryAllByTestId,
-  } = render(<App />);
-  await loginAndNavigateAll(
-    getByText,
-    getByTestId,
-    queryByTestId,
-    queryByText,
-    findByText,
-    findByPlaceholderText,
-    queryAllByTestId
-  );
+  render(<App />);
+  await loginAndNavigateAll();
 });
 
 test("Create new account and navigate to Dashboard and Home", async () => {
-  const {
-    getByText,
-    getByTestId,
-    queryByTestId,
-    queryByText,
-    findByText,
-    findByPlaceholderText,
-    queryAllByTestId,
-  } = render(<App />);
-  await loginAndNavigateAll(
-    getByText,
-    getByTestId,
-    queryByTestId,
-    queryByText,
-    findByText,
-    findByPlaceholderText,
-    queryAllByTestId,
-    Math.random() * 9999999999999999
-  );
+  render(<App />);
+  await loginAndNavigateAll(randomAccountNumber());
 });

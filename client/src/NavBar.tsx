@@ -2,7 +2,7 @@ import React, { useContext, useState } from "react";
 import { View, Text, Pressable, Image } from "react-native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/NavBarStyles";
-import { NAV_BAR_LOGGING } from "./Constants";
+import { NAV_BAR_LOGGING } from "./config/Logging";
 import { useNavigation } from "@react-navigation/native";
 
 const NavBar: React.FC = () => {

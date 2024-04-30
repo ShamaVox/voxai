@@ -1,10 +1,18 @@
 import React, { FC, useContext, useState, useEffect } from "react";
-import { View, Pressable, Text, FlatList } from "react-native";
+import {
+  View,
+  Pressable,
+  Text,
+  FlatList,
+  GestureResponderEvent,
+  ListRenderItem,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
-import { SERVER_ENDPOINT, HOME_LOGGING } from "./Constants";
+import { HOME_LOGGING } from "./config/Logging";
+import { SERVER_ENDPOINT } from "./utils/Axios";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
@@ -21,7 +29,7 @@ const Home: FC = () => {
     }
   }, [isLoggedIn]);
 
-  const fetchInterviews = async () => {
+  const fetchInterviews: () => void = async () => {
     try {
       const response = await axios.get(SERVER_ENDPOINT("interviews"));
       setInterviews(response.data);
@@ -32,11 +40,11 @@ const Home: FC = () => {
     }
   };
 
-  const handleLoginClick = () => {
+  const handleLoginClick: (arg: GestureResponderEvent) => void = () => {
     navigation.navigate("Login");
   };
 
-  const renderInterviewItem = ({ item }) => (
+  const renderInterviewItem: ListRenderItem<any> = ({ item }) => (
     <View testID="interview-table-entry" style={styles.interviewItem}>
       <View style={styles.interviewColumn}>
         <Text style={styles.interviewDate}>{item.date}</Text>
@@ -112,6 +120,14 @@ const Home: FC = () => {
               keyExtractor={(item) => item.id.toString()}
               style={styles.interviewsList}
             />
+            {isLoggedIn ? (
+              <>
+                {" "}
+                <Text>This is a placeholder for the Completed tab</Text>{" "}
+              </>
+            ) : (
+              <> </>
+            )}
             <View style={styles.paginationContainer}>
               <Text style={styles.paginationText}>Showing page 1 of 1</Text>
             </View>

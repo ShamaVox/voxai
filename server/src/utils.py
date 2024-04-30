@@ -1,5 +1,6 @@
 import random
 from datetime import date, timedelta
+import string
 
 def get_random(max_value, negative=False):
     if not negative:
@@ -20,3 +21,6 @@ def get_random_time():
     hours = random.randint(0, 23)
     minutes = random.randint(0, 59)
     return f"{hours:02d}:{minutes:02d}"
+
+def get_random_string(length):
+    return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))

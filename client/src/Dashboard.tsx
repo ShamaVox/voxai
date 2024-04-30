@@ -2,20 +2,61 @@ import React, { FC, useState, useEffect } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_ENDPOINT, DASHBOARD_LOGGING } from "./Constants";
+import { SERVER_ENDPOINT } from "./utils/Axios";
+import { DASHBOARD_LOGGING } from "./config/Logging";
 
-const Dashboard: FC = () => {
-  return <InsightsScreen />;
+interface InsightBoxProps {
+  testID: string;
+  icon: string;
+  value: string;
+  title: string;
+  percentage?: number;
+}
+
+const InsightBox: FC<InsightBoxProps> = ({
+  testID,
+  icon,
+  value,
+  title,
+  percentage = NaN, // temporary default
+}) => {
+  return (
+    <View style={styles.insightBox}>
+      <View style={styles.insightNumbers}>
+        <Image
+          source={require("../assets/icons/dashboard.png")} // Temporary
+          style={styles.icon}
+        />
+        <Text style={styles.value}>{value}</Text>
+        {!isNaN(percentage) && (
+          <View
+            style={[
+              styles.percentageBox,
+              percentage >= 0
+                ? styles.positivePercentage
+                : styles.negativePercentage,
+            ]}
+          >
+            <Text style={styles.percentageText}>
+              {percentage > 0 && "+"}
+              {percentage}%
+            </Text>
+          </View>
+        )}
+      </View>
+      <Text style={styles.title}>{title}</Text>
+    </View>
+  );
 };
 
-const InsightsScreen = () => {
+const InsightsScreen: FC = () => {
   const [insights, setInsights] = useState(null);
 
   useEffect(() => {
     fetchInsights();
   }, []);
 
-  const fetchInsights = async () => {
+  const fetchInsights: () => Promise<void> = async () => {
     try {
       const response = await axios.get(SERVER_ENDPOINT("insights"));
       setInsights(response.data);
@@ -65,34 +106,8 @@ const InsightsScreen = () => {
   );
 };
 
-const InsightBox = ({ testID, icon, value, title, percentage = NaN }) => {
-  return (
-    <View style={styles.insightBox}>
-      <View style={styles.insightNumbers}>
-        <Image
-          source={require("../assets/icons/dashboard.png")} // Temporary
-          style={styles.icon}
-        />
-        <Text style={styles.value}>{value}</Text>
-        {!isNaN(percentage) && (
-          <View
-            style={[
-              styles.percentageBox,
-              percentage >= 0
-                ? styles.positivePercentage
-                : styles.negativePercentage,
-            ]}
-          >
-            <Text style={styles.percentageText}>
-              {percentage > 0 && "+"}
-              {percentage}%
-            </Text>
-          </View>
-        )}
-      </View>
-      <Text style={styles.title}>{title}</Text>
-    </View>
-  );
+const Dashboard: FC = () => {
+  return <InsightsScreen />;
 };
 
 export default Dashboard;

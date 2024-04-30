@@ -1,7 +1,7 @@
-import { fireEvent, waitFor } from "@testing-library/react-native";
+import { fireEvent, waitFor, screen } from "@testing-library/react-native";
 import { mockUpcomingInterviews, mockInsights } from "../utils/MockRequests";
 
-export const navigateTo = async (getByTestId, screenName: string) => {
+export const navigateTo = async (screenName: string) => {
   // Mock API responses based on the screen
   if (screenName === "Home") {
     mockUpcomingInterviews();
@@ -11,13 +11,15 @@ export const navigateTo = async (getByTestId, screenName: string) => {
 
   if (screenName === "Login") {
     await waitFor(() => {
-      fireEvent.press(getByTestId("profile-container"));
+      fireEvent.press(screen.getByTestId("profile-container"));
     });
   }
   // Click the corresponding navigation button
   else {
     await waitFor(() => {
-      fireEvent.press(getByTestId(`nav-button-${screenName.toLowerCase()}`));
+      fireEvent.press(
+        screen.getByTestId(`nav-button-${screenName.toLowerCase()}`)
+      );
     });
   }
 };

@@ -9,7 +9,7 @@ import Login from "./Login";
 import Header from "./Header";
 import Candidates from "./Candidates";
 import NavBar from "./NavBar";
-import { APP_LOGGING } from "./Constants";
+import { APP_LOGGING } from "./config/Logging";
 import styles from "./styles/AppStyles";
 
 // Fixes TypeScript error in my IDE
@@ -28,11 +28,11 @@ const Stack = createStackNavigator();
 
 const App: FC = () => {
   return (
-    <AuthProvider>
-      <NavigationContainer>
+    <NavigationContainer>
+      <AuthProvider>
         <AppContent />
-      </NavigationContainer>
-    </AuthProvider>
+      </AuthProvider>
+    </NavigationContainer>
   );
 };
 

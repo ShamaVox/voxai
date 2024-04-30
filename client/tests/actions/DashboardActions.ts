@@ -1,10 +1,12 @@
 // DashboardActions.ts
 
-export const verifyInsightsData = async (findByText) => {
+import { screen } from "@testing-library/react-native";
+
+export const verifyInsightsData = async () => {
   // Assert that insights data is displayed
-  await findByText("3");
-  await findByText("85%");
-  await findByText("6 days");
-  await findByText("-10%");
-  await findByText("20K - 129K");
+  await screen.findByText("3");
+  await screen.findByText("85%");
+  await screen.findByText("6 days");
+  await screen.findByText("-10%");
+  await screen.findByText("20K - 129K");
 };

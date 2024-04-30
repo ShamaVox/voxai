@@ -1,79 +1,50 @@
-import { fireEvent, waitFor } from "@testing-library/react-native";
+import { fireEvent, waitFor, screen } from "@testing-library/react-native";
 
-export const verifyLoggedOutHomepage = (getByText) => {
-  expect(getByText("This is a placeholder homepage")).toBeTruthy();
-  expect(getByText("Login")).toBeTruthy();
+export const verifyLoggedOutHomepage = () => {
+  expect(screen.getByText("This is a placeholder homepage")).toBeTruthy();
+  expect(screen.getByText("Login")).toBeTruthy();
 };
 
-export const verifyUpcomingInterviews = async (findByText) => {
+export const verifyUpcomingInterviews = async () => {
   // Wait for interviews to be fetched and rendered
-  await findByText("John Doe");
+  await screen.findByText("John Doe");
 };
 
 export const verifyTabSwitch = async (
-  getByText,
-  queryByText,
-  findByText,
-  queryAllByTestId,
-  getByTestId,
   tabName: "Upcoming" | "Completed" | "Both"
 ) => {
   if (tabName === "Both") {
-    await verifyTabSwitch(
-      getByText,
-      queryByText,
-      findByText,
-      queryAllByTestId,
-      getByTestId,
-      "Completed"
-    );
-    await verifyTabSwitch(
-      getByText,
-      queryByText,
-      findByText,
-      queryAllByTestId,
-      getByTestId,
-      "Upcoming"
-    );
+    await verifyTabSwitch("Completed");
+    await verifyTabSwitch("Upcoming");
   } else {
     // Click on the specified tab
     if (tabName === "Completed") {
-      await waitFor(() => {
-        fireEvent.press(getByTestId("completed-tab"));
-        expect(
-          queryAllByTestId("interview-list")[0].props.data.length
-        ).toBeLessThan(5);
-        expect(queryByText("John Doe")).toBeNull();
-      });
+      fireEvent.press(screen.getByTestId("completed-tab"));
+      await screen.findByText("This is a placeholder for the Completed tab");
+      // await waitFor(async () => {
+      //   fireEvent.press(screen.getByTestId("completed-tab"));
+      //   await screen.findByText("This is a placeholder for the Completed tab");
+      //   expect(
+      //     await screen.queryAllByTestId("interview-list")[0].props.data.length
+      //   ).toBeLessThan(5);
+      //   expect(screen.queryByText("John Doe")).toBeNull();
+      // });
     } else if (tabName === "Upcoming") {
       await waitFor(() => {
-        fireEvent.press(getByTestId("upcoming-tab"));
+        fireEvent.press(screen.getByTestId("upcoming-tab"));
       });
     }
   }
   // Assert visibility of interviews based on the selected tab
   if (tabName === "Completed") {
     await waitFor(() => {
-      //expect(queryAllByTestId("interview-list")[0].props.data.length).toBe(0);
+      //expect(screen.queryAllByTestId("interview-list")[0].props.data.length).toBe(0);
     });
   } else if (tabName === "Upcoming") {
-    await verifyUpcomingInterviews(findByText);
+    await verifyUpcomingInterviews();
   }
 };
 
-export const verifyHomeElements = async (
-  getByText,
-  queryByText,
-  findByText,
-  queryAllByTestId,
-  getByTestId
-) => {
-  await verifyTabSwitch(
-    getByText,
-    queryByText,
-    findByText,
-    queryAllByTestId,
-    getByTestId,
-    "Both"
-  );
+export const verifyHomeElements = async () => {
+  await verifyTabSwitch("Both");
 };

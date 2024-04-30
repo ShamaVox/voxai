@@ -7,6 +7,9 @@ from os import environ
 
 isAccepted = False
 
+# Temporary, to test client cookie handling
+sessions = {} 
+
 # Serve React Native app
 @app.route('/', defaults={'path': ''})
 
@@ -39,65 +42,82 @@ def send_code():
 
 @app.route('/api/validate_code', methods=['POST'])
 def validate_code():
-    if request.method == 'POST':
-        email = request.json.get('email')
-        code = request.json.get('code')
+    email = request.json.get('email')
+    code = request.json.get('code')
 
-        # Check code is valid 
-        if not verification.is_valid_verification_code(email, code):
+    # Check code is valid 
+    if not verification.is_valid_verification_code(email, code):
+        data = {
+                "message": "Invalid verification code",
+            }
+        return_code = 401
+    
+    else: 
+        # Check if email exists in the table
+        existing_account = database.Account.query.filter_by(email=email).first()
+
+        if existing_account:
+            # Email exists, fetch name and account type
+            auth_token = utils.get_random_string(36)
+            sessions[auth_token] = request.json.get('email')
+
             data = {
-                    "message": "Invalid verification code",
-                }
-            return_code = 401
-        
-        else: 
-            # Check if email exists in the table
-            existing_account = database.Account.query.filter_by(email=email).first()
+                "message": "Verification code is valid",
+                "name": existing_account.name,
+                "account_type": existing_account.account_type,
+                "email": email,
+                "authToken": auth_token
+            }
+            return_code = 200
+            
+        else:
+            # Email doesn't exist, create a new entry
 
-            if existing_account:
-                # Email exists, fetch name and account type
+            # TODO: Move this to input_validation.py and run stronger validation
+            if not request.json.get('name'):
                 data = {
-                    "message": "Verification code is valid",
-                    "name": existing_account.name,
-                    "account_type": existing_account.account_type,
-                    "email": email
+                    "message": "A name is needed to create an account"
                 }
-                return_code = 200
-                
-            else:
-                # Email doesn't exist, create a new entry
+                return_code = 401
+            elif not request.json.get('organization'):
+                data = {
+                    "message": "An organization is needed to create an account"
+                }
+                return_code = 401
+            elif not request.json.get('accountType'):
+                data = {
+                    "message": "An account type is needed to create an account"
+                }
+                return_code = 401
+            else: 
+                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
+                database.db.session.add(new_account)
+                database.db.session.commit()
 
-                # TODO: Move this to input_validation.py and run stronger validation
-                if not request.json.get('name'):
-                    data = {
-                        "message": "A name is needed to create an account"
-                    }
-                    return_code = 401
-                elif not request.json.get('organization'):
-                    data = {
-                        "message": "An organization is needed to create an account"
-                    }
-                    return_code = 401
-                elif not request.json.get('accountType'):
-                    data = {
-                        "message": "An account type is needed to create an account"
-                    }
-                    return_code = 401
-                else: 
-                    new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
-                    database.db.session.add(new_account)
-                    database.db.session.commit()
+                auth_token = utils.get_random_string(36)
+                sessions[auth_token] = request.json.get('email')
+                data = {
+                    "message": "Account created",
+                    "name": request.json.get('name'),
+                    "organization": request.json.get('organization'),
+                    "account_type": request.json.get('accountType'),
+                    "email": email,
+                    "authToken": auth_token
+                }
+                return_code = 201 
 
-                    data = {
-                        "message": "Account created",
-                        "name": request.json.get('name'),
-                        "organization": request.json.get('organization'),
-                        "account_type": request.json.get('accountType'),
-                        "email": email
-                    }
-                    return_code = 201 
+    return jsonify(data), return_code
 
-        return jsonify(data), return_code
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    authToken = request.json.get('authToken')
+    if authToken in sessions: 
+        del sessions[authToken]
+    return jsonify({}), 200
+
+@app.route('/api/check_token', methods=['POST'])
+def check_token():
+    return jsonify({"validToken": request.json.get('authToken') in sessions})
 
 @app.route("/api/insights")
 def get_insights():

@@ -1,5 +1,5 @@
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
+import { render, fireEvent, screen } from "@testing-library/react-native";
 import Login from "../src/Login";
 import { AuthContext } from "../src/AuthContext";
 import {
@@ -8,6 +8,7 @@ import {
   mockValidCode,
   mockInvalidCode,
 } from "./utils/MockRequests";
+import { randomAccountNumber } from "./utils/Random";
 import {
   sendCodeSuccess,
   validateCodeSuccess,
@@ -27,7 +28,14 @@ jest.mock("@react-navigation/native", () => ({
 function renderLogin() {
   return render(
     <AuthContext.Provider
-      value={{ isLoggedIn: false, handleLogin: mockHandleLogin }}
+      value={{
+        isLoggedIn: false,
+        handleLogin: mockHandleLogin,
+        username: "",
+        email: "",
+        authToken: "",
+        handleLogout: async () => {},
+      }}
     >
       <Login />
     </AuthContext.Provider>
@@ -39,113 +47,100 @@ beforeEach(() => {
 });
 
 test("shows error message for invalid email", () => {
-  const { getByTestId, getByText } = renderLogin();
-
-  mockAccountExists();
+  renderLogin();
 
   // Enter an invalid email
-  fireEvent.changeText(getByTestId("email-input"), "invalid_email");
+  fireEvent.changeText(screen.getByTestId("email-input"), "invalid_email");
+  fireEvent.press(screen.getByText("Send code"));
 
   // Check for error message
-  expect(getByText("Invalid email")).toBeTruthy();
+  expect(screen.getByText("Invalid email")).toBeTruthy();
 });
 
 test("shows no error message for valid email", () => {
-  const { getByTestId, queryByText } = renderLogin();
+  renderLogin();
 
   mockAccountExists();
 
-  fireEvent.changeText(getByTestId("email-input"), "valid@email.com");
+  fireEvent.changeText(screen.getByTestId("email-input"), "valid@email.com");
+  fireEvent.press(screen.getByText("Send code"));
 
-  expect(queryByText("Invalid email")).toBeNull();
+  expect(screen.queryByText("Invalid email")).toBeNull();
 });
 
 test("shows code input field after sending code", async () => {
-  const { getByTestId, getByText, findByPlaceholderText } = renderLogin();
+  renderLogin();
 
-  sendCodeSuccess(getByTestId, getByText, (newAccount = false));
+  sendCodeSuccess(0);
 
   // Wait for code field to appear
-  await findByPlaceholderText("Verification code");
+  await screen.findByPlaceholderText("Verification code");
 
   // Assert that the code field is now present
-  expect(getByTestId("code-input")).toBeTruthy();
+  expect(screen.getByTestId("code-input")).toBeTruthy();
 });
 
 test("shows error message for invalid code", async () => {
-  const {
-    getByTestId,
-    getByText,
-    findByPlaceholderText,
-    findByText,
-  } = renderLogin();
+  renderLogin();
 
-  sendCodeSuccess(getByTestId, getByText, (newAccount = false));
-  await findByPlaceholderText("Verification code");
-  fireEvent.changeText(getByTestId("code-input"), "123");
-  fireEvent.press(getByText("Validate code"));
+  sendCodeSuccess(0);
+  await screen.findByPlaceholderText("Verification code");
+  fireEvent.changeText(screen.getByTestId("code-input"), "123");
+  fireEvent.press(screen.getByText("Validate code"));
 
   // Assert error message
-  await findByText("Verification code should be 6 digits");
-  expect(getByText("Verification code should be 6 digits")).toBeTruthy();
+  await screen.findByText("Verification code should be 6 digits");
+  expect(screen.getByText("Verification code should be 6 digits")).toBeTruthy();
 
   // Try different invalid code
   mockInvalidCode();
-  fireEvent.changeText(getByTestId("code-input"), "123292");
-  fireEvent.press(getByText("Validate code"));
+  fireEvent.changeText(screen.getByTestId("code-input"), "123292");
+  fireEvent.press(screen.getByText("Validate code"));
 
-  await findByText("Invalid code");
-  expect(getByText("Invalid code")).toBeTruthy();
+  await screen.findByText("Invalid code");
+  expect(screen.getByText("Invalid code")).toBeTruthy();
 });
 
 test("shows new account fields when required", async () => {
-  const { getByTestId, getByText, findByPlaceholderText } = renderLogin();
+  renderLogin();
 
-  sendCodeSuccess(getByTestId, getByText, (newAccount = true));
+  sendCodeSuccess(randomAccountNumber());
 
   // Assert new account fields are present
-  await findByPlaceholderText("Verification code");
-  await findByPlaceholderText("Name");
-  await findByPlaceholderText("Organization");
+  await screen.findByPlaceholderText("Verification code");
+  await screen.findByPlaceholderText("Name");
+  await screen.findByPlaceholderText("Organization");
 
-  expect(getByTestId("name-input")).toBeTruthy();
-  expect(getByTestId("organization-input")).toBeTruthy();
+  expect(screen.getByTestId("name-input")).toBeTruthy();
+  expect(screen.getByTestId("organization-input")).toBeTruthy();
 });
 
 test("handles successful login", async () => {
-  const { getByTestId, getByText, findByPlaceholderText } = renderLogin();
+  renderLogin();
 
-  await loginSuccess(
-    findByPlaceholderText,
-    getByTestId,
-    getByText,
-    (newAccount = false)
-  );
+  await loginSuccess(0);
 
   // Assert that handleLogin was called with the correct arguments
   expect(mockHandleLogin).toHaveBeenCalledWith(
     "existing@email.com",
-    "Test Name"
+    "Test Name",
+    "AUTHTOKEN"
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });
 
 test("handles successful account creation and login", async () => {
-  const { getByTestId, getByText, findByPlaceholderText } = renderLogin();
+  renderLogin();
 
-  let account_number = Math.random() * 99999999999999999999;
+  let accountNumber: number = randomAccountNumber();
 
-  await loginSuccess(
-    findByPlaceholderText,
-    getByTestId,
-    getByText,
-    (newAccount = account_number)
-  );
+  await loginSuccess(accountNumber);
 
   // Assert handleLogin was called and navigation occurred
   expect(mockHandleLogin).toHaveBeenCalledWith(
-    "new" + account_number + "@email.com",
-    "Test Name"
+    "new" + accountNumber + "@email.com",
+    "Test Name",
+    "AUTHTOKEN"
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });
