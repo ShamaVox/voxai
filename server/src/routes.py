@@ -1,4 +1,4 @@
-from flask import send_from_directory, request, jsonify
+from flask import send_from_directory, request, jsonify, make_response
 import os
 from flask_cors import CORS
 from . import utils, verification, input_validation, database, migrations
@@ -37,23 +37,25 @@ def send_code():
     Returns:
         A JSON response with a message and a flag indicating if the account exists.
     """
-    if request.method == 'POST':
-        email = request.json.get('email')
-        if input_validation.is_valid_email(email):
-            # Generate and send verification code to the email
-            verification_code = verification.generate_verification_code()
-            verification.send_verification_code(email, verification_code)
-            data = {
-                "message": "Verification code sent successfully",
-                "account_exists": database.Account.query.filter_by(email=email).first() is not None
-            }
-            return_code = 200
-        else:
-            data = {
-                "message": "Invalid email",
-            }
-            return_code = 400
-        return jsonify(data), return_code
+    email = request.json.get('email')
+    if input_validation.is_valid_email(email):
+        # Generate and send verification code to the email
+        verification_code = verification.generate_verification_code()
+        verification.send_verification_code(email, verification_code)
+        data = {
+            "message": "Verification code sent successfully",
+            "account_exists": database.Account.query.filter_by(email=email).first() is not None
+        }
+        return_code = 200
+    else:
+        data = {
+            "message": "Invalid email",
+        }
+        return_code = 400
+    
+    response = make_response(jsonify(data), return_code)
+    response.delete_cookie('authToken')
+    return jsonify(data), return_code
 
 @app.route('/api/validate_code', methods=['POST'])
 def validate_code():
@@ -79,7 +81,7 @@ def validate_code():
         if existing_account:
             # Email exists, fetch name and account type
             auth_token = utils.get_random_string(36)
-            sessions[auth_token] = request.json.get('email')
+            sessions[auth_token] = existing_account.account_id
 
             data = {
                 "message": "Verification code is valid",
@@ -132,7 +134,10 @@ def validate_code():
                 }
                 return_code = 201 
 
-    return jsonify(data), return_code
+    response = make_response(jsonify(data), return_code)
+    if "authToken" in data:
+        response.set_cookie("authToken", value=auth_token, httponly=True, samesite="Strict")
+    return response
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -140,20 +145,47 @@ def logout():
     authToken = request.json.get('authToken')
     if authToken in sessions: 
         del sessions[authToken]
-    return jsonify({}), 200
+    response = make_response()
+    response.delete_cookie('authToken')
+    return response
 
 @app.route('/api/check_token', methods=['POST'])
 def check_token():
     """Checks if a provided authentication token is valid.""" 
-    return jsonify({"validToken": request.json.get('authToken') in sessions or (environ['TEST'] == 'Integration' and request.json.get('authToken') == 'AUTHTOKEN')})
+
+    response = make_response(jsonify({"validToken": request.json.get('authToken') in sessions or ('TEST' in environ and environ['TEST'] == 'Integration' and request.json.get('authToken') == 'AUTHTOKEN')}))
+    response.delete_cookie('authToken')
+    return response
 
 @app.route("/api/insights")
 def get_insights():
     """Provides synthetic insights data."""
+    auth_token = request.cookies.get('authToken', None)
+    if 'TEST' in environ and environ['TEST'] == "Integration":
+        # Temporary: setCookie does not work in Jest, so just pass a random user's data
+        current_user_id = 0
+    else:
+        # TODO: check for invalid sessions and send logout response
+        current_user_id = sessions[auth_token]
+    match_threshold = 80  # Threshold for candidate_match that counts as "fitting job application"
+
+    # Query to count fitting job applications
+    fitting_job_applications_count = database.db.session.query(database.db.func.count(database.Application.application_id))\
+        .join(database.Role, database.Application.role_id == database.Role.role_id)\
+        .filter(database.Role.direct_manager_id == current_user_id)\
+        .filter(database.Application.candidate_match > match_threshold)\
+        .scalar()
+
+    total_applications_count = database.db.session.query(database.db.func.count(database.Application.application_id))\
+        .join(database.Role, database.Application.role_id == database.Role.role_id)\
+        .filter(database.Role.direct_manager_id == current_user_id).scalar()
+
+    fitting_job_applications_percentage = round((fitting_applications_count / total_applications_count) * 100 if total_applications_count > 0 else 0)
+
     lower_compensation = utils.get_random(100)
     insights = {
         "candidateStage": utils.get_random(5),
-        "fittingJobApplication": utils.get_random(10),
+        "fittingJobApplication": fitting_job_applications_percentage,
         "fittingJobApplicationPercentage": utils.get_random(25, negative=True),
         "averageInterviewPace": utils.get_random(7),
         "averageInterviewPacePercentage": utils.get_random(25, negative=True),
@@ -161,7 +193,7 @@ def get_insights():
         "upperCompensationRange": lower_compensation + utils.get_random(100),
     }
     if 'TEST' in environ:
-        # Temporary until there is a table in the database which can be configured for integration testing
+        # Temporary
         insights = {
             "candidateStage": 3,
             "fittingJobApplication": 85,
@@ -189,6 +221,6 @@ def get_interviews():
             "role": data_generator.job(),
         })
     if 'TEST' in environ:
-        # Temporary until there is a table in the database which can be configured for integration testing
+        # Temporary
         interviews[0]["candidateName"] = "John Doe"
     return jsonify(interviews)

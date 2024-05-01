@@ -4,7 +4,7 @@ import {
   mockValidCode,
   mockUpcomingInterviews,
 } from "../utils/MockRequests";
-import { fireEvent, waitFor, screen } from "@testing-library/react-native";
+import { fireEvent, waitFor, screen, act } from "@testing-library/react-native";
 
 /**
  * Simulates user input in the login form and triggers the specified button press.
@@ -76,7 +76,6 @@ export const validateCodeSuccess = async (
     "Validate code",
     validateNavigation ? "My Interviews" : ""
   );
-  await waitFor(() => {});
 };
 
 /**

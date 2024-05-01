@@ -137,7 +137,7 @@ const Home: FC = () => {
               keyExtractor={(item) => item.id.toString()}
               style={styles.interviewsList}
             />
-            {isLoggedIn ? (
+            {selectedTab === "Completed" ? (
               <>
                 {" "}
                 <Text>This is a placeholder for the Completed tab</Text>{" "}

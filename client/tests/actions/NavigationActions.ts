@@ -15,16 +15,23 @@ export const navigateTo = async (screenName: string) => {
   }
 
   if (screenName === "Login") {
-    await waitFor(() => {
+    await waitFor(async () => {
       fireEvent.press(screen.getByTestId("profile-container"));
+      await screen.findByText("Login");
     });
   }
   // Click the corresponding navigation button
   else {
-    await waitFor(() => {
+    await waitFor(async () => {
       fireEvent.press(
         screen.getByTestId(`nav-button-${screenName.toLowerCase()}`)
       );
+      if (screenName === "Home") {
+        await screen.findByText("My Interviews");
+      }
+      if (screenName === "Dashboard") {
+        await screen.findByText("Insights");
+      }
     });
   }
 };

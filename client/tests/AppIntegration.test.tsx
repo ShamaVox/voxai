@@ -16,23 +16,23 @@ beforeEach(() => {
 });
 
 test("Login with existing account and navigate to Dashboard and Home", async () => {
-  render(<App />);
+  render(<App enableAnimations={false} />);
   await loginAndNavigateAll();
 });
 
 test("Create new account and navigate to Dashboard and Home", async () => {
-  render(<App />);
+  render(<App enableAnimations={false} />);
   await loginAndNavigateAll(randomAccountNumber());
 });
 
 test("Login persists after refresh", async () => {
-  render(<App />);
+  render(<App enableAnimations={false} />);
   await navigateAndLogin(0);
 
   // Simulate refresh (unmount and remount App component)
   mockValidToken();
-  const { rerender } = render(<App />);
-  rerender(<App />);
+  const { rerender } = render(<App enableAnimations={false} />);
+  rerender(<App enableAnimations={false} />);
 
   // Verify user is still logged in and on the home page
   await verifyUpcomingInterviews();
@@ -48,6 +48,6 @@ test("logs in automatically when cookie is present", async () => {
   });
   mockValidToken();
   mockUpcomingInterviews();
-  render(<App />);
+  render(<App enableAnimations={false} />);
   await verifyUpcomingInterviews();
 });

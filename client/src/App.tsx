@@ -26,23 +26,33 @@ declare global {
 
 const Stack = createStackNavigator();
 
+interface AppProps {
+  enableAnimations?: boolean;
+}
+
 /**
  * Main application component that handles navigation and authentication.
  */
-const App: FC = () => {
+const App: FC<AppProps> = ({ enableAnimations = true }) => {
   return (
     <NavigationContainer>
       <AuthProvider>
-        <AppContent />
+        <AppContent enableAnimations={enableAnimations} />
       </AuthProvider>
     </NavigationContainer>
   );
 };
 
+interface AppContentProps {
+  enableAnimations?: boolean;
+}
+
 /**
  * Component responsible for rendering the app content based on authentication state.
  */
-const AppContent: FC = () => {
+const AppContent: FC<{ enableAnimations: boolean }> = ({
+  enableAnimations,
+}) => {
   const navigation = useNavigation();
 
   const { isLoggedIn } = useContext(AuthContext);
@@ -61,6 +71,7 @@ const AppContent: FC = () => {
         <Stack.Navigator
           screenOptions={{
             header: () => <View />, // Disable default header
+            animationEnabled: enableAnimations, // Disable animations based on prop
           }}
         >
           <Stack.Screen name="Home" component={Home} />
