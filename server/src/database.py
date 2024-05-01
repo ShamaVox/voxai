@@ -32,6 +32,8 @@ class Account(db.Model):
     name = db.Column(db.String, nullable=False, default="Default Name")
     account_type = db.Column(db.String, nullable=False, default="Recruiter")
     organization = db.Column(db.String, default="Default Company")
+    roles = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
+    applications = db.relationship('Application', back_populates='candidate')
 
     def __repr__(self):
         return f'<Account {self.email}>'
@@ -39,6 +41,7 @@ class Account(db.Model):
 class Skill(db.Model):
     skill_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     skill_name = db.Column(db.String, unique=True, nullable=False)
+    interviews = db.relationship("Interview", secondary="interview_skill_score", back_populates="skill_scores")
 
     def __repr__(self):
         return f'<Skill {self.skill_name}>'
@@ -54,11 +57,11 @@ class Role(db.Model):
     years_of_experience_max = db.Column(db.Integer) 
     target_years_of_experience = db.Column(db.Integer)
     direct_manager_id = db.Column(db.Integer, db.ForeignKey('account.account_id'))
-    direct_manager = db.relationship("Account", backref="managed_roles", foreign_keys=[direct_manager_id]) 
+    direct_manager = db.relationship("Account", foreign_keys=[direct_manager_id]) 
 
     # Many-to-many relationship for skills and teammates
-    skills = db.relationship('Skill', secondary="role_skill", backref='roles')
-    teammates = db.relationship('Account', secondary="role_teammate", backref='roles')
+    applications = db.relationship('Application', back_populates='role')
+    teammates = db.relationship('Account', secondary="role_teammate", back_populates='roles')
 
     def __repr__(self):
         return f'<Role {self.role_name}>'
@@ -78,19 +81,18 @@ role_teammate_table = db.Table('role_teammate', db.Model.metadata,
 class Application(db.Model):
     application_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     role_id = db.Column(db.Integer, db.ForeignKey('role.role_id'), nullable=False)
-    candidate_email = db.Column(db.String, db.ForeignKey('account.email'), nullable=False)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('account.account_id'), nullable=False)
     candidate_match = db.Column(db.Integer)  # Resume score
     application_time = db.Column(db.DateTime, default=datetime.utcnow)
 
-    role = db.relationship("Role", backref="applications")
-    candidate = db.relationship("Account", backref="application")
-    interviews = db.relationship("Interview", backref="application")
+    role = db.relationship("Role", back_populates="applications")
+    candidate = db.relationship("Account", back_populates="applications")
+    interviews = db.relationship("Interview", back_populates="applications")
 
-    __table_args__ = (db.UniqueConstraint('role_id', 'candidate_email', name='unique_role_candidate'),)
+    __table_args__ = (db.UniqueConstraint('role_id', 'candidate_id', name='unique_role_candidate'),)
 
     def __repr__(self):
-        # TODO: implement
-        pass 
+        return f'<Application {self.application_id} - Role: {self.role.role_name}, Candidate: {self.candidate.email}>'
 
 class Candidate(db.Model):
     candidate_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
@@ -99,11 +101,12 @@ class Candidate(db.Model):
     interview_stage = db.Column(db.Integer)  
     resume_url = db.Column(db.String)
 
-    applications = db.relationship("Application", backref="candidate")
+    applications = db.relationship("Application", back_populates="candidate_info")
+    speaking_metrics = db.relationship("Interview", back_populates="speaking_metrics")
+    interviews = db.relationship("Interview", back_populates="candidate")
 
     def __repr__(self):
-        # TODO: Implement
-        pass
+        return f'<Candidate {self.candidate_id} - Name: {self.candidate_name}, Company: {self.current_company}>'
 
 class Interview(db.Model):
     interview_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
@@ -117,19 +120,18 @@ class Interview(db.Model):
     score = db.Column(db.Integer)
     engagement = db.Column(db.Integer)
     sentiment = db.Column(db.Integer)
-    skill_scores = db.relationship("Skill", secondary="interview_skill_score", backref="interview")
-    speaking_metrics = db.relationship("Candidate", secondary="interview_speaking", backref="interview")
+    skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
+    speaking_metrics = db.relationship("Candidate", secondary="interview_speaking", back_populates="speaking_metrics")
     keywords = db.Column(db.ARRAY(db.String)) 
     under_review = db.Column(db.Boolean)
 
     # Relationships
-    application = db.relationship("Application", backref="interview")
-    interviewers = db.relationship("Account", secondary="interview_interviewer", backref="interview")
-    candidate = db.relationship("Candidate", backref="interview")  # Assuming Candidate table exists 
+    applications = db.relationship("Application", back_populates="interviews")
+    interviewers = db.relationship("Account", secondary="interview_interviewer", back_populates="interviews")
+    candidate = db.relationship("Candidate", back_populates="interviews")
 
     def __repr__(self):
-        # TODO: Implement
-        pass
+        return f'<Interview {self.interview_id} - Application: {self.application_id}, Time: {self.interview_time}>'
 
 # Skill Scores
 interview_skill_score_table = db.Table(
