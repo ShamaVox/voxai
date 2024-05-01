@@ -2,6 +2,7 @@ from faker import Faker
 from .database import Account, Role, Application, Candidate, Interview, Skill, db, interview_skill_score_table, interview_interviewer_speaking_table
 from os import environ
 from .app import app as app
+from sqlalchemy import inspect
 
 def generate_account_data(num):
     """Generates synthetic data for the Account model.
@@ -193,7 +194,9 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
             sentiment=sentiment,
             keywords=keywords,
             under_review=under_review,
-            candidate=candidate
+            candidate=candidate,
+            speaking_time=speaking_time,
+            wpm=wpm
         )
 
         # Assign random interviewers to the interview
@@ -292,6 +295,19 @@ def generate_skill_data():
 
     return skills
 
+def print_table_entry(table_entry, Model):
+    for column, value in table_entry.__dict__.items():
+        print(f"{column}: {value}")
+    inspector = inspect(Model)
+    column_names = [column.name for column in inspector.columns]
+
+    # Iterate over the column names and check if they exist in the instance's __dict__
+    for column in column_names:
+        if column not in table_entry.__dict__:
+            print(f"{column} is missing")
+        elif table_entry.__dict__[column] is None:
+            print(f"{column} is None")
+
 def generate_synthetic_data(num):
     """Creates synthetic data to add to the database.
     
@@ -304,7 +320,14 @@ def generate_synthetic_data(num):
     candidates = generate_candidate_data(num)
     applications = generate_application_data(num, roles, candidates)
     interviews = generate_interview_data(num, applications, accounts, candidates, skills)
-    print(interviews[0])
+    print_table_entry(accounts[10], Account)
+    print_table_entry(skills[10], Skill)
+    print_table_entry(roles[10], Role)
+    print_table_entry(candidates[11], Candidate)
+    print_table_entry(applications[999], Application)
+    print_table_entry(interviews[683], Interview)
+
+    db.session.commit()
 
 
 if 'SYNTHETIC' in environ:

@@ -30,19 +30,20 @@ def upgrade() -> None:
     op.add_column('account', sa.Column('account_id', sa.Integer(), autoincrement=True, nullable=True))
     # Get the connection and metadata
     connection = op.get_bind()
-    metadata = sa.MetaData(bind=connection)
+    metadata = sa.MetaData()
 
     # Reflect the existing Account table
-    account_table = sa.Table('account', metadata, autoload=True)
+    account_table = sa.Table('account', metadata, autoload_with=connection)
 
     # Create a sequence for generating unique IDs
-    op.execute(sa.schema.CreateSequence(sa.Sequence('account_id_seq')))
+    account_id_seq = sa.Sequence('account_id_seq')
+    op.execute(sa.schema.CreateSequence(account_id_seq))
 
     # Update existing accounts with unique IDs
     for account in connection.execute(sa.select(account_table.c.email)):
         email = account.email
         # Get the next ID from the sequence
-        new_id = connection.execute(sa.sequence.next_value('account_id_seq')).scalar()
+        new_id = connection.execute(sa.select(sa.func.next_value(account_id_seq))).scalar()
         # Update the account with the new ID
         connection.execute(
             sa.update(account_table).

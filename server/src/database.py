@@ -28,11 +28,12 @@ db = SQLAlchemy(app)
 
 class Account(db.Model):
     account_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
-    email = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, nullable=False, unique=True)
     name = db.Column(db.String, nullable=False, default="Default Name")
     account_type = db.Column(db.String, nullable=False, default="Recruiter")
     organization = db.Column(db.String, default="Default Company")
-    roles = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
+    roles = db.relationship('Role', back_populates="direct_manager")
+    teammates = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
     interviews = db.relationship("Interview", secondary="interview_interviewer", back_populates="interviewers")
     speaking_metrics = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
 
@@ -59,11 +60,11 @@ class Role(db.Model):
     years_of_experience_max = db.Column(db.Integer) 
     target_years_of_experience = db.Column(db.Integer)
     direct_manager_id = db.Column(db.Integer, db.ForeignKey('account.account_id'))
-    direct_manager = db.relationship("Account", foreign_keys=[direct_manager_id]) 
+    direct_manager = db.relationship("Account", foreign_keys=[direct_manager_id], back_populates="roles") 
 
     # Many-to-many relationship for skills and teammates
     applications = db.relationship('Application', back_populates='role')
-    teammates = db.relationship('Account', secondary="role_teammate", back_populates='roles')
+    teammates = db.relationship('Account', secondary="role_teammate", back_populates='teammates')
     skills = db.relationship('Skill', secondary="role_skill", back_populates='roles')
 
     def __repr__(self):

@@ -39,6 +39,13 @@ test("Login persists after refresh", async () => {
 });
 
 test("logs in automatically when cookie is present", async () => {
+  setCookies({
+    auth: {
+      username: "Test User",
+      email: "test@email.com",
+      authToken: "AUTHTOKEN",
+    },
+  });
   mockValidToken();
   mockUpcomingInterviews();
   render(<App />);

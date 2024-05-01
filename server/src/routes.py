@@ -1,9 +1,11 @@
 from flask import send_from_directory, request, jsonify
 import os
 from flask_cors import CORS
-from . import utils, verification, synthetic_data, input_validation, database, migrations
+from . import utils, verification, input_validation, database, migrations
 from .app import app as app
 from os import environ
+from faker import Faker
+from sqlalchemy import func
 
 isAccepted = False
 
@@ -108,12 +110,18 @@ def validate_code():
                 }
                 return_code = 401
             else: 
-                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
+                # Get the maximum account_id from the account table
+                max_account_id = database.db.session.query(func.max(database.Account.account_id)).scalar()
+
+                # If there are no existing accounts, start the account_id from 1
+                next_account_id = 1 if max_account_id is None else max_account_id + 1
+                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'), account_id=next_account_id)
                 database.db.session.add(new_account)
                 database.db.session.commit()
 
                 auth_token = utils.get_random_string(36)
                 sessions[auth_token] = request.json.get('email')
+                
                 data = {
                     "message": "Account created",
                     "name": request.json.get('name'),
@@ -137,7 +145,7 @@ def logout():
 @app.route('/api/check_token', methods=['POST'])
 def check_token():
     """Checks if a provided authentication token is valid.""" 
-    return jsonify({"validToken": request.json.get('authToken') in sessions})
+    return jsonify({"validToken": request.json.get('authToken') in sessions or (environ['TEST'] == 'Integration' and request.json.get('authToken') == 'AUTHTOKEN')})
 
 @app.route("/api/insights")
 def get_insights():
@@ -169,15 +177,16 @@ def get_insights():
 def get_interviews():
     """Provides synthetic interview data."""
     interviews = []
+    data_generator = Faker()
     for _ in range(10):
         interviews.append({
             "id": len(interviews) + 1,
             "date": utils.get_random_date(),
             "time": utils.get_random_time(),
-            "candidateName": f"{utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}",
-            "currentCompany": utils.get_random_item(synthetic_data.companies),
-            "interviewers": f"{utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}, {utils.get_random_item(synthetic_data.first_names)} {utils.get_random_item(synthetic_data.last_names)}",
-            "role": utils.get_random_item(synthetic_data.roles),
+            "candidateName": data_generator.name(),
+            "currentCompany": data_generator.company(),
+            "interviewers": data_generator.name() + ", " + data_generator.name(),
+            "role": data_generator.job(),
         })
     if 'TEST' in environ:
         # Temporary until there is a table in the database which can be configured for integration testing

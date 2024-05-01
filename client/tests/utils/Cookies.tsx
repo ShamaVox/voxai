@@ -29,7 +29,6 @@ const CookieComponent: FC<CookieComponentProps> = ({
   } else {
     removeCookie("voxai");
   }
-  console.error(cookieValue, cookies);
   return <> </>;
 };
 

@@ -16,6 +16,7 @@
     "local": "expo export -p web",
     "test": "npm run ts:check && npm run config:test && jest",
     "test:integration": "npm run ts:check && npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
+    "test:integration_light": "npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
     "ts:check": "tsc --noEmit --noImplicitAny",
     "test:light": "npm run config:test && jest"
   },
