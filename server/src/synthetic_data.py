@@ -1,9 +1,17 @@
 from faker import Faker
-from .database import Account, Role, Application, Candidate, Interview, Skill, db
+from .database import Account, Role, Application, Candidate, Interview, Skill, db, interview_skill_score_table, interview_interviewer_speaking_table
 from os import environ
 from .app import app as app
 
 def generate_account_data(num):
+    """Generates synthetic data for the Account model.
+
+    Args:
+        num_records (int): The number of account records to generate.
+
+    Returns:
+        list: A list of generated Account objects.
+    """
     data_generator = Faker()
     account_types = ["Recruiter", "Hiring Manager"]
 
@@ -25,6 +33,16 @@ def generate_account_data(num):
     return accounts
 
 def generate_role_data(num_records, accounts, skills):
+    """Generates synthetic data for the Role model.
+
+    Args:
+        num_records (int): The number of role records to generate.
+        accounts (list): A list of Account objects to be used as direct managers and teammates.
+        skills (list): A list of Skill objects to be assigned to the roles.
+
+    Returns:
+        list: A list of generated Role objects.
+    """
     data_generator = Faker()
     experience_levels = [1, 2, 3, 4, 5]
 
@@ -67,6 +85,14 @@ def generate_role_data(num_records, accounts, skills):
     return roles
 
 def generate_candidate_data(num_records):
+    """Generates synthetic data for the Candidate model.
+
+    Args:
+        num_records (int): The number of candidate records to generate.
+
+    Returns:
+        list: A list of generated Candidate objects.
+    """
     data_generator = Faker()
     interview_stages = [1, 2, 3, 4, 5]
 
@@ -88,6 +114,16 @@ def generate_candidate_data(num_records):
     return candidates
 
 def generate_application_data(num_records, roles, candidates):
+    """Generates synthetic data for the Application model.
+
+    Args:
+        num_records (int): The number of application records to generate.
+        roles (list): A list of Role objects to be used as the roles for the applications.
+        candidates (list): A list of Account objects representing the candidates who submitted the applications.
+
+    Returns:
+        list: A list of generated Application objects.
+    """
     data_generator = Faker()
 
     applications = []
@@ -104,19 +140,36 @@ def generate_application_data(num_records, roles, candidates):
             application_time=application_time
         )
         applications.append(application)
+    
+    return applications
 
 def generate_interview_data(num_records, applications, interviewers, candidates, skills):
+    """Generates synthetic data for the Interview model.
+
+    Args:
+        num_records (int): The number of interview records to generate.
+        applications (list): A list of Application objects to be associated with the interviews.
+        interviewers (list): A list of Account objects representing the interviewers.
+        candidates (list): A list of Candidate objects representing the candidates being interviewed.
+        skills (list): A list of Skill objects to be assigned skill scores for the interviews.
+
+    Returns:
+        list: A list of generated Interview objects.
+    """
     data_generator = Faker()
     stages = [1, 2, 3, 4, 5]
     statuses = [1, 2, 3, 4, 5]
 
     interviews = []
     for _ in range(num_records):
-        application = data_generator.random_element(applications)
+        application_id = data_generator.random_element(applications)
+        candidate_id = data_generator.random_element(candidates)
         interview_time = data_generator.date_time_between(start_date='-1y', end_date='now')
         stage = data_generator.random_element(stages)
         status = data_generator.random_element(statuses)
-        duration = data_generator.random_int(min=30, max=120)
+        duration = data_generator.random_int(min=20*60, max=60*60)
+        speaking_time = data_generator.random_int(min=60, max=300)
+        wpm = data_generator.random_int(min=100, max=200)
         audio_url = data_generator.url()
         video_url = data_generator.url()
         score = data_generator.random_int(min=0, max=100)
@@ -127,7 +180,8 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         candidate = data_generator.random_element(candidates)
 
         interview = Interview(
-            application=application,
+            application_id=application_id,
+            candidate_id=candidate_id,
             interview_time=interview_time,
             stage=stage,
             status=status,
@@ -151,13 +205,24 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         num_skills = data_generator.random_int(min=1, max=5)
         for skill in data_generator.random_elements(skills, length=num_skills, unique=True):
             score = data_generator.random_int(min=0, max=100)
-            interview.skill_scores.append((skill, score))
+            interview_skill_score = {
+                'interview_id': interview.interview_id,
+                'skill_id': skill.skill_id,
+                'score': score
+            }
+            db.session.execute(interview_skill_score_table.insert().values(interview_skill_score))
 
         # Generate speaking metrics for the interview
         for interviewer in interview_interviewers:
-            speaking_time = data_generator.random_int(min=60, max=300)
+            speaking_time = data_generator.random_int(min=20*60, max=60*60)
             wpm = data_generator.random_int(min=100, max=200)
-            interview.speaking_metrics.append((interviewer, candidate, speaking_time, wpm))
+            interviewer_speaking_metrics = {
+                "interview_id": interview.interview_id, 
+                "interviewer_id": interviewer.account_id,
+                "speaking_time": speaking_time,
+                "wpm": wpm
+            }
+            db.session.execute(interview_interviewer_speaking_table.insert().values(interviewer_speaking_metrics))
 
         interviews.append(interview)
 
@@ -212,22 +277,33 @@ skill_list = [
 ]
 
 def generate_skill_data():
+    """Generates Skill objects from a list of skill names.
+
+    Args:
+        skills (list): A list of skill names.
+
+    Returns:
+        list: A list of generated Skill objects.
+    """
     skills = []
     for skill_name in skill_list:
         skill = Skill(skill_name=skill_name)
         skills.append(skill)
 
-    return skill_objects
+    return skills
 
 def generate_synthetic_data(num):
-    """Creates synthetic data to add to the database.""" 
+    """Creates synthetic data to add to the database.
+    
+    Args:
+        num (int): The number of entries in each table to create.""" 
 
     accounts = generate_account_data(num)
     skills = generate_skill_data()
     roles = generate_role_data(num, accounts, skills)
     candidates = generate_candidate_data(num)
     applications = generate_application_data(num, roles, candidates)
-    interviews = generate_interview_data(num, applications, interviewers, candidates, skills)
+    interviews = generate_interview_data(num, applications, accounts, candidates, skills)
     print(interviews[0])
 
 

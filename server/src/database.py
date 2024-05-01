@@ -33,7 +33,8 @@ class Account(db.Model):
     account_type = db.Column(db.String, nullable=False, default="Recruiter")
     organization = db.Column(db.String, default="Default Company")
     roles = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
-    applications = db.relationship('Application', back_populates='candidate')
+    interviews = db.relationship("Interview", secondary="interview_interviewer", back_populates="interviewers")
+    speaking_metrics = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
 
     def __repr__(self):
         return f'<Account {self.email}>'
@@ -42,6 +43,7 @@ class Skill(db.Model):
     skill_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     skill_name = db.Column(db.String, unique=True, nullable=False)
     interviews = db.relationship("Interview", secondary="interview_skill_score", back_populates="skill_scores")
+    roles = db.relationship("Role", secondary="role_skill", back_populates="skills")
 
     def __repr__(self):
         return f'<Skill {self.skill_name}>'
@@ -62,6 +64,7 @@ class Role(db.Model):
     # Many-to-many relationship for skills and teammates
     applications = db.relationship('Application', back_populates='role')
     teammates = db.relationship('Account', secondary="role_teammate", back_populates='roles')
+    skills = db.relationship('Skill', secondary="role_skill", back_populates='roles')
 
     def __repr__(self):
         return f'<Role {self.role_name}>'
@@ -81,18 +84,18 @@ role_teammate_table = db.Table('role_teammate', db.Model.metadata,
 class Application(db.Model):
     application_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     role_id = db.Column(db.Integer, db.ForeignKey('role.role_id'), nullable=False)
-    candidate_id = db.Column(db.Integer, db.ForeignKey('account.account_id'), nullable=False)
+    candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.candidate_id'), nullable=False)
     candidate_match = db.Column(db.Integer)  # Resume score
     application_time = db.Column(db.DateTime, default=datetime.utcnow)
 
     role = db.relationship("Role", back_populates="applications")
-    candidate = db.relationship("Account", back_populates="applications")
+    candidate = db.relationship("Candidate", back_populates="applications")
     interviews = db.relationship("Interview", back_populates="applications")
 
     __table_args__ = (db.UniqueConstraint('role_id', 'candidate_id', name='unique_role_candidate'),)
 
     def __repr__(self):
-        return f'<Application {self.application_id} - Role: {self.role.role_name}, Candidate: {self.candidate.email}>'
+        return f'<Application {self.application_id} - Role: {self.role.role_name}, Candidate: {self.candidate.candidate_name}>'
 
 class Candidate(db.Model):
     candidate_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
@@ -101,8 +104,7 @@ class Candidate(db.Model):
     interview_stage = db.Column(db.Integer)  
     resume_url = db.Column(db.String)
 
-    applications = db.relationship("Application", back_populates="candidate_info")
-    speaking_metrics = db.relationship("Interview", back_populates="speaking_metrics")
+    applications = db.relationship("Application", back_populates="candidate", foreign_keys=[Application.candidate_id])
     interviews = db.relationship("Interview", back_populates="candidate")
 
     def __repr__(self):
@@ -111,6 +113,7 @@ class Candidate(db.Model):
 class Interview(db.Model):
     interview_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     application_id = db.Column(db.Integer, db.ForeignKey("application.application_id"), nullable=False)
+    candidate_id = db.Column(db.Integer, db.ForeignKey("candidate.candidate_id"), nullable=False)
     interview_time = db.Column(db.DateTime, nullable=False)
     stage = db.Column(db.Integer)  
     status = db.Column(db.Integer)
@@ -120,15 +123,17 @@ class Interview(db.Model):
     score = db.Column(db.Integer)
     engagement = db.Column(db.Integer)
     sentiment = db.Column(db.Integer)
+    speaking_time = db.Column(db.Integer)
+    wpm = db.Column(db.Integer)
     skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
-    speaking_metrics = db.relationship("Candidate", secondary="interview_speaking", back_populates="speaking_metrics")
     keywords = db.Column(db.ARRAY(db.String)) 
     under_review = db.Column(db.Boolean)
 
     # Relationships
     applications = db.relationship("Application", back_populates="interviews")
-    interviewers = db.relationship("Account", secondary="interview_interviewer", back_populates="interviews")
     candidate = db.relationship("Candidate", back_populates="interviews")
+    interviewers = db.relationship("Account", secondary="interview_interviewer", back_populates="interviews")
+    interviewer_speaking_metrics = db.relationship("Account", secondary="interview_interviewer_speaking", back_populates="speaking_metrics")
 
     def __repr__(self):
         return f'<Interview {self.interview_id} - Application: {self.application_id}, Time: {self.interview_time}>'
@@ -137,7 +142,7 @@ class Interview(db.Model):
 interview_skill_score_table = db.Table(
     "interview_skill_score",
     db.Column("interview_id", db.Integer, db.ForeignKey("interview.interview_id")),
-    db.Column("skill_name", db.Integer, db.ForeignKey("skill.skill_id")),  
+    db.Column("skill_id", db.Integer, db.ForeignKey("skill.skill_id")),  
     db.Column("score", db.Integer)
 )
 
@@ -149,12 +154,11 @@ interview_interviewer_table = db.Table(
 )
 
 # Speaking Time and WPM
-interview_speaking_table = db.Table(
-    "interview_speaking", 
+interview_interviewer_speaking_table = db.Table(
+    "interview_interviewer_speaking",
     db.Column("interview_id", db.Integer, db.ForeignKey("interview.interview_id")),
-    db.Column("interviewer_id", db.Integer, db.ForeignKey("account.account_id")), 
-    db.Column("candidate_id", db.Integer, db.ForeignKey("candidate.candidate_id")), 
-    db.Column("speaking_time", db.Integer),  # in seconds 
+    db.Column("interviewer_id", db.Integer, db.ForeignKey("account.account_id")),
+    db.Column("speaking_time", db.Integer),  # in seconds
     db.Column("wpm", db.Integer)
 )
 
