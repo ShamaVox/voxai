@@ -6,8 +6,8 @@ from .app import app as app
 from os import environ
 from faker import Faker
 from sqlalchemy import func
-from .queries import fitting_job_applications_percentage
-from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE
+from .queries import fitting_job_applications_percentage, average_interview_pace
+from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
 
 isAccepted = False
 
@@ -174,13 +174,14 @@ def get_insights():
 
     # Run queries 
     fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id, MATCH_THRESHOLD,METRIC_HISTORY_DAYS_TO_AVERAGE)
+    average_interview_pace_value, average_interview_pace_percentage = average_interview_pace(current_user_id, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE)
 
     insights = {
         "candidateStage": utils.get_random(5),
         "fittingJobApplication": fitting_job_applications,
         "fittingJobApplicationPercentage": fitting_job_applications_percentage_change,
-        "averageInterviewPace": utils.get_random(7),
-        "averageInterviewPacePercentage": utils.get_random(25, negative=True),
+        "averageInterviewPace": average_interview_pace_value,
+        "averageInterviewPacePercentage": average_interview_pace_percentage,
         "lowerCompensationRange": lower_compensation,
         "upperCompensationRange": lower_compensation + utils.get_random(100),
     }

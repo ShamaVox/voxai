@@ -1,4 +1,4 @@
-from .database import db, Application, Role, MetricHistory
+from .database import db, Application, Role, MetricHistory, Interview, Account
 from datetime import datetime, timedelta
 
 def fitting_job_applications_percentage(match_threshold, current_user_id, days):
@@ -65,3 +65,67 @@ def fitting_job_applications_percentage(match_threshold, current_user_id, days):
     percentage_change = round((fitting_job_applications_percentage - average_percentage) / average_percentage * 100)
 
     return fitting_job_applications_percentage, percentage_change
+
+def average_interview_pace(current_user_id, days, percentage_days):
+    """
+    Calculates the average interview pace for a user over the last N days and the percentage change compared to the last M days.
+
+    Args:
+        current_user_id: The user's account id.
+        days: The number of days to consider for the average interview pace calculation (default: 7).
+        percentage_days: The number of days to consider for the percentage change calculation (default: 30).
+
+    Returns:
+        The average interview pace in days and the percentage change.
+    """
+    current_date = datetime.now().date()
+    start_date = current_date - timedelta(days=days)
+    percentage_start_date = current_date - timedelta(days=percentage_days)
+
+    # Get all interviews in the last N days where the account is an interviewer
+    interviews = Interview.query.join(Interview.interviewers).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).order_by(Interview.interview_time).all()
+
+    if not interviews:
+        return 0, 0
+
+    total_time_diff = timedelta()
+    prev_interview_time = None
+
+    for interview in interviews:
+        if prev_interview_time is None:
+            # For the first interview, use the application time as the previous date/time
+            application = Application.query.filter_by(application_id=interview.application_id).first()
+            if application:
+                prev_interview_time = application.application_time
+        else:
+            total_time_diff += interview.interview_time - prev_interview_time
+            prev_interview_time = interview.interview_time
+
+    average_pace = round(total_time_diff.days / len(interviews))
+
+    # Calculate the average interview pace over the last M days excluding the last N days
+    percentage_interviews = Interview.query.join(Interview.interviewers).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= percentage_start_date).filter(Interview.interview_time < start_date).order_by(Interview.interview_time).all()
+
+    if not percentage_interviews:
+        return average_pace, 0
+
+    percentage_total_time_diff = timedelta()
+    percentage_prev_interview_time = None
+
+    for interview in percentage_interviews:
+        if percentage_prev_interview_time is None:
+            application = Application.query.filter_by(application_id=interview.application_id).first()
+            if application:
+                percentage_prev_interview_time = application.application_time
+        else:
+            percentage_total_time_diff += interview.interview_time - percentage_prev_interview_time
+            percentage_prev_interview_time = interview.interview_time
+
+    percentage_average_pace = round(percentage_total_time_diff.days / len(percentage_interviews))
+
+    if percentage_average_pace == 0:
+        return average_pace, 0
+
+    percentage_change = round((average_pace - percentage_average_pace) / percentage_average_pace * 100)
+
+    return average_pace, percentage_change
