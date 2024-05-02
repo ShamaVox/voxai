@@ -7,6 +7,7 @@ from os import environ
 from faker import Faker
 from sqlalchemy import func
 from .queries import fitting_job_applications_percentage
+from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE
 
 isAccepted = False
 
@@ -170,10 +171,14 @@ def get_insights():
         current_user_id = sessions[auth_token]
 
     lower_compensation = utils.get_random(100)
+
+    # Run queries 
+    fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id, MATCH_THRESHOLD,METRIC_HISTORY_DAYS_TO_AVERAGE)
+
     insights = {
         "candidateStage": utils.get_random(5),
-        "fittingJobApplication": fitting_job_applications_percentage(80, current_user_id),
-        "fittingJobApplicationPercentage": utils.get_random(25, negative=True),
+        "fittingJobApplication": fitting_job_applications,
+        "fittingJobApplicationPercentage": fitting_job_applications_percentage_change,
         "averageInterviewPace": utils.get_random(7),
         "averageInterviewPacePercentage": utils.get_random(25, negative=True),
         "lowerCompensationRange": lower_compensation,

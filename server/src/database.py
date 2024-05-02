@@ -36,6 +36,7 @@ class Account(db.Model):
     teammates = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
     interviews = db.relationship("Interview", secondary="interview_interviewer", back_populates="interviewers")
     speaking_metrics = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
+    metric_history = db.relationship("MetricHistory", back_populates="account")
 
     def __repr__(self):
         return f'<Account {self.email}>'
@@ -163,4 +164,13 @@ interview_interviewer_speaking_table = db.Table(
     db.Column("wpm", db.Integer)
 )
 
+class MetricHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    account_id = db.Column(db.Integer, db.ForeignKey('account.account_id'), nullable=False)
+    metric_name = db.Column(db.String, nullable=False)
+    metric_value = db.Column(db.Integer, nullable=False)
+    metric_day = db.Column(db.Date, nullable=False)
+    account = db.relationship("Account", back_populates="metric_history")
 
+    def __repr__(self):
+        return f'<MetricHistory {self.id}>'
