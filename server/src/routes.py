@@ -6,6 +6,7 @@ from .app import app as app
 from os import environ
 from faker import Faker
 from sqlalchemy import func
+from .queries import fitting_job_applications_percentage
 
 isAccepted = False
 
@@ -167,25 +168,11 @@ def get_insights():
     else:
         # TODO: check for invalid sessions and send logout response
         current_user_id = sessions[auth_token]
-    match_threshold = 80  # Threshold for candidate_match that counts as "fitting job application"
-
-    # Query to count fitting job applications
-    fitting_job_applications_count = database.db.session.query(database.db.func.count(database.Application.application_id))\
-        .join(database.Role, database.Application.role_id == database.Role.role_id)\
-        .filter(database.Role.direct_manager_id == current_user_id)\
-        .filter(database.Application.candidate_match > match_threshold)\
-        .scalar()
-
-    total_applications_count = database.db.session.query(database.db.func.count(database.Application.application_id))\
-        .join(database.Role, database.Application.role_id == database.Role.role_id)\
-        .filter(database.Role.direct_manager_id == current_user_id).scalar()
-
-    fitting_job_applications_percentage = round((fitting_applications_count / total_applications_count) * 100 if total_applications_count > 0 else 0)
 
     lower_compensation = utils.get_random(100)
     insights = {
         "candidateStage": utils.get_random(5),
-        "fittingJobApplication": fitting_job_applications_percentage,
+        "fittingJobApplication": fitting_job_applications_percentage(80, current_user_id),
         "fittingJobApplicationPercentage": utils.get_random(25, negative=True),
         "averageInterviewPace": utils.get_random(7),
         "averageInterviewPacePercentage": utils.get_random(25, negative=True),
