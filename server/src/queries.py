@@ -129,3 +129,30 @@ def average_interview_pace(current_user_id, days, percentage_days):
     percentage_change = round((average_pace - percentage_average_pace) / percentage_average_pace * 100)
 
     return average_pace, percentage_change
+
+def average_compensation_range(current_user_id):
+    """
+    Calculates the average lower and upper compensation range for the roles posted by an account.
+
+    Args:
+        current_user_id: The user's account id.
+
+    Returns:
+        The average lower and upper compensation range.
+    """
+    roles = Role.query.filter_by(direct_manager_id=current_user_id).all()
+
+    if not roles:
+        return 0, 0
+
+    total_lower_compensation = 0
+    total_upper_compensation = 0
+
+    for role in roles:
+        total_lower_compensation += role.base_compensation_min
+        total_upper_compensation += role.base_compensation_max
+
+    average_lower_compensation = round(total_lower_compensation / len(roles))
+    average_upper_compensation = round(total_upper_compensation / len(roles))
+
+    return average_lower_compensation, average_upper_compensation
