@@ -1,8 +1,11 @@
 from faker import Faker
 from .database import Account, Role, Application, Candidate, Interview, Skill, db, interview_skill_score_table, interview_interviewer_speaking_table
+from .utils import get_random_time, get_random_date
 from os import environ
 from .app import app as app
 from sqlalchemy import inspect
+
+data_generator = Faker()
 
 def generate_account_data(num):
     """Generates synthetic data for the Account model.
@@ -13,7 +16,6 @@ def generate_account_data(num):
     Returns:
         list: A list of generated Account objects.
     """
-    data_generator = Faker()
     account_types = ["Recruiter", "Hiring Manager"]
 
     accounts = []
@@ -44,7 +46,6 @@ def generate_role_data(num_records, accounts, skills):
     Returns:
         list: A list of generated Role objects.
     """
-    data_generator = Faker()
     experience_levels = [1, 2, 3, 4, 5]
 
     roles = []
@@ -94,7 +95,6 @@ def generate_candidate_data(num_records):
     Returns:
         list: A list of generated Candidate objects.
     """
-    data_generator = Faker()
     interview_stages = [1, 2, 3, 4, 5]
 
     candidates = []
@@ -125,7 +125,6 @@ def generate_application_data(num_records, roles, candidates):
     Returns:
         list: A list of generated Application objects.
     """
-    data_generator = Faker()
 
     applications = []
     for _ in range(num_records):
@@ -157,7 +156,6 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
     Returns:
         list: A list of generated Interview objects.
     """
-    data_generator = Faker()
     stages = [1, 2, 3, 4, 5]
     statuses = [1, 2, 3, 4, 5]
 
@@ -328,6 +326,17 @@ def generate_synthetic_data(num):
     print_table_entry(interviews[683], Interview)
 
     db.session.commit()
+
+def fake_interview(interview_num):
+    return {
+        "id": interview_num,
+        "date": get_random_date(),
+        "time": get_random_time(),
+        "candidateName": data_generator.name(),
+        "currentCompany": data_generator.company(),
+        "interviewers": data_generator.name() + ", " + data_generator.name(),
+        "role": data_generator.job(),
+    }
 
 
 if 'SYNTHETIC' in environ:

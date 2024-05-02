@@ -156,3 +156,32 @@ def average_compensation_range(current_user_id):
     average_upper_compensation = round(total_upper_compensation / len(roles))
 
     return average_lower_compensation, average_upper_compensation
+
+def get_candidate_interviews(candidate_id):
+    """
+    Retrieves interview data for a specific candidate.
+
+    Args:
+        candidate_id: The candidate's ID.
+
+    Returns:
+        A list of interview data for the candidate.
+    """
+    interviews = Interview.query.filter_by(candidate_id=candidate_id).all()
+
+    interview_data = []
+    for interview in interviews:
+        role = Role.query.filter_by(role_id=interview.application.role_id).first()
+        interviewers = ", ".join([interviewer.name for interviewer in interview.interviewers])
+
+        interview_data.append({
+            "id": interview.interview_id,
+            "date": interview.interview_time.strftime("%Y-%m-%d"),
+            "time": interview.interview_time.strftime("%H:%M"),
+            "candidateName": interview.candidate.candidate_name,
+            "currentCompany": interview.candidate.current_company,
+            "interviewers": interviewers,
+            "role": role.role_name if role else "Unknown",
+        })
+
+    return interview_data

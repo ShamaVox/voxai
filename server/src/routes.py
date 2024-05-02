@@ -1,18 +1,55 @@
 from flask import send_from_directory, request, jsonify, make_response
 import os
 from flask_cors import CORS
-from . import utils, verification, input_validation, database, migrations
+from . import verification, input_validation, database, migrations
 from .app import app as app
 from os import environ
 from faker import Faker
 from sqlalchemy import func
-from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range
+from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_candidate_interviews
 from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
+from .synthetic_data import fake_interview
+from .utils import get_random, get_random_string
 
 isAccepted = False
 
 # Temporary, to test client cookie handling
 sessions = {} 
+
+def handle_auth_token(sessions):
+    """
+    Handles the authentication token and returns the current user's ID.
+
+    This function retrieves the authentication token from the request cookies and determines
+    the current user's ID based on the token. If the environment is set to "Integration" testing,
+    it assigns a default user ID of 0 (temporary workaround for Jest). Otherwise, it retrieves
+    the user ID from the sessions object using the authentication token.
+
+    Args:
+        sessions (dict): A dictionary mapping authentication tokens to user IDs.
+
+    Returns:
+        int: The current user's ID.
+
+    Notes:
+        - This function requires that the authentication token is stored in the 'authToken' cookie.
+        - If the environment is set to "Integration" testing (using the 'TEST' environment variable),
+          a default user ID of 0 is returned as a temporary workaround for Jest.
+        - If the authentication token is invalid or not found in the sessions object, the function
+          should handle the case appropriately (e.g., send a logout response).
+
+    TODO:
+        - Implement proper handling of invalid sessions and send a logout response.
+    """
+    auth_token = request.cookies.get('authToken', None)
+    if 'TEST' in environ and environ['TEST'] == "Integration":
+        # Temporary Jest workaround
+        current_user_id = 0
+    else:
+        # TODO: Check for invalid sessions here and send logout response
+        current_user_id = sessions[auth_token]
+
+    return current_user_id
 
 @app.route('/', defaults={'path': ''})
 
@@ -82,7 +119,7 @@ def validate_code():
 
         if existing_account:
             # Email exists, fetch name and account type
-            auth_token = utils.get_random_string(36)
+            auth_token = get_random_string(36)
             sessions[auth_token] = existing_account.account_id
 
             data = {
@@ -123,7 +160,7 @@ def validate_code():
                 database.db.session.add(new_account)
                 database.db.session.commit()
 
-                auth_token = utils.get_random_string(36)
+                auth_token = get_random_string(36)
                 sessions[auth_token] = request.json.get('email')
                 
                 data = {
@@ -162,15 +199,7 @@ def check_token():
 @app.route("/api/insights")
 def get_insights():
     """Provides synthetic insights data."""
-    auth_token = request.cookies.get('authToken', None)
-    if 'TEST' in environ and environ['TEST'] == "Integration":
-        # Temporary: setCookie does not work in Jest, so just pass a random user's data
-        current_user_id = 0
-    else:
-        # TODO: check for invalid sessions and send logout response
-        current_user_id = sessions[auth_token]
-
-    lower_compensation = utils.get_random(100)
+    current_user_id = handle_auth_token(sessions)
 
     # Run queries 
     fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id, MATCH_THRESHOLD,METRIC_HISTORY_DAYS_TO_AVERAGE)
@@ -178,7 +207,7 @@ def get_insights():
     average_lower_compensation, average_upper_compensation = average_compensation_range(current_user_id)
 
     insights = {
-        "candidateStage": utils.get_random(5),
+        "candidateStage": get_random(5),
         "fittingJobApplication": fitting_job_applications,
         "fittingJobApplicationPercentage": fitting_job_applications_percentage_change,
         "averageInterviewPace": average_interview_pace_value,
@@ -201,20 +230,19 @@ def get_insights():
 
 @app.route("/api/interviews")
 def get_interviews():
-    """Provides synthetic interview data."""
-    interviews = []
-    data_generator = Faker()
-    for _ in range(10):
-        interviews.append({
-            "id": len(interviews) + 1,
-            "date": utils.get_random_date(),
-            "time": utils.get_random_time(),
-            "candidateName": data_generator.name(),
-            "currentCompany": data_generator.company(),
-            "interviewers": data_generator.name() + ", " + data_generator.name(),
-            "role": data_generator.job(),
-        })
-    if 'TEST' in environ:
-        # Temporary
-        interviews[0]["candidateName"] = "John Doe"
+    """Provides interview data for a specific candidate."""
+    current_user_id = handle_auth_token(sessions)
+
+    candidate_id = request.args.get('candidateId')
+    if candidate_id:
+        interviews = get_candidate_interviews(candidate_id)
+    else:
+        interviews = []
+
+    if 'TEST' in environ and not interviews:
+        # Generate a fake interview if the interview list is empty in the test environment
+        fake_interview_data = fake_interview(1)
+        fake_interview_data["candidateName"] = "John Doe"
+        interviews.append(fake_interview_data)
+
     return jsonify(interviews)
