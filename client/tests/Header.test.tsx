@@ -1,10 +1,16 @@
 // Header.test.tsx
 
 import React from "react";
-import { render, fireEvent, screen } from "@testing-library/react-native";
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import Header from "../src/Header";
 import { useNavigation } from "@react-navigation/native";
-import { renderHeader } from "./utils/Render";
+import { renderComponent } from "./utils/Render";
+import { clearCookies } from "./utils/Cookies";
 import { verifyHeader } from "./actions/HeaderActions";
 
 const mockNavigate = jest.fn();
@@ -17,31 +23,37 @@ jest.mock("@react-navigation/native", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  clearCookies();
 });
 
 test("renders logo and logged out profile icon", async () => {
-  renderHeader(false);
+  renderComponent(Header, false);
   await verifyHeader(false);
 });
 
 test("renders logo and logged in profile icon", async () => {
-  renderHeader(true, "TestUser");
+  renderComponent(Header, true, "TestUser");
   await verifyHeader(true, "TestUser");
 });
 
-test("navigates to Home on logo press when logged out", () => {
-  renderHeader(false);
+test("navigates to Home on logo press when logged out", async () => {
+  renderComponent(Header, false);
 
-  fireEvent.press(screen.getByTestId("logo"));
-  expect(mockNavigate).toHaveBeenCalledWith("Home");
-
-  fireEvent.press(screen.getByTestId("profile-container"));
-  expect(mockNavigate).toHaveBeenCalledWith("Login");
+  await waitFor(() => {
+    fireEvent.press(screen.getByTestId("logo"));
+    expect(mockNavigate).toHaveBeenCalledWith("Home");
+  });
+  await waitFor(() => {
+    fireEvent.press(screen.getByTestId("profile-container"));
+    expect(mockNavigate).toHaveBeenCalledWith("Login");
+  });
 });
 
-test("navigates to Dashboard on logo press when logged in", () => {
-  renderHeader(true);
+test("navigates to Dashboard on logo press when logged in", async () => {
+  renderComponent(Header, true);
 
-  fireEvent.press(screen.getByTestId("logo"));
-  expect(mockNavigate).toHaveBeenCalledWith("Dashboard");
+  await waitFor(() => {
+    fireEvent.press(screen.getByTestId("logo"));
+    expect(mockNavigate).toHaveBeenCalledWith("Dashboard");
+  });
 });

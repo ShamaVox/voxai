@@ -8,7 +8,10 @@ import {
   loginAndNavigateAll,
 } from "./actions/AppIntegrationActions";
 import { verifyUpcomingInterviews } from "./actions/HomeActions";
-import { mockValidToken, mockUpcomingInterviews } from "./utils/MockRequests";
+import {
+  mockTokenValidation,
+  mockUpcomingInterviews,
+} from "./utils/MockRequests";
 import { clearCookies, setCookies, getAuthCookies } from "./utils/Cookies";
 
 beforeEach(() => {
@@ -30,7 +33,7 @@ test("Login persists after refresh", async () => {
   await navigateAndLogin(0);
 
   // Simulate refresh (unmount and remount App component)
-  mockValidToken();
+  mockTokenValidation();
   const { rerender } = render(<App enableAnimations={false} />);
   rerender(<App enableAnimations={false} />);
 
@@ -38,7 +41,7 @@ test("Login persists after refresh", async () => {
   await verifyUpcomingInterviews();
 });
 
-test("logs in automatically when cookie is present", async () => {
+test("Logs in automatically when cookie is present", async () => {
   setCookies({
     auth: {
       username: "Test User",
@@ -46,7 +49,7 @@ test("logs in automatically when cookie is present", async () => {
       authToken: "AUTHTOKEN",
     },
   });
-  mockValidToken();
+  mockTokenValidation();
   mockUpcomingInterviews();
   render(<App enableAnimations={false} />);
   await verifyUpcomingInterviews();

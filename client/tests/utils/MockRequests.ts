@@ -100,12 +100,18 @@ export const mockInsights = () => {
 };
 
 /**
- * Mocks a response for a valid authentication token.
+ * Mocks a response for an authentication token check.
+ *
+ * @param api The API to mock the response from.
+ * @param valid Whether to mock a successful or failed check.
  */
-export const mockValidToken = () => {
+export const mockTokenValidation = (
+  api: string = "check_token",
+  valid: boolean = true
+) => {
   if (mock) {
-    mockAdapter.onPost(SERVER_ENDPOINT("check_token")).reply(200, {
-      validToken: true,
+    mockAdapter.onAny(SERVER_ENDPOINT(api)).reply(valid ? 200 : 401, {
+      validToken: valid,
     });
   }
 };

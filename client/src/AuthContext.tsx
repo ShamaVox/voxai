@@ -45,6 +45,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [authToken, setAuthToken] = useState("");
   const [cookies, setCookie, removeCookie] = useCookies(["voxai"]);
   const [needTokenCheck, setNeedTokenCheck] = useState(false);
+  const [firstLoad, setFirstLoad] = useState(true);
   const navigation = useNavigation();
 
   if (AUTH_LOGGING) {
@@ -53,23 +54,31 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   // TODO: Configure cookie settings properly
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn && firstLoad) {
       // Log in if there are cookies on first load
       if (cookies["voxai"] && cookies["voxai"]["auth"]) {
-        axios
-          .post(SERVER_ENDPOINT("check_token"), {
-            authToken: cookies["voxai"]["auth"]["authToken"],
-          })
-          .then((response) => {
-            if (response.data.validToken === true) {
-              handleLogin(
-                cookies["voxai"]["auth"]["email"],
-                cookies["voxai"]["auth"]["username"],
-                cookies["voxai"]["auth"]["authToken"]
-              );
-            }
-          });
+        try {
+          axios
+            .post(SERVER_ENDPOINT("check_token"), {
+              authToken: cookies["voxai"]["auth"]["authToken"],
+            })
+            .then((response) => {
+              if (response.data.validToken === true) {
+                handleLogin(
+                  cookies["voxai"]["auth"]["email"],
+                  cookies["voxai"]["auth"]["username"],
+                  cookies["voxai"]["auth"]["authToken"]
+                );
+              }
+            });
+        } catch (error) {
+          if (AUTH_LOGGING) {
+            console.log("Auth token in cookies was invalid");
+          }
+          handleLogout(true);
+        }
       }
+      setFirstLoad(false);
     } else {
       if (AUTH_LOGGING) {
         console.log(cookies);
@@ -123,11 +132,17 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setEmail("");
     setUsername("");
     setAuthToken("");
-    axios.post(SERVER_ENDPOINT("logout"), {
-      authToken: authToken,
-    });
+    try {
+      await axios.post(SERVER_ENDPOINT("logout"), {
+        authToken: authToken,
+      });
+    } catch (error) {
+      if (AUTH_LOGGING) {
+        console.log("Error during logout: ", error);
+      }
+    }
     if (navigateToLogin) {
-      navigation.navigate("Login");
+      await navigation.navigate("Login");
     }
   };
 
