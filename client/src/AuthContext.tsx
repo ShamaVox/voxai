@@ -22,7 +22,7 @@ interface AuthContextProps {
     authToken: string
   ) => Promise<void>;
   authToken: string;
-  handleLogout: () => Promise<void>;
+  handleLogout: (a: boolean) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -31,7 +31,7 @@ export const AuthContext = createContext<AuthContextProps>({
   username: "",
   handleLogin: async (email: string, name: string, authToken: string) => {},
   authToken: "",
-  handleLogout: async () => {},
+  handleLogout: async (a: boolean) => {},
 });
 
 /**
@@ -113,7 +113,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   /**
    * Handles user logout by clearing authentication state and removing cookies.
    */
-  const handleLogout: () => Promise<void> = async () => {
+  const handleLogout: (a: boolean) => Promise<void> = async (
+    navigateToLogin
+  ) => {
     setCookie("voxai", {
       auth: null,
     });
@@ -124,6 +126,9 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     axios.post(SERVER_ENDPOINT("logout"), {
       authToken: authToken,
     });
+    if (navigateToLogin) {
+      navigation.navigate("Login");
+    }
   };
 
   if (AUTH_LOGGING) {

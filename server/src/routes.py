@@ -46,7 +46,9 @@ def handle_auth_token(sessions):
         # Temporary Jest workaround
         current_user_id = 0
     else:
-        # TODO: Check for invalid sessions here and send logout response
+        if auth_token not in sessions: 
+            # Session is invalid, tell user to log out
+            return None 
         current_user_id = sessions[auth_token]
 
     return current_user_id
@@ -188,18 +190,25 @@ def logout():
     response.delete_cookie('authToken')
     return response
 
+def valid_token_response(valid_token):
+    """Returns a response informing the client of whether the auth token is valid."""
+    response = make_response(jsonify({"validToken": valid_token}))
+    response.delete_cookie('authToken')
+    return response, 200 if valid_token else 401
+
 @app.route('/api/check_token', methods=['POST'])
 def check_token():
     """Checks if a provided authentication token is valid.""" 
 
-    response = make_response(jsonify({"validToken": request.json.get('authToken') in sessions or ('TEST' in environ and environ['TEST'] == 'Integration' and request.json.get('authToken') == 'AUTHTOKEN')}))
-    response.delete_cookie('authToken')
-    return response
+    valid_token = request.json.get('authToken') in sessions or ('TEST' in environ and environ['TEST'] == 'Integration' and request.json.get('authToken') == 'AUTHTOKEN')
+    return valid_token_response(valid_token)
 
 @app.route("/api/insights")
 def get_insights():
     """Provides synthetic insights data."""
     current_user_id = handle_auth_token(sessions)
+    if current_user_id is None:
+        return valid_token_response(False) 
 
     # Run queries 
     fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id, MATCH_THRESHOLD,METRIC_HISTORY_DAYS_TO_AVERAGE)
@@ -232,6 +241,8 @@ def get_insights():
 def get_interviews():
     """Provides interview data for a specific candidate."""
     current_user_id = handle_auth_token(sessions)
+    if current_user_id is None:
+        return valid_token_response(False) 
 
     candidate_id = request.args.get('candidateId')
     if candidate_id:

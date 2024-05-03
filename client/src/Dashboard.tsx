@@ -1,8 +1,9 @@
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useState, useEffect, useContext } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_ENDPOINT } from "./utils/Axios";
+import { AuthContext } from "./AuthContext";
+import { SERVER_ENDPOINT, handleLogoutResponse } from "./utils/Axios";
 import { DASHBOARD_LOGGING } from "./config/Logging";
 
 interface InsightBoxProps {
@@ -57,6 +58,7 @@ const InsightBox: FC<InsightBoxProps> = ({
  */
 const InsightsScreen: FC = () => {
   const [insights, setInsights] = useState(null);
+  const { handleLogout } = useContext(AuthContext);
 
   useEffect(() => {
     fetchInsights();
@@ -70,6 +72,11 @@ const InsightsScreen: FC = () => {
       const response = await axios.get(SERVER_ENDPOINT("insights"));
       setInsights(response.data);
     } catch (error) {
+      await handleLogoutResponse(
+        handleLogout,
+        error.response,
+        DASHBOARD_LOGGING
+      );
       if (DASHBOARD_LOGGING) {
         console.log("Error fetching insights:", error);
       }

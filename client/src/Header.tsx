@@ -72,7 +72,7 @@ const Header: FC = () => {
             <Pressable
               style={styles.dropdownItem}
               onPress={async () => {
-                await handleLogout();
+                await handleLogout(false);
                 setShowDropdown(false);
               }}
             >

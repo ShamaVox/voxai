@@ -12,7 +12,7 @@ import { AuthContext } from "./AuthContext";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
 import { HOME_LOGGING } from "./config/Logging";
-import { SERVER_ENDPOINT } from "./utils/Axios";
+import { SERVER_ENDPOINT, handleLogoutResponse } from "./utils/Axios";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
@@ -23,7 +23,7 @@ import { SERVER_ENDPOINT } from "./utils/Axios";
  */
 const Home: FC = () => {
   const navigation = useNavigation();
-  const { isLoggedIn } = useContext(AuthContext);
+  const { isLoggedIn, handleLogout } = useContext(AuthContext);
   const [interviews, setInterviews] = useState([]);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
 
@@ -41,6 +41,7 @@ const Home: FC = () => {
       const response = await axios.get(SERVER_ENDPOINT("interviews"));
       setInterviews(response.data);
     } catch (error) {
+      await handleLogoutResponse(handleLogout, error.response, HOME_LOGGING);
       if (HOME_LOGGING) {
         console.log("Error fetching interviews:", error);
       }
