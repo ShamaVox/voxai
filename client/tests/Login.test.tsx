@@ -5,7 +5,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react-native";
-import { AuthContext } from "../src/AuthContext";
+import Login from "../src/Login";
 import {
   mockAccountExists,
   mockNewAccount,
@@ -19,7 +19,7 @@ import {
   loginSuccess,
 } from "./actions/LoginActions";
 import { clearCookies } from "./utils/Cookies";
-import { renderLoginFromMock } from "./utils/Render";
+import { renderLoginFromMock, renderComponent } from "./utils/Render";
 
 const mockNavigate = jest.fn();
 const mockHandleLogin = jest.fn();
@@ -138,4 +138,11 @@ test("handles successful account creation and login", async () => {
     "AUTHTOKEN"
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
+});
+
+test("Does not login when cookie has invalid auth token", async () => {
+  renderComponent(Login, true, "", false);
+  await waitFor(() => {
+    expect(mockNavigate).toHaveBeenCalledWith("Login");
+  });
 });

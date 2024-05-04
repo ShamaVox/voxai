@@ -57,26 +57,25 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     if (!isLoggedIn && firstLoad) {
       // Log in if there are cookies on first load
       if (cookies["voxai"] && cookies["voxai"]["auth"]) {
-        try {
-          axios
-            .post(SERVER_ENDPOINT("check_token"), {
-              authToken: cookies["voxai"]["auth"]["authToken"],
-            })
-            .then((response) => {
-              if (response.data.validToken === true) {
-                handleLogin(
-                  cookies["voxai"]["auth"]["email"],
-                  cookies["voxai"]["auth"]["username"],
-                  cookies["voxai"]["auth"]["authToken"]
-                );
-              }
-            });
-        } catch (error) {
-          if (AUTH_LOGGING) {
-            console.log("Auth token in cookies was invalid");
-          }
-          handleLogout(true);
-        }
+        axios
+          .post(SERVER_ENDPOINT("check_token"), {
+            authToken: cookies["voxai"]["auth"]["authToken"],
+          })
+          .then((response) => {
+            if (response.data.validToken === true) {
+              handleLogin(
+                cookies["voxai"]["auth"]["email"],
+                cookies["voxai"]["auth"]["username"],
+                cookies["voxai"]["auth"]["authToken"]
+              );
+            }
+          })
+          .catch((error) => {
+            if (AUTH_LOGGING) {
+              console.log("Auth token in cookies was invalid");
+            }
+            handleLogout(true);
+          });
       }
       setFirstLoad(false);
     } else {
@@ -167,4 +166,4 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
-export default AuthContext;
+export default AuthProvider;
