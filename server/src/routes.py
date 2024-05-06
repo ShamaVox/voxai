@@ -7,8 +7,7 @@ from os import environ
 from faker import Faker
 from sqlalchemy import func
 from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_candidate_interviews
-from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
-from .synthetic_data import fake_interview
+from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
 from .utils import get_random, get_random_string
 
 isAccepted = False
@@ -153,14 +152,11 @@ def validate_code():
                 }
                 return_code = 401
             else: 
-                # Get the maximum account_id from the account table
-                max_account_id = database.db.session.query(func.max(database.Account.account_id)).scalar()
-
-                # If there are no existing accounts, start the account_id from 1
-                next_account_id = 1 if max_account_id is None else max_account_id + 1
-                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'), account_id=next_account_id)
+                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
                 database.db.session.add(new_account)
                 database.db.session.commit()
+
+                generate_synthetic_data_on_account_creation(new_account.account_id)
 
                 auth_token = get_random_string(36)
                 sessions[auth_token] = request.json.get('email')
@@ -211,8 +207,8 @@ def get_insights():
         return valid_token_response(False) 
 
     # Run queries 
-    fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id, MATCH_THRESHOLD,METRIC_HISTORY_DAYS_TO_AVERAGE)
-    average_interview_pace_value, average_interview_pace_percentage = average_interview_pace(current_user_id, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE)
+    fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id)
+    average_interview_pace_value, average_interview_pace_percentage = average_interview_pace(current_user_id)
     average_lower_compensation, average_upper_compensation = average_compensation_range(current_user_id)
 
     insights = {

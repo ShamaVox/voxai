@@ -127,12 +127,12 @@ class Interview(db.Model):
     sentiment = db.Column(db.Integer)
     speaking_time = db.Column(db.Integer)
     wpm = db.Column(db.Integer)
-    skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
     keywords = db.Column(db.ARRAY(db.String)) 
     under_review = db.Column(db.Boolean)
 
     # Relationships
-    applications = db.relationship("Application", back_populates="interviews")
+    skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
+    applications = db.relationship("Application", back_populates="interviews") # TODO: change to "application"
     candidate = db.relationship("Candidate", back_populates="interviews")
     interviewers = db.relationship("Account", secondary="interview_interviewer", back_populates="interviews")
     interviewer_speaking_metrics = db.relationship("Account", secondary="interview_interviewer_speaking", back_populates="speaking_metrics")
@@ -148,6 +148,7 @@ interview_skill_score_table = db.Table(
     db.Column("score", db.Integer)
 )
 
+# TODO: merge this with speaking table, it's unnecessary
 interview_interviewer_table = db.Table(
     "interview_interviewer",
     db.Column("interview_id", db.Integer, db.ForeignKey("interview.interview_id")),
@@ -174,3 +175,5 @@ class MetricHistory(db.Model):
 
     def __repr__(self):
         return f'<MetricHistory {self.id}>'
+
+    # TODO: Enforce (account_id, metric_name, metric_day) should be unique 

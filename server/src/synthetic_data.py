@@ -1,9 +1,12 @@
 from faker import Faker
-from .database import Account, Role, Application, Candidate, Interview, Skill, db, interview_skill_score_table, interview_interviewer_speaking_table
+from .database import Account, Role, Application, Candidate, Interview, Skill, MetricHistory, db, interview_skill_score_table, interview_interviewer_speaking_table
 from .utils import get_random_time, get_random_date
+from .queries import fitting_job_applications_percentage
 from os import environ
 from .app import app as app
-from sqlalchemy import inspect
+from sqlalchemy import inspect, or_, func
+from .constants import SYNTHETIC_DATA_ENTRIES, SYNTHETIC_DATA_BATCHES
+from datetime import datetime, timedelta
 
 data_generator = Faker()
 
@@ -19,8 +22,17 @@ def generate_account_data(num):
     account_types = ["Recruiter", "Hiring Manager"]
 
     accounts = []
+    emails = set()
+    #for existing_account in Account.query.all():
+        #emails.add(existing_account.email)
     for _ in range(num):
-        email = data_generator.email()
+        while True:
+            # Ensure unique email
+            email = data_generator.email()
+            email = email.split("@")[0] + "_" + data_generator.name() + "_" + data_generator.company() + email.split("@")[1]
+            if email not in emails:
+                emails.add(email)
+                break  
         name = data_generator.name()
         account_type = data_generator.random_element(account_types)
         organization = data_generator.company()
@@ -33,9 +45,11 @@ def generate_account_data(num):
         )
         accounts.append(account)
 
+    db.session.add_all(accounts)
+    db.session.flush()
     return accounts
 
-def generate_role_data(num_records, accounts, skills):
+def generate_role_data(num_records, accounts, skills, direct_manager=None):
     """Generates synthetic data for the Role model.
 
     Args:
@@ -58,7 +72,7 @@ def generate_role_data(num_records, accounts, skills):
         years_of_experience_min = data_generator.random_int(min=0, max=5)
         years_of_experience_max = data_generator.random_int(min=years_of_experience_min, max=10)
         target_years_of_experience = data_generator.random_int(min=years_of_experience_min, max=years_of_experience_max)
-        direct_manager = data_generator.random_element(accounts)
+        direct_manager = data_generator.random_element(accounts) if direct_manager is None else direct_manager
 
         role = Role(
             role_name=role_name,
@@ -84,6 +98,8 @@ def generate_role_data(num_records, accounts, skills):
 
         roles.append(role)
 
+    db.session.add_all(roles)
+    db.session.flush()
     return roles
 
 def generate_candidate_data(num_records):
@@ -112,6 +128,8 @@ def generate_candidate_data(num_records):
         )
         candidates.append(candidate)
 
+    db.session.add_all(candidates)
+    db.session.flush()
     return candidates
 
 def generate_application_data(num_records, roles, candidates):
@@ -141,6 +159,8 @@ def generate_application_data(num_records, roles, candidates):
         )
         applications.append(application)
     
+    db.session.add_all(applications)
+    db.session.flush()
     return applications
 
 def generate_interview_data(num_records, applications, interviewers, candidates, skills):
@@ -161,8 +181,6 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
 
     interviews = []
     for _ in range(num_records):
-        application_id = data_generator.random_element(applications)
-        candidate_id = data_generator.random_element(candidates)
         interview_time = data_generator.date_time_between(start_date='-1y', end_date='now')
         stage = data_generator.random_element(stages)
         status = data_generator.random_element(statuses)
@@ -177,10 +195,9 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         keywords = data_generator.words(nb=5)
         under_review = data_generator.boolean()
         candidate = data_generator.random_element(candidates)
+        application = data_generator.random_element(applications)
 
         interview = Interview(
-            application_id=application_id,
-            candidate_id=candidate_id,
             interview_time=interview_time,
             stage=stage,
             status=status,
@@ -193,9 +210,19 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
             keywords=keywords,
             under_review=under_review,
             candidate=candidate,
+            applications=application,
             speaking_time=speaking_time,
             wpm=wpm
         )
+
+        interviews.append(interview)
+
+    db.session.add_all(interviews)
+    db.session.flush()
+
+    interview_skill_scores = []
+    interview_interviewer_speaking = []
+    for _ in range(num_records):
 
         # Assign random interviewers to the interview
         num_interviewers = data_generator.random_int(min=1, max=3)
@@ -206,12 +233,13 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         num_skills = data_generator.random_int(min=1, max=5)
         for skill in data_generator.random_elements(skills, length=num_skills, unique=True):
             score = data_generator.random_int(min=0, max=100)
+            
             interview_skill_score = {
                 'interview_id': interview.interview_id,
                 'skill_id': skill.skill_id,
                 'score': score
             }
-            db.session.execute(interview_skill_score_table.insert().values(interview_skill_score))
+            interview_skill_scores.append(interview_skill_score)
 
         # Generate speaking metrics for the interview
         for interviewer in interview_interviewers:
@@ -223,13 +251,17 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
                 "speaking_time": speaking_time,
                 "wpm": wpm
             }
-            db.session.execute(interview_interviewer_speaking_table.insert().values(interviewer_speaking_metrics))
+            interview_interviewer_speaking.append(interviewer_speaking_metrics)
 
-        interviews.append(interview)
+    if interview_skill_scores:
+        db.session.execute(interview_skill_score_table.insert(), interview_skill_scores)
+    if interview_interviewer_speaking:
+        db.session.execute(interview_interviewer_speaking_table.insert(), interview_interviewer_speaking)
 
+    db.session.flush()
     return interviews
 
-skill_list = [
+skill_list = set([
     # Technical Skills
     # Programming Languages
     "Python", "Java", "C++", "JavaScript", "TypeScript", "C#", "PHP", "Go", "Swift", "Kotlin", "R", 
@@ -275,7 +307,7 @@ skill_list = [
     # Other Workplace Skills
     "Customer service", "Negotiation", "Research", "Analysis", "Project management", "Business acumen", 
     "Emotional intelligence", "Stress management", "Work ethic"
-]
+])
 
 def generate_skill_data():
     """Generates Skill objects from a list of skill names.
@@ -287,10 +319,15 @@ def generate_skill_data():
         list: A list of generated Skill objects.
     """
     skills = []
+    existing_skills = Skill.query.all()
+    if len(existing_skills) == len(skill_list):
+        return existing_skills
     for skill_name in skill_list:
         skill = Skill(skill_name=skill_name)
         skills.append(skill)
 
+    db.session.add_all(skills)
+    db.session.flush()
     return skills
 
 def print_table_entry(table_entry, Model):
@@ -325,7 +362,58 @@ def generate_synthetic_data(num):
     print_table_entry(applications[999], Application)
     print_table_entry(interviews[683], Interview)
 
+def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_ENTRIES, batches=SYNTHETIC_DATA_BATCHES):
+    """Creates synthetic data for a new account. 
+
+    Args:
+        account_id (int): The account id of the new account.
+        num (int): The number of entries to create in each table per batch.
+        batches (int): The number of batches to create (so that MetricHistory has data)."""
+    
+    # Get existing data before generating batches
+    skills = Skill.query.all()
+    #accounts = Account.query.all()
+    accounts = db.session.query(Account).filter(Account.account_type.in_(["Recruiter", "Hiring Manager"])).order_by(func.random()).limit(15).all()
+    candidates = Candidate.query.all()
+    new_account = Account.query.get(account_id)
+    new_roles = []
+    new_applications = []
+    new_interviews = []
+
+    def generate_batch(account_id, num):
+        """Helper function to create one batch of synthetic data for a new account."""
+
+        def generate_rows(generated_data, row_list):
+            db.session.add_all(generated_data)
+            row_list += generated_data
+        
+        # Create Roles under the new account
+        generate_rows(generate_role_data(num, accounts, skills, new_account), new_roles)
+        generate_rows(generate_application_data(num, new_roles, candidates), new_applications)
+        generate_rows(generate_interview_data(num, new_applications, accounts, candidates, skills), new_interviews)
+        
+    current_date = datetime.now().date()
+    days_ago = batches * 6
+    for batch_num in range(batches):
+        generate_batch(account_id, num)
+        if batch_num < batches - 1:
+            # Compute and update MetricHistory after each batch
+            fitting_job_applications_percentage(account_id)
+            metric_history_entry = MetricHistory.query.filter(
+                MetricHistory.account_id == account_id,
+                MetricHistory.metric_name == 'fitting_job_applications_percentage',
+                or_(
+                MetricHistory.metric_day == current_date,
+                # Handle the case where the date changes during execution
+                MetricHistory.metric_day == current_date - timedelta(days=1)
+                )
+            ).first()
+            if metric_history_entry:
+                metric_history_entry.metric_day = current_date - timedelta(days=days_ago)
+            days_ago -= 6
+
     db.session.commit()
+
 
 def fake_interview(interview_num):
     return {
@@ -342,4 +430,3 @@ def fake_interview(interview_num):
 if 'SYNTHETIC' in environ:
     with app.app_context(): 
         generate_synthetic_data(int(environ['SYNTHETIC']))
-        # db.session.commit()

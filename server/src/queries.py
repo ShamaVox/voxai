@@ -1,14 +1,15 @@
 from .database import db, Application, Role, MetricHistory, Interview, Account
 from datetime import datetime, timedelta
+from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
 
-def fitting_job_applications_percentage(match_threshold, current_user_id, days):
+def fitting_job_applications_percentage(current_user_id, match_threshold=MATCH_THRESHOLD, days=METRIC_HISTORY_DAYS_TO_AVERAGE):
     """
     Gets the percentage of job applications posted by a user with candidate score over a certain threshold. 
 
     Args:
         match_threshold: The required candidate score for an application to be counted as "Fitting".
         current_user_id: The user's account id. 
-        days: The number of days to consider for the average calculation (default: 7).
+        days: The number of days to consider for the average calculation.
 
     Returns:
         The percentage of job applications with score over match_threshold and the percentage change from the average.
@@ -23,7 +24,7 @@ def fitting_job_applications_percentage(match_threshold, current_user_id, days):
         .join(Role, Application.role_id == Role.role_id)\
         .filter(Role.direct_manager_id == current_user_id).scalar()
 
-    fitting_job_applications_percentage = round((fitting_applications_count / total_applications_count) * 100 if total_applications_count > 0 else 0)
+    fitting_job_applications_percentage = round((fitting_job_applications_count / total_applications_count) * 100 if total_applications_count > 0 else 0)
 
     if not fitting_job_applications_percentage:
         return 0, 0
@@ -66,7 +67,7 @@ def fitting_job_applications_percentage(match_threshold, current_user_id, days):
 
     return fitting_job_applications_percentage, percentage_change
 
-def average_interview_pace(current_user_id, days, percentage_days):
+def average_interview_pace(current_user_id, days=INTERVIEW_PACE_DAYS_TO_AVERAGE, percentage_days=INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE):
     """
     Calculates the average interview pace for a user over the last N days and the percentage change compared to the last M days.
 
