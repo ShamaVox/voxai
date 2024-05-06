@@ -1,14 +1,11 @@
 def generate_verification_code():
-    # Placeholder
+    """Generates a placeholder verification code (currently always 123123)."""
     return 123123
 
 def send_verification_code(email, code):
-    # Placeholder
+    """Placeholder function for sending a verification code via email."""
     pass 
 
 def is_valid_verification_code(email, code): 
-    # Placeholder
-    # For now, code determines account type 
-    if code == "123123":
-        return True
-    return False
+    """Validates a verification code (currently only checks for a specific value)."""
+    return code == "123123"

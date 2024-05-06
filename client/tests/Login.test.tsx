@@ -1,19 +1,25 @@
 import React from "react";
-import { render, fireEvent, screen } from "@testing-library/react-native";
+import {
+  render,
+  fireEvent,
+  screen,
+  waitFor,
+} from "@testing-library/react-native";
 import Login from "../src/Login";
-import { AuthContext } from "../src/AuthContext";
 import {
   mockAccountExists,
   mockNewAccount,
-  mockValidCode,
   mockInvalidCode,
 } from "./utils/MockRequests";
 import { randomAccountNumber } from "./utils/Random";
 import {
+  loginFormEntry,
   sendCodeSuccess,
   validateCodeSuccess,
   loginSuccess,
 } from "./actions/LoginActions";
+import { clearCookies } from "./utils/Cookies";
+import { renderLoginFromMock, renderComponent } from "./utils/Render";
 
 const mockNavigate = jest.fn();
 const mockHandleLogin = jest.fn();
@@ -25,47 +31,38 @@ jest.mock("@react-navigation/native", () => ({
   }),
 }));
 
-function renderLogin() {
-  return render(
-    <AuthContext.Provider
-      value={{
-        isLoggedIn: false,
-        handleLogin: mockHandleLogin,
-        username: "",
-        email: "",
-        authToken: "",
-        handleLogout: async () => {},
-      }}
-    >
-      <Login />
-    </AuthContext.Provider>
-  );
-}
-
 beforeEach(() => {
+  jest.restoreAllMocks();
   jest.clearAllMocks();
+  clearCookies();
 });
 
-test("shows error message for invalid email", () => {
+const renderLogin: () => Object = () => {
+  return renderLoginFromMock(mockHandleLogin);
+};
+
+test("shows error message for invalid email", async () => {
   renderLogin();
 
   // Enter an invalid email
-  fireEvent.changeText(screen.getByTestId("email-input"), "invalid_email");
-  fireEvent.press(screen.getByText("Send code"));
-
-  // Check for error message
-  expect(screen.getByText("Invalid email")).toBeTruthy();
+  await loginFormEntry(
+    { "email-input": "invalid_email" },
+    "Send code",
+    "Invalid email"
+  );
 });
 
-test("shows no error message for valid email", () => {
+test("shows no error message for valid email", async () => {
   renderLogin();
 
   mockAccountExists();
 
-  fireEvent.changeText(screen.getByTestId("email-input"), "valid@email.com");
-  fireEvent.press(screen.getByText("Send code"));
-
-  expect(screen.queryByText("Invalid email")).toBeNull();
+  await loginFormEntry(
+    { "email-input": "valid@email.com" },
+    "Send code",
+    "Invalid email",
+    false
+  );
 });
 
 test("shows code input field after sending code", async () => {
@@ -84,21 +81,19 @@ test("shows error message for invalid code", async () => {
   renderLogin();
 
   sendCodeSuccess(0);
-  await screen.findByPlaceholderText("Verification code");
-  fireEvent.changeText(screen.getByTestId("code-input"), "123");
-  fireEvent.press(screen.getByText("Validate code"));
-
-  // Assert error message
-  await screen.findByText("Verification code should be 6 digits");
-  expect(screen.getByText("Verification code should be 6 digits")).toBeTruthy();
+  await loginFormEntry(
+    { "code-input": "123" },
+    "Validate code",
+    "Verification code should be 6 digits"
+  );
 
   // Try different invalid code
   mockInvalidCode();
-  fireEvent.changeText(screen.getByTestId("code-input"), "123292");
-  fireEvent.press(screen.getByText("Validate code"));
-
-  await screen.findByText("Invalid code");
-  expect(screen.getByText("Invalid code")).toBeTruthy();
+  await loginFormEntry(
+    { "code-input": "123292" },
+    "Validate code",
+    "Invalid code"
+  );
 });
 
 test("shows new account fields when required", async () => {
@@ -139,8 +134,15 @@ test("handles successful account creation and login", async () => {
   // Assert handleLogin was called and navigation occurred
   expect(mockHandleLogin).toHaveBeenCalledWith(
     "new" + accountNumber + "@email.com",
-    "Test Name",
+    "New User",
     "AUTHTOKEN"
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
+});
+
+test("Does not login when cookie has invalid auth token", async () => {
+  renderComponent(Login, true, "", false);
+  await waitFor(() => {
+    expect(mockNavigate).toHaveBeenCalledWith("Login");
+  });
 });

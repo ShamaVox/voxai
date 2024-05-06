@@ -1,3 +1,10 @@
+/**
+ * Checks if two arrays are equal, considering only their values and not order.
+ *
+ * @param a The first array to compare.
+ * @param b The second array to compare.
+ * @returns True if the arrays are equal, false otherwise.
+ */
 export const arraysEqual: (
   a: Record<string, string> | undefined,
   b: Record<string, string> | undefined

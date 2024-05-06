@@ -22,7 +22,7 @@ interface AuthContextProps {
     authToken: string
   ) => Promise<void>;
   authToken: string;
-  handleLogout: () => Promise<void>;
+  handleLogout: (a: boolean) => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
@@ -31,9 +31,13 @@ export const AuthContext = createContext<AuthContextProps>({
   username: "",
   handleLogin: async (email: string, name: string, authToken: string) => {},
   authToken: "",
-  handleLogout: async () => {},
+  handleLogout: async (a: boolean) => {},
 });
 
+/**
+ * The AuthProvider component manages the authentication state and provides
+ * functions for login, logout, and access to user information.
+ */
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState("");
@@ -41,6 +45,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [authToken, setAuthToken] = useState("");
   const [cookies, setCookie, removeCookie] = useCookies(["voxai"]);
   const [needTokenCheck, setNeedTokenCheck] = useState(false);
+  const [firstLoad, setFirstLoad] = useState(true);
   const navigation = useNavigation();
 
   if (AUTH_LOGGING) {
@@ -49,7 +54,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   // TODO: Configure cookie settings properly
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn && firstLoad) {
       // Log in if there are cookies on first load
       if (cookies["voxai"] && cookies["voxai"]["auth"]) {
         axios
@@ -64,10 +69,19 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
                 cookies["voxai"]["auth"]["authToken"]
               );
             }
+          })
+          .catch((error) => {
+            if (AUTH_LOGGING) {
+              console.log("Auth token in cookies was invalid");
+            }
+            handleLogout(true);
           });
       }
+      setFirstLoad(false);
     } else {
-      console.log(cookies);
+      if (AUTH_LOGGING) {
+        console.log(cookies);
+      }
       // Update the cookie if it is different
       let currentAuthCookie: Record<string, string> = {
         email: email,
@@ -83,6 +97,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   }, [isLoggedIn]);
 
+  /**
+   * Handles user login by setting authentication state and storing information in cookies.
+   *
+   * @param email The user's email address.
+   * @param name The user's name.
+   * @param authToken The authentication token.
+   */
   const handleLogin: (
     a: string,
     b: string,
@@ -97,7 +118,12 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setIsLoggedIn(true);
   };
 
-  const handleLogout: () => Promise<void> = async () => {
+  /**
+   * Handles user logout by clearing authentication state and removing cookies.
+   */
+  const handleLogout: (a: boolean) => Promise<void> = async (
+    navigateToLogin
+  ) => {
     setCookie("voxai", {
       auth: null,
     });
@@ -105,9 +131,18 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setEmail("");
     setUsername("");
     setAuthToken("");
-    axios.post(SERVER_ENDPOINT("logout"), {
-      authToken: authToken,
-    });
+    try {
+      await axios.post(SERVER_ENDPOINT("logout"), {
+        authToken: authToken,
+      });
+    } catch (error) {
+      if (AUTH_LOGGING) {
+        console.log("Error during logout: ", error);
+      }
+    }
+    if (navigateToLogin) {
+      await navigation.navigate("Login");
+    }
   };
 
   if (AUTH_LOGGING) {
@@ -130,3 +165,5 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export default AuthProvider;

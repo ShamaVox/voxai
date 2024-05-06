@@ -1,21 +1,56 @@
 import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { render } from "@testing-library/react-native";
 import App from "../src/App";
 import { SERVER_ENDPOINT } from "../src/utils/Axios";
 import { randomAccountNumber } from "./utils/Random";
-import { loginAndNavigateAll } from "./actions/AppIntegrationActions";
-import { clearCookies } from "./utils/Render";
+import {
+  navigateAndLogin,
+  loginAndNavigateAll,
+} from "./actions/AppIntegrationActions";
+import { verifyUpcomingInterviews } from "./actions/HomeActions";
+import {
+  mockTokenValidation,
+  mockUpcomingInterviews,
+} from "./utils/MockRequests";
+import { clearCookies, setCookies, getAuthCookies } from "./utils/Cookies";
 
 beforeEach(() => {
   clearCookies();
 });
 
 test("Login with existing account and navigate to Dashboard and Home", async () => {
-  render(<App />);
+  render(<App enableAnimations={false} />);
   await loginAndNavigateAll();
 });
 
 test("Create new account and navigate to Dashboard and Home", async () => {
-  render(<App />);
+  render(<App enableAnimations={false} />);
   await loginAndNavigateAll(randomAccountNumber());
+});
+
+test("Login persists after refresh", async () => {
+  render(<App enableAnimations={false} />);
+  await navigateAndLogin(0);
+
+  // Simulate refresh (unmount and remount App component)
+  mockTokenValidation();
+  const { rerender } = render(<App enableAnimations={false} />);
+  rerender(<App enableAnimations={false} />);
+
+  // Verify user is still logged in and on the home page
+  await verifyUpcomingInterviews();
+});
+
+test("Logs in automatically when cookie is present", async () => {
+  setCookies({
+    auth: {
+      username: "Test User",
+      email: "test@email.com",
+      authToken: "AUTHTOKEN",
+    },
+  });
+  mockTokenValidation();
+  mockUpcomingInterviews();
+  render(<App enableAnimations={false} />);
+  await verifyUpcomingInterviews();
 });

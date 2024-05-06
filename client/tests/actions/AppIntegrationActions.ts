@@ -4,47 +4,54 @@ import { verifyInsightsData } from "./DashboardActions";
 import {
   verifyLoggedOutHomepage,
   verifyHomeElements,
-  verifyTabSwitch,
+  verifyUpcomingInterviews,
 } from "./HomeActions";
-import { fireEvent, waitFor, screen } from "@testing-library/react-native";
+import { verifyHeader } from "./HeaderActions";
+import { waitFor, screen } from "@testing-library/react-native";
 
-export const loginAndNavigateAll = async (newAccount: number = 0) => {
-  // Verify homepage when logged out
+/**
+ * Navigates to the Login screen and performs a login, optionally creating a new account.
+ *
+ * @param newAccount (Optional) Set to a number to create a new account with that number as part of the email. Defaults to 0 (existing account).
+ * @returns The username of the logged-in user.
+ */
+export const navigateAndLogin = async (newAccount: number = 0) => {
+  let username: string = "Test Name";
+  if (newAccount) {
+    username = "New User";
+  }
   verifyLoggedOutHomepage();
+  await verifyHeader(false);
 
   // Navigate to login page
   await navigateTo("Login");
+  await verifyHeader(false);
 
   // Login using existing actions from LoginActions
-  await loginSuccess(newAccount);
+  await loginSuccess(newAccount, true);
+  await verifyHeader(true, username);
+  return username;
+};
+
+/**
+ * Performs a complete login and navigation flow, verifying elements on each screen.
+ *
+ * @param newAccount - Optional account number for creating a new account. Defaults to 0 (existing account).
+ */
+export const loginAndNavigateAll = async (newAccount: number = 0) => {
+  // Verify homepage when logged out
+  let username: string = await navigateAndLogin(newAccount);
 
   // Navigate to Dashboard and verify insights data
-  await screen.findByText("John Doe");
-  //   await waitFor(() => {
-  //     expect(
-  //       queryAllByTestId("interview-list")[0].props.data.length
-  //     ).toBeGreaterThan(9);
-  //   });
+  await verifyUpcomingInterviews();
   await navigateTo("Dashboard");
   await screen.findByText("Insights");
+  await verifyHeader(true, username);
   await verifyInsightsData();
 
   // Navigate back to Home and verify elements
   await navigateTo("Home");
-  await screen.findByText("My Interviews");
-  await screen.findByText("John Doe");
-  //   await waitFor(() => {
-  //     expect(
-  //       queryAllByTestId("interview-list")[0].props.data.length
-  //     ).toBeGreaterThan(2);
-  //   });
-  await verifyTabSwitch("Completed");
-  await verifyTabSwitch("Upcoming");
-  //   await verifyHomeElements(
-  //     screen.getByText,
-  //     screen.queryByText,
-  //     screen.findByText,
-  //     queryAllByTestId,
-  //     "Both"
-  //   );
+  await verifyHeader(true, username);
+  await verifyUpcomingInterviews();
+  await verifyHomeElements();
 };

@@ -1,6 +1,5 @@
 import re
 
 def is_valid_email(email):
-    # Regular expression pattern for email validation
-    email_pattern = r'^[\w\.\+-]+@[\w\.-]+\.\w+$'
-    return re.match(email_pattern, email) is not None
+    """Validates an email address using a regular expression."""
+    return re.match(r'^[\w\.\+-]+@[\w\.-]+\.\w+$', email) is not None

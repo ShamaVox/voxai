@@ -1,19 +1,20 @@
-"""Add organization and defaults
+"""Fix issues
 
-Revision ID: 1714041733
-Revises: 1714041732
-Create Date: 2024-04-25 10:42:13.772306
+Revision ID: 1714525391
+Revises: 1714525026
+Create Date: 2024-05-01 01:03:11.994233
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import sqlalchemy_utils
 
 
 # revision identifiers, used by Alembic.
-revision: str = '1713379677'
-down_revision: Union[str, None] = '1714041733'
+revision: str = '1714525391'
+down_revision: Union[str, None] = '1714525026'
 branch_labels: Union[str, Sequence[str], None] = ()
 depends_on: Union[str, Sequence[str], None] = None
 

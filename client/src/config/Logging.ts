@@ -1,3 +1,7 @@
+/**
+ * Enables logging in various client files
+ */
+
 export const LOGIN_LOGGING = false;
 export const AUTH_LOGGING = false;
 export const NAV_BAR_LOGGING = false;

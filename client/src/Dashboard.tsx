@@ -1,8 +1,9 @@
-import React, { FC, useState, useEffect } from "react";
+import React, { FC, useState, useEffect, useContext } from "react";
 import { View, Text, Image } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
-import { SERVER_ENDPOINT } from "./utils/Axios";
+import { AuthContext } from "./AuthContext";
+import { SERVER_ENDPOINT, handleLogoutResponse } from "./utils/Axios";
 import { DASHBOARD_LOGGING } from "./config/Logging";
 
 interface InsightBoxProps {
@@ -13,6 +14,9 @@ interface InsightBoxProps {
   percentage?: number;
 }
 
+/**
+ * Renders an insight box with an icon, value, title, and optional percentage change.
+ */
 const InsightBox: FC<InsightBoxProps> = ({
   testID,
   icon,
@@ -49,18 +53,30 @@ const InsightBox: FC<InsightBoxProps> = ({
   );
 };
 
+/**
+ * Screen displaying insights data fetched from the server.
+ */
 const InsightsScreen: FC = () => {
   const [insights, setInsights] = useState(null);
+  const { handleLogout } = useContext(AuthContext);
 
   useEffect(() => {
     fetchInsights();
   }, []);
 
+  /**
+   * Fetches insights data from the server and updates the state.
+   */
   const fetchInsights: () => Promise<void> = async () => {
     try {
       const response = await axios.get(SERVER_ENDPOINT("insights"));
       setInsights(response.data);
     } catch (error) {
+      await handleLogoutResponse(
+        handleLogout,
+        error.response,
+        DASHBOARD_LOGGING
+      );
       if (DASHBOARD_LOGGING) {
         console.log("Error fetching insights:", error);
       }
@@ -106,6 +122,9 @@ const InsightsScreen: FC = () => {
   );
 };
 
+/**
+ * The Dashboard component displays insights and data visualizations related to the user's recruitment activities.
+ */
 const Dashboard: FC = () => {
   return <InsightsScreen />;
 };

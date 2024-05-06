@@ -14,6 +14,9 @@ beforeEach(() => {
   }
 });
 
+/**
+ * Mocks the API response for fetching upcoming interviews.
+ */
 export const mockUpcomingInterviews = () => {
   if (mock) {
     mockAdapter.onGet(SERVER_ENDPOINT("interviews")).reply(200, [
@@ -27,6 +30,9 @@ export const mockUpcomingInterviews = () => {
   }
 };
 
+/**
+ * Mocks the API response for checking if an account exists.
+ */
 export const mockAccountExists = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("send_code")).reply(200, {
@@ -36,6 +42,9 @@ export const mockAccountExists = () => {
   }
 };
 
+/**
+ * Mocks a response indicating a new account was created when sending a verification code.
+ */
 export const mockNewAccount = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("send_code")).reply(201, {
@@ -45,6 +54,9 @@ export const mockNewAccount = () => {
   }
 };
 
+/**
+ * Mocks a response for an invalid verification code during login.
+ */
 export const mockInvalidCode = () => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("validate_code")).reply(400, {
@@ -53,11 +65,16 @@ export const mockInvalidCode = () => {
   }
 };
 
-export const mockValidCode = () => {
+/**
+ * Mocks a successful verification code validation with provided user details.
+ *
+ * @param name The name associated with the validated account.
+ */
+export const mockValidCode: (name: string) => void = (name) => {
   if (mock) {
     mockAdapter.onPost(SERVER_ENDPOINT("validate_code")).reply(200, {
       message: "Verification code is valid",
-      name: "Test Name",
+      name: name,
       account_type: "Recruiter",
       email: "test@email.com", // Don't check this value: it will be different in integration tests
       authToken: "AUTHTOKEN",
@@ -65,6 +82,9 @@ export const mockValidCode = () => {
   }
 };
 
+/**
+ * Mocks a successful response for fetching insights data.
+ */
 export const mockInsights = () => {
   if (mock) {
     mockAdapter.onGet(SERVER_ENDPOINT("insights")).reply(200, {
@@ -75,6 +95,23 @@ export const mockInsights = () => {
       averageInterviewPacePercentage: -10,
       lowerCompensationRange: 20,
       upperCompensationRange: 129,
+    });
+  }
+};
+
+/**
+ * Mocks a response for an authentication token check.
+ *
+ * @param api The API to mock the response from.
+ * @param valid Whether to mock a successful or failed check.
+ */
+export const mockTokenValidation = (
+  api: string = "check_token",
+  valid: boolean = true
+) => {
+  if (mock) {
+    mockAdapter.onAny(SERVER_ENDPOINT(api)).reply(valid ? 200 : 401, {
+      validToken: valid,
     });
   }
 };

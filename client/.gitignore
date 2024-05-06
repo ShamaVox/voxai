@@ -36,3 +36,4 @@ yarn-error.*
 
 # Test config 
 tests/config/Config.ts
+src/ServerUrl.ts

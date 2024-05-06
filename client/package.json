@@ -3,17 +3,22 @@
   "version": "0.1.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
-    "prestart": "cp -f src/config/ServerUrlLocal.ts src/ServerUrl.ts",
+    "prestart": "npm run config:local",
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "build": "cp -f src/config/ServerUrlAws.ts src/ServerUrl.ts && expo export -p web",
+    "config:aws": "cp -f src/config/ServerUrlAws.ts src/ServerUrl.ts",
+    "config:local": "cp -f src/config/ServerUrlLocal.ts src/ServerUrl.ts",
+    "config:test": "cp -f tests/config/ServerlessConfig.ts tests/config/Config.ts",
+    "config:integration": "cp -f tests/config/IntegrationConfig.ts tests/config/Config.ts",
+    "build": "npm run config:aws && expo export -p web",
     "local": "expo export -p web",
-    "test": "tsc --noEmit --noImplicitAny && cp -f tests/config/ServerlessConfig.ts tests/config/Config.ts && jest",
-    "test:integration": "tsc --noEmit --noImplicitAny && cp -f tests/config/IntegrationConfig.ts tests/config/Config.ts && cp -f src/config/ServerUrlLocal.ts src/ServerUrl.ts && jest -i 'AppIntegration.test.tsx'",
+    "test": "npm run ts:check && npm run config:test && jest",
+    "test:integration": "npm run ts:check && npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
+    "test:integration_light": "npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
     "ts:check": "tsc --noEmit --noImplicitAny",
-    "test:light": "cp -f tests/config/ServerlessConfig.ts tests/config/Config.ts && jest"
+    "test:light": "npm run config:test && jest"
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.1.3",

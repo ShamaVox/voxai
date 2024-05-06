@@ -5,6 +5,9 @@ import styles from "./styles/NavBarStyles";
 import { NAV_BAR_LOGGING } from "./config/Logging";
 import { useNavigation } from "@react-navigation/native";
 
+/**
+ * The NavBar component provides navigation options for logged-in users, allowing them to access different sections of the app.
+ */
 const NavBar: React.FC = () => {
   const [activeRouteName, setActiveRouteName] = useState("");
   const navigation = useNavigation();
@@ -35,12 +38,24 @@ const NavBar: React.FC = () => {
     return null;
   }
 
+  /**
+   * Determines the style for a navigation button based on the active route.
+   *
+   * @param routeName The name of the route associated with the button.
+   * @returns The appropriate button style object.
+   */
   const getButtonStyle = (routeName: string) => {
     return activeRouteName === routeName
       ? styles.selectedButton
       : styles.button;
   };
 
+  /**
+   * Determines the text style for a navigation button based on the active route.
+   *
+   * @param routeName The name of the route associated with the button.
+   * @returns The appropriate text style object.
+   */
   const getTextStyle = (routeName: string) => {
     return activeRouteName === routeName
       ? styles.selectedButtonText
@@ -54,7 +69,9 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-home"
           style={getButtonStyle("Home")}
-          onPress={() => navigation.navigate("Home")}
+          onPress={async () => {
+            await navigation.navigate("Home");
+          }}
         >
           <Image
             source={require("../assets/icons/dashboard.png")}
@@ -65,7 +82,9 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-dashboard"
           style={getButtonStyle("Dashboard")}
-          onPress={() => navigation.navigate("Dashboard")}
+          onPress={async () => {
+            await navigation.navigate("Dashboard");
+          }}
         >
           <Image
             source={require("../assets/icons/dashboard.png")}
@@ -76,7 +95,9 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-candidates"
           style={getButtonStyle("Candidates")}
-          onPress={() => navigation.navigate("Candidates")}
+          onPress={async () => {
+            await navigation.navigate("Candidates");
+          }}
         >
           <Image
             source={require("../assets/icons/candidates.png")}
@@ -91,7 +112,10 @@ const NavBar: React.FC = () => {
         <Pressable
           testID="nav-button-settings"
           style={getButtonStyle("Settings")}
-          onPress={() => navigation.navigate("Candidates")} // temporary as there is no settings page
+          onPress={async () => {
+            // temporary as there is no settings page
+            await navigation.navigate("Candidates");
+          }}
         >
           <Image
             source={require("../assets/icons/settings.png")}

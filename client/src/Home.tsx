@@ -12,14 +12,18 @@ import { AuthContext } from "./AuthContext";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
 import { HOME_LOGGING } from "./config/Logging";
-import { SERVER_ENDPOINT } from "./utils/Axios";
+import { SERVER_ENDPOINT, handleLogoutResponse } from "./utils/Axios";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
 
+/**
+ * The Home component displays upcoming interviews and other relevant information for logged-in users.
+ * For logged-out users, it shows a placeholder homepage.
+ */
 const Home: FC = () => {
   const navigation = useNavigation();
-  const { isLoggedIn } = useContext(AuthContext);
+  const { isLoggedIn, handleLogout } = useContext(AuthContext);
   const [interviews, setInterviews] = useState([]);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
 
@@ -29,21 +33,35 @@ const Home: FC = () => {
     }
   }, [isLoggedIn]);
 
+  /**
+   * Fetches interview data from the server and updates the state.
+   */
   const fetchInterviews: () => void = async () => {
     try {
       const response = await axios.get(SERVER_ENDPOINT("interviews"));
       setInterviews(response.data);
     } catch (error) {
+      await handleLogoutResponse(handleLogout, error.response, HOME_LOGGING);
       if (HOME_LOGGING) {
         console.log("Error fetching interviews:", error);
       }
     }
   };
 
-  const handleLoginClick: (arg: GestureResponderEvent) => void = () => {
-    navigation.navigate("Login");
+  /**
+   * Handles the login button click by navigating to the Login screen.
+   * @param arg The GestureResponderEvent object.
+   */
+  const handleLoginClick: (
+    arg: GestureResponderEvent
+  ) => Promise<void> = async () => {
+    await navigation.navigate("Login");
   };
 
+  /**
+   * Renders a single interview item within the interview list.
+   * @param item The interview data object to be rendered.
+   */
   const renderInterviewItem: ListRenderItem<any> = ({ item }) => (
     <View testID="interview-table-entry" style={styles.interviewItem}>
       <View style={styles.interviewColumn}>
@@ -120,7 +138,7 @@ const Home: FC = () => {
               keyExtractor={(item) => item.id.toString()}
               style={styles.interviewsList}
             />
-            {isLoggedIn ? (
+            {selectedTab === "Completed" ? (
               <>
                 {" "}
                 <Text>This is a placeholder for the Completed tab</Text>{" "}
@@ -138,7 +156,9 @@ const Home: FC = () => {
           <Text>This is a placeholder homepage</Text>
           <Pressable
             testID="homepage-login"
-            onPress={handleLoginClick}
+            onPress={async (e: GestureResponderEvent) => {
+              await handleLoginClick(e);
+            }}
             style={styles.button}
           >
             <Text>Login</Text>
