@@ -6,7 +6,7 @@ from .app import app as app
 from os import environ
 from faker import Faker
 from sqlalchemy import func
-from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_candidate_interviews
+from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_account_interviews
 from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
 from .utils import get_random, get_random_string
 
@@ -159,7 +159,7 @@ def validate_code():
                 generate_synthetic_data_on_account_creation(new_account.account_id)
 
                 auth_token = get_random_string(36)
-                sessions[auth_token] = request.json.get('email')
+                sessions[auth_token] = new_account.account_id
                 
                 data = {
                     "message": "Account created",
@@ -235,16 +235,17 @@ def get_insights():
 
 @app.route("/api/interviews")
 def get_interviews():
-    """Provides interview data for a specific candidate."""
+    """Provides interview data for a specific candidate or interviewer."""
     current_user_id = handle_auth_token(sessions)
     if current_user_id is None:
         return valid_token_response(False) 
 
-    candidate_id = request.args.get('candidateId')
-    if candidate_id:
-        interviews = get_candidate_interviews(candidate_id)
+    if request.args.get('candidateId'):
+        interviews = get_account_interviews(request.args.get('candidateId'), False)
+    elif request.args.get('interviewerId'):
+        interviews = get_account_interviews(request.args.get('interviewerId'), True)
     else:
-        interviews = []
+        interviews = get_account_interviews(current_user_id, True)
 
     if 'TEST' in environ and not interviews:
         # Generate a fake interview if the interview list is empty in the test environment

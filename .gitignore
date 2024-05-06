@@ -2,3 +2,4 @@ node_modules
 .DS_Store
 src/__pycache__
 __pycache__
+client/src/ServerUrl.ts

@@ -163,7 +163,7 @@ def generate_application_data(num_records, roles, candidates):
     db.session.flush()
     return applications
 
-def generate_interview_data(num_records, applications, interviewers, candidates, skills):
+def generate_interview_data(num_records, applications, interviewers, candidates, skills, main_interviewer=None):
     """Generates synthetic data for the Interview model.
 
     Args:
@@ -222,11 +222,15 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
 
     interview_skill_scores = []
     interview_interviewer_speaking = []
-    for _ in range(num_records):
+    for i in range(num_records):
 
+        interview = interviews[i]
         # Assign random interviewers to the interview
         num_interviewers = data_generator.random_int(min=1, max=3)
         interview_interviewers = data_generator.random_elements(interviewers, length=num_interviewers, unique=True)
+        if main_interviewer is not None:
+            interview_interviewers.append(main_interviewer)
+        
         interview.interviewers.extend(interview_interviewers)
 
         # Assign random skill scores to the interview
@@ -390,7 +394,7 @@ def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_E
         # Create Roles under the new account
         generate_rows(generate_role_data(num, accounts, skills, new_account), new_roles)
         generate_rows(generate_application_data(num, new_roles, candidates), new_applications)
-        generate_rows(generate_interview_data(num, new_applications, accounts, candidates, skills), new_interviews)
+        generate_rows(generate_interview_data(num, new_applications, accounts, candidates, skills, new_account), new_interviews)
         
     current_date = datetime.now().date()
     days_ago = batches * 6
@@ -430,3 +434,4 @@ def fake_interview(interview_num):
 if 'SYNTHETIC' in environ:
     with app.app_context(): 
         generate_synthetic_data(int(environ['SYNTHETIC']))
+        db.session.commit()

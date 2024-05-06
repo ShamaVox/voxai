@@ -1,4 +1,4 @@
-from .database import db, Application, Role, MetricHistory, Interview, Account
+from .database import db, Application, Role, MetricHistory, Interview, Account, interview_interviewer_speaking_table
 from datetime import datetime, timedelta
 from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
 
@@ -153,26 +153,35 @@ def average_compensation_range(current_user_id):
         total_lower_compensation += role.base_compensation_min
         total_upper_compensation += role.base_compensation_max
 
-    average_lower_compensation = round(total_lower_compensation / len(roles))
-    average_upper_compensation = round(total_upper_compensation / len(roles))
+    average_lower_compensation = round(total_lower_compensation / (1000 * len(roles)))
+    average_upper_compensation = round(total_upper_compensation / (1000 * len(roles)))
 
     return average_lower_compensation, average_upper_compensation
 
-def get_candidate_interviews(candidate_id):
+def get_account_interviews(account_id, interviewer=True):
     """
-    Retrieves interview data for a specific candidate.
+    Retrieves interview data for a specific candidate or interviewer.
 
     Args:
-        candidate_id: The candidate's ID.
+        account_id: The candidate or interviewer's account ID.
+        interviewer: Whether to search for candidates (if True) or interviewers (if False).
 
     Returns:
         A list of interview data for the candidate.
     """
-    interviews = Interview.query.filter_by(candidate_id=candidate_id).all()
+    if interviewer:
+        interviews = (
+            db.session.query(Interview)
+            .join(interview_interviewer_speaking_table, Interview.interview_id == interview_interviewer_speaking_table.c.interview_id)
+            .filter(interview_interviewer_speaking_table.c.interviewer_id == account_id)
+            .all()
+        )
+    else: 
+        interviews = Interview.query.filter_by(candidate_id=candidate_id).all()
 
     interview_data = []
     for interview in interviews:
-        role = Role.query.filter_by(role_id=interview.application.role_id).first()
+        role = Role.query.filter_by(role_id=interview.applications.role_id).first()
         interviewers = ", ".join([interviewer.name for interviewer in interview.interviewers])
 
         interview_data.append({
