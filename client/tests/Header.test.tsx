@@ -11,7 +11,7 @@ import Header from "../src/Header";
 import { useNavigation } from "@react-navigation/native";
 import { renderComponent } from "./utils/Render";
 import { clearCookies } from "./utils/Cookies";
-import { verifyHeader } from "./actions/HeaderActions";
+import { verifyHeader, logout } from "./actions/HeaderActions";
 
 const mockNavigate = jest.fn();
 
@@ -56,4 +56,9 @@ test("navigates to Dashboard on logo press when logged in", async () => {
     fireEvent.press(screen.getByTestId("logo"));
     expect(mockNavigate).toHaveBeenCalledWith("Dashboard");
   });
+});
+
+test("successfully logs out", async () => {
+  renderComponent(Header, true, "Logout Test Username");
+  await logout("Logout Test Username");
 });

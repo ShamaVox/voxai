@@ -46,6 +46,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [cookies, setCookie, removeCookie] = useCookies(["voxai"]);
   const [needTokenCheck, setNeedTokenCheck] = useState(false);
   const [firstLoad, setFirstLoad] = useState(true);
+  // Buffer login navigation if navigation is not loaded
+  const [loginNavigationPending, setLoginNavigationPending] = useState(false);
   const navigation = useNavigation();
 
   if (AUTH_LOGGING) {
@@ -54,6 +56,12 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   // TODO: Configure cookie settings properly
   useEffect(() => {
+    if (loginNavigationPending) {
+      // Handling this here ensures navigation is fully initialized if we log out on initial page load
+      navigation.navigate("Login");
+      setLoginNavigationPending(false);
+      return;
+    }
     if (!isLoggedIn && firstLoad) {
       // Log in if there are cookies on first load
       if (cookies["voxai"] && cookies["voxai"]["auth"]) {
@@ -95,7 +103,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         setCookie("voxai", { auth: currentAuthCookie });
       }
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, loginNavigationPending]);
 
   /**
    * Handles user login by setting authentication state and storing information in cookies.
@@ -141,7 +149,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
       }
     }
     if (navigateToLogin) {
-      await navigation.navigate("Login");
+      setLoginNavigationPending(true);
     }
   };
 

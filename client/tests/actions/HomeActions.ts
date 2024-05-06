@@ -3,9 +3,11 @@ import { fireEvent, waitFor, screen } from "@testing-library/react-native";
 /**
  * Verifies the content and elements displayed on the homepage when logged out.
  */
-export const verifyLoggedOutHomepage = () => {
-  expect(screen.getByText("This is a placeholder homepage")).toBeTruthy();
-  expect(screen.getByText("Login")).toBeTruthy();
+export const verifyLoggedOutHomepage = async () => {
+  await waitFor(() => {
+    expect(screen.getByText("This is a placeholder homepage")).toBeTruthy();
+    expect(screen.getByText("Login")).toBeTruthy();
+  });
 };
 
 /**
