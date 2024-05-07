@@ -3,3 +3,6 @@ node_modules
 src/__pycache__
 __pycache__
 client/src/ServerUrl.ts
+coverage.xml
+htmlcov
+.coverage 

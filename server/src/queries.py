@@ -49,6 +49,7 @@ def fitting_job_applications_percentage(current_user_id, match_threshold=MATCH_T
         .filter(MetricHistory.account_id == current_user_id)\
         .filter(MetricHistory.metric_name == 'fitting_job_applications_percentage')\
         .filter(MetricHistory.metric_day >= start_date)\
+        .filter(MetricHistory.metric_day != current_day)\
         .scalar()
 
     if average_percentage is None:
