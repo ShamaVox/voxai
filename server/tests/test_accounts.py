@@ -13,10 +13,10 @@ def test_default_values(init_database):
     db.session.add(account)
     db.session.commit()
 
-    retrieved_account = db.session.get(Account, "test2@example.com")
+    retrieved_account = Account.query.filter_by(email="test2@example.com").first()
     assert retrieved_account.name == "Default Name"
     assert retrieved_account.account_type == "Recruiter"
-    assert retrieved_account.organization == "VoxAI"
+    assert retrieved_account.organization == "Default Company"
 
 def test_account_query_by_email(init_database):
     """Test querying for an account by email."""

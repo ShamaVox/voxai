@@ -15,3 +15,6 @@ SYNTHETIC_DATA_ENTRIES = 10
 
 # Number of batches during account creation
 SYNTHETIC_DATA_BATCHES = 3
+
+# Print debug lines for synthetic data
+DEBUG_SYNTHETIC_DATA = False 

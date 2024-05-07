@@ -14,5 +14,6 @@ def init_database():
         # Configure the database with a test database
         flask_app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://ubuntu:voxai@localhost:5432/voxai_db_test" 
         db.drop_all()  # Clean up after tests
+        db.session.commit()
         db.create_all()  # Create tables
         yield db

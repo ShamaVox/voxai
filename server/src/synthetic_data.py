@@ -5,7 +5,7 @@ from .queries import fitting_job_applications_percentage
 from os import environ
 from .app import app as app
 from sqlalchemy import inspect, or_, func
-from .constants import SYNTHETIC_DATA_ENTRIES, SYNTHETIC_DATA_BATCHES
+from .constants import SYNTHETIC_DATA_ENTRIES, SYNTHETIC_DATA_BATCHES, DEBUG_SYNTHETIC_DATA
 from datetime import datetime, timedelta
 
 data_generator = Faker()
@@ -145,11 +145,23 @@ def generate_application_data(num_records, roles, candidates):
     """
 
     applications = []
+    pairs = set()
+    db.session.flush()
     for _ in range(num_records):
         role = data_generator.random_element(roles)
         candidate = data_generator.random_element(candidates)
         candidate_match = data_generator.random_int(min=0, max=100)
         application_time = data_generator.date_time_between(start_date='-1y', end_date='now')
+
+        for _ in range(100):
+            # Check for duplicates
+            if (role.role_id, candidate.candidate_id) not in pairs and db.session.query(Application).filter_by(role=role, candidate=candidate).first() is None:
+                break
+            role = data_generator.random_element(roles)
+            candidate = data_generator.random_element(candidates)
+        else:
+            print("Could not create new Applications: no unique role / candidate pairs")
+            break
 
         application = Application(
             role=role,
@@ -158,6 +170,7 @@ def generate_application_data(num_records, roles, candidates):
             application_time=application_time
         )
         applications.append(application)
+        pairs.add((role.role_id, candidate.candidate_id))
     
     db.session.add_all(applications)
     db.session.flush()
@@ -359,12 +372,13 @@ def generate_synthetic_data(num):
     candidates = generate_candidate_data(num)
     applications = generate_application_data(num, roles, candidates)
     interviews = generate_interview_data(num, applications, accounts, candidates, skills)
-    print_table_entry(accounts[10], Account)
-    print_table_entry(skills[10], Skill)
-    print_table_entry(roles[10], Role)
-    print_table_entry(candidates[11], Candidate)
-    print_table_entry(applications[999], Application)
-    print_table_entry(interviews[683], Interview)
+    if DEBUG_SYNTHETIC_DATA:
+        print_table_entry(accounts[-1], Account)
+        print_table_entry(skills[-1], Skill)
+        print_table_entry(roles[-1], Role)
+        print_table_entry(candidates[-1], Candidate)
+        print_table_entry(applications[-1], Application)
+        print_table_entry(interviews[-1], Interview)
 
 def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_ENTRIES, batches=SYNTHETIC_DATA_BATCHES):
     """Creates synthetic data for a new account. 
@@ -379,7 +393,7 @@ def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_E
     #accounts = Account.query.all()
     accounts = db.session.query(Account).filter(Account.account_type.in_(["Recruiter", "Hiring Manager"])).order_by(func.random()).limit(15).all()
     candidates = Candidate.query.all()
-    new_account = Account.query.get(account_id)
+    new_account = Account.query.filter_by(account_id=account_id).first()
     new_roles = []
     new_applications = []
     new_interviews = []

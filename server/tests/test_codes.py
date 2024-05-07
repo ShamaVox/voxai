@@ -2,6 +2,7 @@ import pytest
 from flask import json
 from server.src import input_validation, verification, database
 from server.app import app as flask_app
+from .utils.synthetic_data import create_synthetic_data
 
 @pytest.mark.parametrize(
     "email, expected_message, expected_status_code",
@@ -74,6 +75,7 @@ def test_validate_code_existing_account(client, init_database, email, code, expe
     ],
 )
 def test_validate_code_new_account(client, init_database, email, code, name, organization, account_type, expected_message, expected_status_code):
+    create_synthetic_data(10)
     # Send a POST request to the endpoint
     response = client.post("/api/validate_code", json={"email": email, "code": code, "name": name, "organization": organization, "accountType": account_type})
 

@@ -36,9 +36,6 @@ def handle_auth_token(sessions):
           a default user ID of 0 is returned as a temporary workaround for Jest.
         - If the authentication token is invalid or not found in the sessions object, the function
           should handle the case appropriately (e.g., send a logout response).
-
-    TODO:
-        - Implement proper handling of invalid sessions and send a logout response.
     """
     auth_token = request.cookies.get('authToken', None)
     if 'TEST' in environ and environ['TEST'] == "Integration":
