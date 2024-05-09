@@ -80,6 +80,7 @@ def average_interview_pace(current_user_id, days=INTERVIEW_PACE_DAYS_TO_AVERAGE,
     Returns:
         The average interview pace in days and the percentage change.
     """
+    # TODO: Extend to check for a given Candidate, and for a given Role 
     current_date = datetime.now().date()
     start_date = current_date - timedelta(days=days)
     percentage_start_date = current_date - timedelta(days=percentage_days)

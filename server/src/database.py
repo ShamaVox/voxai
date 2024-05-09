@@ -164,6 +164,7 @@ interview_interviewer_speaking_table = db.Table(
     db.Column("speaking_time", db.Integer),  # in seconds
     db.Column("wpm", db.Integer)
 )
+# TODO: Add interviewer notes long string
 
 class MetricHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

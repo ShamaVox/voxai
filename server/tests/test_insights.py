@@ -25,3 +25,5 @@ def test_get_insights(client):
     assert isinstance(insights["lowerCompensationRange"], int)
     assert "upperCompensationRange" in insights
     assert isinstance(insights["upperCompensationRange"], int)
+
+# TODO: Test updating metric history
