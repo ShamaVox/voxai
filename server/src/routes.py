@@ -1,7 +1,7 @@
 from flask import send_from_directory, request, jsonify, make_response
 import os
 from flask_cors import CORS
-from . import verification, input_validation, database, migrations
+from . import verification, input_validation, database, migrations, apis
 from .app import app as app
 from os import environ
 from faker import Faker

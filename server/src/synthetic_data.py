@@ -244,7 +244,7 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         if main_interviewer is not None:
             interview_interviewers.append(main_interviewer)
         
-        interview.interviewers.extend(interview_interviewers)
+        interview.interviewer_speaking_metrics.extend(interview_interviewers)
 
         # Assign random skill scores to the interview
         num_skills = data_generator.random_int(min=1, max=5)

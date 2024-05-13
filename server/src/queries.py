@@ -86,7 +86,7 @@ def average_interview_pace(current_user_id, days=INTERVIEW_PACE_DAYS_TO_AVERAGE,
     percentage_start_date = current_date - timedelta(days=percentage_days)
 
     # Get all interviews in the last N days where the account is an interviewer
-    interviews = Interview.query.join(Interview.interviewers).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).order_by(Interview.interview_time).all()
+    interviews = Interview.query.join(Interview.interviewer_speaking_metrics).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).order_by(Interview.interview_time).all()
 
     if not interviews:
         return 0, 0
@@ -107,7 +107,7 @@ def average_interview_pace(current_user_id, days=INTERVIEW_PACE_DAYS_TO_AVERAGE,
     average_pace = round(total_time_diff.days / len(interviews))
 
     # Calculate the average interview pace over the last M days excluding the last N days
-    percentage_interviews = Interview.query.join(Interview.interviewers).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= percentage_start_date).filter(Interview.interview_time < start_date).order_by(Interview.interview_time).all()
+    percentage_interviews = Interview.query.join(Interview.interviewer_speaking_metrics).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= percentage_start_date).filter(Interview.interview_time < start_date).order_by(Interview.interview_time).all()
 
     if not percentage_interviews:
         return average_pace, 0
@@ -184,7 +184,7 @@ def get_account_interviews(account_id, interviewer=True):
     interview_data = []
     for interview in interviews:
         role = Role.query.filter_by(role_id=interview.applications.role_id).first()
-        interviewers = ", ".join([interviewer.name for interviewer in interview.interviewers])
+        interviewers = ", ".join([interviewer.name for interviewer in interview.interviewer_speaking_metrics])
 
         interview_data.append({
             "id": interview.interview_id,
