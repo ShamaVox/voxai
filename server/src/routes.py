@@ -151,9 +151,10 @@ def validate_code():
             else: 
                 new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
                 database.db.session.add(new_account)
-                database.db.session.commit()
+                database.db.session.flush()
 
                 generate_synthetic_data_on_account_creation(new_account.account_id)
+                database.db.session.commit()
 
                 auth_token = get_random_string(36)
                 sessions[auth_token] = new_account.account_id

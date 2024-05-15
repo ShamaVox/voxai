@@ -1,5 +1,5 @@
 from .app import app as app
-from .database import Interview, db
+from .database import Interview
 from flask import request, jsonify
 import requests
 import hashlib
@@ -35,14 +35,14 @@ def preprocess(interview, audio=False, video=False):
         data['video_url'] = interview.video_url
 
     # Make a request to the preprocess API
-    with app.test_request_context():
-        response = requests.post(app.url_for("preprocess_media", _external=True), json=data)
+    # TODO: Replace test implementation with real API call
+    with app.test_client() as client:
+        response = client.post('/test/preprocess', json=data)
 
     # Handle response and update Interview object
     if response.status_code == 200:
-        interview.audio_url_preprocessed = response.json().get('audio_url_preprocessed')
-        interview.video_url_preprocessed = response.json().get('video_url_preprocessed')
-        db.session.commit()
+        interview.audio_url_preprocessed = response.json['audio_url_preprocessed']
+        interview.video_url_preprocessed = response.json['video_url_preprocessed']
     else:
         # Handle API error
         print(f"Preprocessing API error: {response.status_code}")
@@ -57,10 +57,11 @@ def get_sentiment(url, video=False):
         A single sentiment score for the content at the URL.
     """
     # Make a request to the sentiment API
-    with app.test_request_context():
-        response = requests.post(app.url_for("calculate_sentiment", _external=True), json={'url': url, 'video': video})
+    # TODO: Replace test implementation with real API call
+    with app.test_client() as client:
+        response = client.post('/test/sentiment', json={'url': url, 'video': video})
     if response.status_code == 200:
-        return response.json().get('sentiment_score')
+        return response.json['sentiment_score']
     else:
         # Handle API error
         print(f"Sentiment API error: {response.status_code}")
@@ -76,10 +77,11 @@ def get_engagement(url, video=False):
         A single sentiment score for the content at the URL.
     """
     # Make a request to the engagement API
-    with app.test_request_context():
-        response = requests.post(app.url_for("calculate_engagement", _external=True), json={'url': url, 'video': video})
+    # TODO: Replace test implementation with real API call
+    with app.test_client() as client:
+        response = client.post('/test/engagement', json={'url': url, 'video': video})
     if response.status_code == 200:
-        return response.json().get('engagement_score')
+        return response.json['engagement_score']
     else:
         # Handle API error
         print(f"Engagement API error: {response.status_code}")
@@ -113,6 +115,7 @@ def preprocess_media():
         file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
         
         # Upload to the new location
+        # TODO: Don't wait for this upload to finish
         s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
         
         # Return the new S3 URL

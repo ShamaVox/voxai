@@ -5,7 +5,8 @@ from .queries import fitting_job_applications_percentage
 from os import environ
 from .app import app as app
 from sqlalchemy import inspect, or_, func
-from .constants import SYNTHETIC_DATA_ENTRIES, SYNTHETIC_DATA_BATCHES, DEBUG_SYNTHETIC_DATA
+from .constants import SYNTHETIC_DATA_ENTRIES, SYNTHETIC_DATA_BATCHES, DEBUG_SYNTHETIC_DATA, ENABLE_SYNTHETIC_PREPROCESSING, ENABLE_SYNTHETIC_ENGAGEMENT, ENABLE_SYNTHETIC_SENTIMENT, SYNTHETIC_INTERVIEW_PROCESSING_PERCENTAGE
+from .apis import preprocess, get_sentiment, get_engagement
 from datetime import datetime, timedelta
 
 data_generator = Faker()
@@ -46,7 +47,6 @@ def generate_account_data(num):
         accounts.append(account)
 
     db.session.add_all(accounts)
-    db.session.flush()
     return accounts
 
 def generate_role_data(num_records, accounts, skills, direct_manager=None):
@@ -99,7 +99,6 @@ def generate_role_data(num_records, accounts, skills, direct_manager=None):
         roles.append(role)
 
     db.session.add_all(roles)
-    db.session.flush()
     return roles
 
 def generate_candidate_data(num_records):
@@ -129,7 +128,6 @@ def generate_candidate_data(num_records):
         candidates.append(candidate)
 
     db.session.add_all(candidates)
-    db.session.flush()
     return candidates
 
 def generate_application_data(num_records, roles, candidates):
@@ -146,7 +144,6 @@ def generate_application_data(num_records, roles, candidates):
 
     applications = []
     pairs = set()
-    db.session.flush()
     for _ in range(num_records):
         role = data_generator.random_element(roles)
         candidate = data_generator.random_element(candidates)
@@ -173,7 +170,6 @@ def generate_application_data(num_records, roles, candidates):
         pairs.add((role.role_id, candidate.candidate_id))
     
     db.session.add_all(applications)
-    db.session.flush()
     return applications
 
 def generate_interview_data(num_records, applications, interviewers, candidates, skills, main_interviewer=None):
@@ -193,15 +189,19 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
     statuses = [1, 2, 3, 4, 5]
 
     interviews = []
-    for _ in range(num_records):
-        interview_time = data_generator.date_time_between(start_date='-1y', end_date='now')
+    for n in range(num_records):
+        interview_time = data_generator.date_time_between(start_date='-1y', end_date='+2m')
         stage = data_generator.random_element(stages)
         status = data_generator.random_element(statuses)
         duration = data_generator.random_int(min=20*60, max=60*60)
         speaking_time = data_generator.random_int(min=60, max=300)
         wpm = data_generator.random_int(min=100, max=200)
-        audio_url = data_generator.url()
-        video_url = data_generator.url()
+        if interview_time < datetime.now() and n % int(100 / SYNTHETIC_INTERVIEW_PROCESSING_PERCENTAGE) == 0:
+            audio_url = 's3://voxai-test-audio-video/file_example_MP3_700KB.mp3'
+            video_url = 's3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4'
+        else:
+            audio_url = data_generator.url()
+            video_url = data_generator.url()
         score = data_generator.random_int(min=0, max=100)
         engagement = data_generator.random_int(min=0, max=100)
         sentiment = data_generator.random_int(min=0, max=100)
@@ -231,7 +231,45 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         interviews.append(interview)
 
     db.session.add_all(interviews)
-    db.session.flush()
+
+    # Preprocess audio and video, then get sentiment and engagement if interview time is in the past
+    if ENABLE_SYNTHETIC_PREPROCESSING:
+        for interview in interviews:
+            if "s3://" not in interview.audio_url and "s3://" not in interview.video_url:
+                continue
+            if interview.interview_time < datetime.now():
+                preprocess_audio = bool(interview.audio_url)
+                preprocess_video = bool(interview.video_url)
+
+                # Call the preprocess function
+                preprocess(interview, audio=preprocess_audio, video=preprocess_video)
+
+        db.session.flush()
+
+    # Get sentiment and engagement if the interview time is in the past
+    if ENABLE_SYNTHETIC_SENTIMENT or ENABLE_SYNTHETIC_ENGAGEMENT:
+        for interview in interviews:
+            if "s3://" not in interview.audio_url and "s3://" not in interview.video_url:
+                continue
+            if ENABLE_SYNTHETIC_PREPROCESSING:
+                audio_url = interview.audio_url_preprocessed 
+                video_url = interview.video_url_preprocessed
+            else:
+                audio_url = interview.audio_url 
+                video_url = interview.video_url 
+            if interview.interview_time < datetime.now():
+                if video_url: 
+                    if ENABLE_SYNTHETIC_SENTIMENT:
+                        interview.sentiment = get_sentiment(video_url, video=True)
+                    if ENABLE_SYNTHETIC_ENGAGEMENT:
+                        interview.engagement = get_engagement(video_url, video=True)
+                elif audio_url:
+                    if ENABLE_SYNTHETIC_SENTIMENT:
+                        interview.sentiment = get_sentiment(audio_url, video=False)
+                    if ENABLE_SYNTHETIC_ENGAGEMENT:
+                        interview.engagement = get_engagement(audio_url, video=False)
+
+        db.session.flush()
 
     interview_skill_scores = []
     interview_interviewer_speaking = []
@@ -275,7 +313,6 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
     if interview_interviewer_speaking:
         db.session.execute(interview_interviewer_speaking_table.insert(), interview_interviewer_speaking)
 
-    db.session.flush()
     return interviews
 
 skill_list = set([
@@ -344,7 +381,6 @@ def generate_skill_data():
         skills.append(skill)
 
     db.session.add_all(skills)
-    db.session.flush()
     return skills
 
 def print_table_entry(table_entry, Model):
@@ -390,7 +426,6 @@ def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_E
     
     # Get existing data before generating batches
     skills = Skill.query.all()
-    #accounts = Account.query.all()
     accounts = db.session.query(Account).filter(Account.account_type.in_(["Recruiter", "Hiring Manager"])).order_by(func.random()).limit(15).all()
     candidates = Candidate.query.all()
     new_account = Account.query.filter_by(account_id=account_id).first()
@@ -429,8 +464,6 @@ def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_E
             if metric_history_entry:
                 metric_history_entry.metric_day = current_date - timedelta(days=days_ago)
             days_ago -= 6
-
-    db.session.commit()
 
 
 def fake_interview(interview_num):
