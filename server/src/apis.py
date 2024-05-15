@@ -9,7 +9,7 @@ import json
 import os
 
 # Configure S3 settings and create an S3 client
-S3_BUCKET_NAME = 'test-audio-video'
+S3_BUCKET_NAME = 'voxai-test-audio-video'
 aws_credentials = json.load(open(os.path.expanduser("~/.aws/credentials.json")))
 s3_client = boto3.client('s3', aws_access_key_id=aws_credentials['aws_access_key_id'], aws_secret_access_key=aws_credentials['aws_secret_access_key'])
 
@@ -94,23 +94,38 @@ def preprocess_media():
     Returns:
         A response with preprocessed URLs set in the JSON data
     """
-    # Load the audio and/or video from AWS S3 depending on whether APIs are passed or not
     audio_url = request.json.get('audio_url')
     video_url = request.json.get('video_url')
+    
     if not audio_url and not video_url:
         return jsonify({"error": "No URL provided"}), 400
     if (audio_url and "s3://" not in audio_url) or (video_url and "s3://" not in video_url):
         return jsonify({"error": "Invalid URL provided"}), 400
+    
     data = {}
-    # (Temporary) Always set returned URLs to:
-        # s3://test-audio-video/file_example_MP3_700KB.mp3 (for audio) 
-        # s3://test-audio-video/file_example_MP4_480_1_5MG.mp4 (for video)
+    
+    def download_and_reupload_file(input_url, output_key):
+        """Download a file from input_url and re-upload it to a new S3 key."""
+        bucket_name = input_url.split('/')[2]
+        input_key = '/'.join(input_url.split('/')[3:])
+        
+        # Download the original file
+        file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
+        
+        # Upload to the new location
+        s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
+        
+        # Return the new S3 URL
+        return f's3://{S3_BUCKET_NAME}/{output_key}'
+    
     if audio_url:
-        s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=audio_url.split("/")[-1])
-        data['audio_url_preprocessed'] = 's3://test-audio-video/file_example_MP3_700KB.mp3'
+        audio_output_key = 'file_example_MP3_700KB.mp3'
+        data['audio_url_preprocessed'] = download_and_reupload_file(audio_url, audio_output_key)
+    
     if video_url:
-        s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=video_url.split("/")[-1])
-        data['video_url_preprocessed'] = 's3://test-audio-video/file_example_MP4_480_1_5MG.mp4'
+        video_output_key = 'file_example_MP4_480_1_5MG.mp4'
+        data['video_url_preprocessed'] = download_and_reupload_file(video_url, video_output_key)
+    
     return jsonify(data), 200
 
 @app.route('/test/sentiment', methods=['POST'])

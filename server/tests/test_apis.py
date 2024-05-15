@@ -70,10 +70,10 @@ def test_get_engagement(mock_post):
 @pytest.mark.parametrize(
     "url, sentiment, video, expected_status, expected_score",
     [
-        ("s3://test-audio-video/file_example_MP3_700KB.mp3", True, False, 200, 69),  
-        ("s3://test-audio-video/file_example_MP4_480_1_5MG.mp4", True, True, 200, 13), 
-        ("s3://test-audio-video/file_example_MP3_700KB.mp3", False, False, 200, 80), 
-        ("s3://test-audio-video/file_example_MP4_480_1_5MG.mp4", False, True, 200, 73), 
+        ("s3://voxai-test-audio-video/file_example_MP3_700KB.mp3", True, False, 200, 4),  
+        ("s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4", True, True, 200, 87), 
+        ("s3://voxai-test-audio-video/file_example_MP3_700KB.mp3", False, False, 200, 34), 
+        ("s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4", False, True, 200, 55), 
         ("invalid-url", True, False, 400, None),
         ("invalid-url", False, False, 400, None),
     ],
@@ -106,10 +106,10 @@ def test_sentiment_and_engagement(
 @pytest.mark.parametrize(
     "audio_url, video_url, expected_status, expected_preprocessed_audio, expected_preprocessed_video",
     [
-        ("s3://test-audio-video/file_example_MP3_700KB.mp3", None, 200, "s3://test-audio-video/file_example_MP3_700KB.mp3", None), 
-        (None, "s3://test-audio-video/file_example_MP4_480_1_5MG.mp4", 200, None, "s3://test-audio-video/file_example_MP4_480_1_5MG.mp4"), 
+        ("s3://voxai-test-audio-video/file_example_MP3_700KB.mp3", None, 200, "s3://voxai-test-audio-video/file_example_MP3_700KB.mp3", None), 
+        (None, "s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4", 200, None, "s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4"), 
         (None, None, 400, None, None), 
-        ("s3://test-audio-video/file_example_MP3_700KB.mp3", "s3://test-audio-video/file_example_MP4_480_1_5MG.mp4", 200, "s3://test-audio-video/file_example_MP3_700KB.mp3", "s3://test-audio-video/file_example_MP4_480_1_5MG.mp4"), 
+        ("s3://voxai-test-audio-video/file_example_MP3_700KB.mp3", "s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4", 200, "s3://voxai-test-audio-video/file_example_MP3_700KB.mp3", "s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4"), 
         ("invalid-url", None, 400, None, None),
         (None, "invalid-url", 400, None, None),
         ("invalid-url", "invalid-url", 400, None, None),
