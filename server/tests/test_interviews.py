@@ -11,7 +11,7 @@ def test_get_interviews(client):
     assert response.status_code == 200
     interviews = json.loads(response.data)
     assert isinstance(interviews, list)
-    assert len(interviews) == 30
+    assert len(interviews) == 90
 
     for interview in interviews:
         assert isinstance(interview, dict)

@@ -109,7 +109,7 @@ def preprocess_media():
     def download_and_reupload_file(input_url, output_key):
         """Download a file from input_url and re-upload it to a new S3 key."""
         bucket_name = input_url.split('/')[2]
-        input_key = '/'.join(input_url.split('/')[3:])
+        input_key = input_url.split('/')[-1]
         
         # Download the original file
         file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()

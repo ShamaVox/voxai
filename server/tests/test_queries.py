@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime, timedelta
-from .utils.synthetic_data import create_synthetic_data_for_fitting_percentage
+from .utils.synthetic_data import create_synthetic_data_for_fitting_percentage, create_synthetic_data_for_average_interview_pace
 from server.src.queries import fitting_job_applications_percentage
 from server.app import app as flask_app
 

@@ -33,3 +33,52 @@ ENABLE_SYNTHETIC_ENGAGEMENT = "pytest" not in sys.modules
 
 # Percentage of completed interviews to call APIs for during synthetic data generation
 SYNTHETIC_INTERVIEW_PROCESSING_PERCENTAGE = 10
+
+# A list of skills to use during data generation
+SKILL_LIST = set([
+    # Technical Skills
+    # Programming Languages
+    "Python", "Java", "C++", "JavaScript", "TypeScript", "C#", "PHP", "Go", "Swift", "Kotlin", "R", 
+    "Ruby", "Rust", "Scala", 
+
+    # Web Development
+    "HTML", "CSS", "React", "Angular", "Vue.js", "Node.js", "Django", "Flask", "ASP.NET", "Ruby on Rails", 
+
+    # Databases
+    "SQL", "NoSQL", "MySQL", "PostgreSQL", "MongoDB", "Cassandra", "Redis", "SQLite", 
+
+    # Cloud and DevOps
+    "AWS", "Azure", "Google Cloud Platform", "Docker", "Kubernetes", "Terraform", "Ansible", "Jenkins", 
+
+    # Data Science and Analytics
+    "Machine Learning", "Deep Learning", "Data Analysis", "Data Visualization", "Statistics", 
+    "Big Data", "Apache Spark", "Hadoop", "Tableau", "Power BI", 
+
+    # Other Technical Skills
+    "Git", "GitHub", "Linux", "Unix", "Agile", "Scrum", "Kanban", "Testing", "QA", "UI/UX Design", 
+
+    # General Workplace Skills
+    # Communication and Collaboration
+    "Communication", "Teamwork", "Collaboration", "Interpersonal skills", "Public speaking", 
+    "Presentation skills", "Active listening", "Written communication", "Nonverbal communication",
+
+    # Problem-Solving and Critical Thinking
+    "Problem-solving", "Critical thinking", "Analytical thinking", "Decision-making", "Troubleshooting",
+    "Logical reasoning", "Creativity", "Innovation", 
+
+    # Organizational and Time Management
+    "Time management", "Organization", "Planning", "Prioritization", "Goal setting", "Scheduling", 
+    "Multitasking", 
+
+    # Leadership and Management
+    "Leadership", "Management", "Delegation", "Motivation", "Coaching", "Mentoring", "Performance management",
+    "Conflict resolution", 
+
+    # Adaptability and Learning
+    "Adaptability", "Flexibility", "Learning agility", "Continuous learning", "Problem-solving", 
+    "Willingness to learn",
+
+    # Other Workplace Skills
+    "Customer service", "Negotiation", "Research", "Analysis", "Project management", "Business acumen", 
+    "Emotional intelligence", "Stress management", "Work ethic"
+])

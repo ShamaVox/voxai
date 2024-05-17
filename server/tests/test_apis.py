@@ -38,34 +38,22 @@ def test_preprocess(mock_post):
 def test_get_sentiment(mock_post):
     """Test the get_sentiment function."""
 
-    url = "s3://test-bucket/audio.mp3"
-
-    mock_response = Mock(ok=True)
-    mock_response.status_code = 200
-    mock_response.json = lambda: {'sentiment_score': 80}
-    mock_post.return_value = mock_response
+    url = "s3://voxai-test-audio-video/file_example_MP3_700KB.mp3"
 
     sentiment = get_sentiment(url)
 
-    mock_post.assert_called_once()
-    assert sentiment == 80
+    assert sentiment == 4
 
 
 @patch('requests.post')
 def test_get_engagement(mock_post):
     """Test the get_engagement function."""
 
-    url = "s3://test-bucket/video.mp4"
-
-    mock_response = Mock(ok=True)
-    mock_response.status_code = 200
-    mock_response.json = lambda: {'engagement_score': 60}
-    mock_post.return_value = mock_response
+    url = "s3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4"
 
     engagement = get_engagement(url, video=True)
 
-    mock_post.assert_called_once()
-    assert engagement == 60
+    assert engagement == 55
 
 @pytest.mark.parametrize(
     "url, sentiment, video, expected_status, expected_score",
