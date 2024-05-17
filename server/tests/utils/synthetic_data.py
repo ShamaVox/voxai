@@ -6,17 +6,17 @@ from datetime import datetime, timedelta
 
 # Functions in this file are only used during unit testing and not during regular execution or integration testing.
 
-def create_synthetic_data(num):
+def create_synthetic_data(num, batches=1):
     with flask_app.app_context():
-        generate_synthetic_data(10)
+        generate_synthetic_data(num, batches)
         db.session.commit()
 
-def create_test_account_and_set_token(client, email, token):
+def create_test_account_and_set_token(client, email, token, num, batches):
     with flask_app.app_context():
-        create_synthetic_data(10)
+        create_synthetic_data(num, batches)
         account = generate_account_data(1, specified_email=email)[0]
         db.session.commit()
-        generate_synthetic_data_on_account_creation(account.account_id)
+        generate_synthetic_data_on_account_creation(account.account_id, num, batches)
         sessions[token] = account.account_id
     client.set_cookie('authToken', token)
 
@@ -25,17 +25,10 @@ def create_synthetic_data_for_fitting_percentage(match_threshold, days, target_p
     total_applications = 100  
     fitting_applications = round(total_applications * target_percentage / 100)
     with flask_app.app_context():
-        skills = generate_skill_data()
         accounts = generate_account_data(10, None, "Hiring Manager")
         manager = accounts[0]
-        roles = generate_role_data(total_applications, accounts, skills, direct_manager=manager)
-
-        # Generate candidates
-        candidates = generate_candidate_data(total_applications)
-
-        # Generate applications with controlled match scores
-        generate_application_data(total_applications, roles, candidates, match_threshold, fitting_applications)
-
+        db.session.flush()
+        generate_synthetic_data(100, 1, False, True, True, True, True, False, False, manager.account_id, match_threshold, fitting_applications)
         # Create historical data for percentage change calculation
         generate_metric_history(manager.account_id, days, target_percentage, target_change)
         db.session.commit()

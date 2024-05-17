@@ -148,7 +148,6 @@ def generate_application_data(num_records, roles, candidates, match_threshold=No
     Returns:
         list: A list of generated Application objects.
     """
-
     applications = []
     pairs = set()
     for i in range(num_records):
@@ -358,25 +357,88 @@ def print_table_entry(table_entry, Model):
         elif table_entry.__dict__[column] is None:
             print(f"{column} is None")
 
-def generate_synthetic_data(num):
-    """Creates synthetic data to add to the database.
+def generate_synthetic_data(
+    num,
+    batches=1,
+    generate_accounts=True,
+    generate_skills=True,
+    generate_roles=True,
+    generate_candidates=True,
+    generate_applications=True,
+    generate_interviews=True,
+    generate_metric_history=True,
+    account_id=None,
+    match_threshold=None,
+    fitting_applications=None
+):
+    """Creates synthetic data to add to the database with customization options.
     
     Args:
-        num (int): The number of entries in each table to create.""" 
+        num (int): The number of entries in each table to create.
+        generate_accounts (bool): Whether to generate accounts or query existing ones.
+        generate_skills (bool): Whether to generate skills or query existing ones.
+        generate_roles (bool): Whether to generate roles or query existing ones.
+        generate_candidates (bool): Whether to generate candidates or query existing ones.
+        generate_applications (bool): Whether to generate applications or query existing ones.
+        generate_interviews (bool): Whether to generate interviews or query existing ones.
+    """
+    
+    accounts = generate_account_data(num) if generate_accounts else db.session.query(Account).filter(Account.account_type.in_(["Recruiter", "Hiring Manager"])).order_by(func.random()).limit(15).all()
+    skills = generate_skill_data() if generate_skills else Skill.query.all()
+    candidates = generate_candidate_data(num) if generate_candidates else Candidate.query.all()
 
-    accounts = generate_account_data(num)
-    skills = generate_skill_data()
-    roles = generate_role_data(num, accounts, skills)
-    candidates = generate_candidate_data(num)
-    applications = generate_application_data(num, roles, candidates)
-    interviews = generate_interview_data(num, applications, accounts, candidates, skills)
+    new_account = Account.query.filter_by(account_id=account_id).first() if account_id else None
+
+    roles = []
+    applications = []
+    interviews = []
+    if batches > 1:
+        # Function does not support generating batches of only some tables
+        generate_roles = True 
+        generate_applications = True 
+        generate_interviews = True 
+
+    def generate_batch(account_id, num, roles, applications, interviews, match_threshold, fitting_applications):
+        """Helper function to create one batch of synthetic data for a new account."""
+        
+        new_roles = generate_role_data(num, accounts, skills, new_account) if generate_roles else Role.query.all()
+        new_applications = generate_application_data(num, new_roles, candidates, match_threshold, fitting_applications) if generate_applications else Application.query.all()
+        interviews += generate_interview_data(num, new_applications, accounts, candidates, skills, new_account) if generate_interviews else Interview.query.all()
+        if generate_roles or not roles:
+            roles += new_roles 
+        if generate_applications or not applications:
+            applications += new_applications
+        
+    if generate_metric_history:
+        current_date = datetime.now().date()
+        days_ago = batches * 6
+    for batch_num in range(batches):
+        generate_batch(account_id, num, roles, applications, interviews, match_threshold, fitting_applications)
+        if generate_metric_history:
+            if batch_num < batches - 1:
+                # Compute and update MetricHistory after each batch
+                fitting_job_applications_percentage(account_id)
+                change_metric_history_day(account_id, "fitting_job_applications_percentage", current_date - timedelta(days=days_ago))
+                days_ago -= 6
     if DEBUG_SYNTHETIC_DATA:
-        print_table_entry(accounts[-1], Account)
-        print_table_entry(skills[-1], Skill)
-        print_table_entry(roles[-1], Role)
-        print_table_entry(candidates[-1], Candidate)
-        print_table_entry(applications[-1], Application)
-        print_table_entry(interviews[-1], Interview)
+        print_table_entries(accounts, skills, roles, candidates, applications, interviews)
+    db.session.commit()
+    
+
+def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_ENTRIES, batches=SYNTHETIC_DATA_BATCHES):
+    generate_synthetic_data(
+        num,
+        batches,
+        generate_accounts=False,
+        generate_skills=False,
+        generate_roles=True,
+        generate_candidates=False,
+        generate_applications=True,
+        generate_interviews=True,
+        generate_metric_history=True,
+        account_id=account_id
+    )
+
 
 def generate_metric_history(account_id, days, target_percentage, target_change):
     """Generates metric history for the 'fitting_job_applications_percentage' metric for a given account.
@@ -440,45 +502,6 @@ def change_metric_history_day(account_id, metric_name, metric_day):
     ).first()
     if metric_history_entry:
         metric_history_entry.metric_day = metric_day
-
-def generate_synthetic_data_on_account_creation(account_id, num=SYNTHETIC_DATA_ENTRIES, batches=SYNTHETIC_DATA_BATCHES):
-    """Creates synthetic data for a new account. 
-
-    Args:
-        account_id (int): The account id of the new account.
-        num (int): The number of entries to create in each table per batch.
-        batches (int): The number of batches to create (so that MetricHistory has data)."""
-    
-    # Get existing data before generating batches
-    skills = Skill.query.all()
-    accounts = db.session.query(Account).filter(Account.account_type.in_(["Recruiter", "Hiring Manager"])).order_by(func.random()).limit(15).all()
-    candidates = Candidate.query.all()
-    new_account = Account.query.filter_by(account_id=account_id).first()
-    new_roles = []
-    new_applications = []
-    new_interviews = []
-
-    def generate_batch(account_id, num):
-        """Helper function to create one batch of synthetic data for a new account."""
-
-        def generate_rows(generated_data, row_list):
-            db.session.add_all(generated_data)
-            row_list += generated_data
-        
-        # Create Roles under the new account
-        generate_rows(generate_role_data(num, accounts, skills, new_account), new_roles)
-        generate_rows(generate_application_data(num, new_roles, candidates), new_applications)
-        generate_rows(generate_interview_data(num, new_applications, accounts, candidates, skills, new_account), new_interviews)
-        
-    current_date = datetime.now().date()
-    days_ago = batches * 6
-    for batch_num in range(batches):
-        generate_batch(account_id, num)
-        if batch_num < batches - 1:
-            # Compute and update MetricHistory after each batch
-            fitting_job_applications_percentage(account_id)
-            change_metric_history_day(account_id, "fitting_job_applications_percentage", current_date - timedelta(days=days_ago))
-            days_ago -= 6
 
 
 def fake_interview(interview_num):
