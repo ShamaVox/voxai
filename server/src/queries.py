@@ -81,28 +81,28 @@ def average_interview_pace(current_user_id, days=INTERVIEW_PACE_DAYS_TO_AVERAGE,
         The average interview pace in days and the percentage change.
     """
     # TODO: Extend to check for a given Candidate, and for a given Role 
-    current_date = datetime.now().date()
+    current_date = datetime.now()
     start_date = current_date - timedelta(days=days)
     percentage_start_date = current_date - timedelta(days=percentage_days)
 
     # Get all interviews in the last N days where the account is an interviewer
-    interviews = Interview.query.join(Interview.interviewer_speaking_metrics).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).order_by(Interview.interview_time).all()
+    interviews = Interview.query.join(Interview.interviewer_speaking_metrics).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).filter(Interview.interview_time < current_date - timedelta(hours=3)).order_by(Interview.interview_time).all()
 
     if not interviews:
         return 0, 0
 
     total_time_diff = timedelta()
-    prev_interview_time = None
 
     for interview in interviews:
+        prev_interview_time = None
         if prev_interview_time is None:
             # For the first interview, use the application time as the previous date/time
             application = Application.query.filter_by(application_id=interview.application_id).first()
             if application:
                 prev_interview_time = application.application_time
         else:
-            total_time_diff += interview.interview_time - prev_interview_time
             prev_interview_time = interview.interview_time
+        total_time_diff += interview.interview_time - prev_interview_time
 
     average_pace = round(total_time_diff.days / len(interviews))
 

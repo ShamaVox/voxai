@@ -28,41 +28,23 @@ def create_synthetic_data_for_fitting_percentage(match_threshold, days, target_p
         accounts = generate_account_data(10, None, "Hiring Manager")
         manager = accounts[0]
         db.session.flush()
-        generate_synthetic_data(100, 1, False, True, True, True, True, False, False, manager.account_id, match_threshold, fitting_applications)
+        generate_synthetic_data(num=100, batches=1, generate_accounts=False, generate_skills=True, generate_roles=True, generate_candidates=True, generate_applications=True, generate_interviews=False, generate_metric_history=False, account_id=manager.account_id, match_threshold=match_threshold, fitting_applications=fitting_applications)
         # Create historical data for percentage change calculation
         generate_metric_history(manager.account_id, days, target_percentage, target_change)
         db.session.commit()
 
         return manager.account_id
 
-
-def create_synthetic_data_for_average_interview_pace(current_user_id, days, percentage_days, expected_average_pace, expected_percentage_change):
+def create_synthetic_data_for_average_interview_pace(days, percentage_days, expected_average_pace, expected_percentage_change):
     # Create synthetic data for the test
-    account = Account(account_id=current_user_id)
-    db.session.add(account)
+    with flask_app.app_context():
+        # TODO: use_first_account_id argument to gen_synthetic_data
+        accounts = generate_account_data(10, None, "Hiring Manager")
+        db.session.flush()
+        current_user_id = accounts[0].account_id
 
-    current_date = datetime.now().date()
-    start_date = current_date - timedelta(days=days)
-    percentage_start_date = current_date - timedelta(days=percentage_days)
+        generate_synthetic_data(num=100, batches=1, generate_accounts=False, generate_skills=True, generate_roles=True, generate_candidates=True, generate_applications=True, generate_interviews=True, generate_metric_history=True, account_id=current_user_id, days=days, percentage_days=percentage_days, pace=expected_average_pace, old_pace=int(expected_average_pace / (1 + expected_percentage_change/100)))
 
-    # Create interviews for the last N days
-    for i in range(days):
-        interview_time = start_date + timedelta(days=i)
-        application = Application(application_time=interview_time - timedelta(days=1))
-        db.session.add(application)
-        interview = Interview(applications=application, interview_time=interview_time)
-        interview.interviewer_speaking_metrics.append(account)
-        db.session.add(interview)
-
-    # Create interviews for the last M days excluding the last N days
-    for i in range(percentage_days - days):
-        interview_time = percentage_start_date + timedelta(days=i)
-        application = Application(application_time=interview_time - timedelta(days=1))
-        db.session.add(application)
-        interview = Interview(applications=application, interview_time=interview_time)
-        interview.interviewer_speaking_metrics.append(account)
-        db.session.add(interview)
-
-    db.session.commit()
+        db.session.commit()
 
     return current_user_id

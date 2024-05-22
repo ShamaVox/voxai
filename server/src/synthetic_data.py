@@ -32,7 +32,7 @@ def generate_account_data(num, specified_email=None, specified_account_type=None
                 email = specified_email
             else:
                 email = data_generator.email()
-                email = email.split("@")[0] + "_" + data_generator.name() + "_" + data_generator.company() + email.split("@")[1]
+                email = email.split("@")[0] + "_" + data_generator.name() + "_" + data_generator.company() + "@" + email.split("@")[1]
             # Ensure unique emails
             if email not in emails:
                 emails.add(email)
@@ -137,19 +137,29 @@ def generate_candidate_data(num_records):
     db.session.add_all(candidates)
     return candidates
 
-def generate_application_data(num_records, roles, candidates, match_threshold=None, fitting_applications=None):
+def generate_application_data(num_records, roles, candidates, match_threshold=None, fitting_applications=None, percentage_days=None, new_pace_start_date=None, pace=None, old_pace=None):
     """Generates synthetic data for the Application model.
 
     Args:
         num_records (int): The number of application records to generate.
         roles (list): A list of Role objects to be used as the roles for the applications.
         candidates (list): A list of Account objects representing the candidates who submitted the applications.
+        match_threshold (int, optional): Threshold used to generate applications that intentionally do or do not fit the criteria.
+        fitting_applications (int, optional): Number of applications that should have a match above match_threshold.
+        percentage_days (int, optional): Number of days to generate applications over when pacing applications.
+        new_pace_start_date (datetime, optional): The start date for pacing applications at pace instead of old_pace.
+        pace (int, optional): The number of days between applications in the new pacing period.
+        old_pace (int, optional): The number of days between applications in the old pacing period.
 
     Returns:
         list: A list of generated Application objects.
     """
     applications = []
     pairs = set()
+    if percentage_days is not None: 
+        current_date = datetime.now()
+        start_date = current_date - timedelta(days=percentage_days)
+        num_records = percentage_days
     for i in range(num_records):
         role = data_generator.random_element(roles)
         candidate = data_generator.random_element(candidates)
@@ -157,7 +167,13 @@ def generate_application_data(num_records, roles, candidates, match_threshold=No
             candidate_match = match_threshold + 1 if i < fitting_applications else match_threshold - 1
         else:
             candidate_match = data_generator.random_int(min=0, max=100)
-        application_time = data_generator.date_time_between(start_date='-1y', end_date='now')
+        if percentage_days is not None:
+            application_time = start_date + timedelta(days=i-1)
+            if (application_time < new_pace_start_date or i % pace != 0) and (application_time < start_date or application_time >= new_pace_start_date or i % old_pace != 0):
+                # Skip generating applications that don't have the desired spacing
+                continue
+        else:
+            application_time = data_generator.date_time_between(start_date='-1y', end_date='now')
 
         for _ in range(100):
             # Check for duplicates
@@ -181,7 +197,7 @@ def generate_application_data(num_records, roles, candidates, match_threshold=No
     db.session.add_all(applications)
     return applications
 
-def generate_interview_data(num_records, applications, interviewers, candidates, skills, main_interviewer=None):
+def generate_interview_data(num_records, applications, interviewers, candidates, skills, main_interviewer=None, pace=None, old_pace=None, new_pace_start_date=None):
     """Generates synthetic data for the Interview model.
 
     Args:
@@ -190,6 +206,10 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
         interviewers (list): A list of Account objects representing the interviewers.
         candidates (list): A list of Candidate objects representing the candidates being interviewed.
         skills (list): A list of Skill objects to be assigned skill scores for the interviews.
+        main_interviewer (Account, optional): The main interviewer for all interviews. Selects a random account if not provided.
+        pace (int, optional): When pacing interviews, the number of days between interviews or between application and interview in the new pacing period.
+        old_pace (int, optional): When pacing interviews, the number of days between interviews or between application and interview in the old pacing period.
+        new_pace_start_date (datetime, optional): The start date for applying the new pacing of interviews.
 
     Returns:
         list: A list of generated Interview objects.
@@ -198,26 +218,35 @@ def generate_interview_data(num_records, applications, interviewers, candidates,
     statuses = [1, 2, 3, 4, 5]
 
     interviews = []
+    if pace:
+        num_records = len(applications)
     for n in range(num_records):
-        interview_time = data_generator.date_time_between(start_date='-1y', end_date='+2m')
         stage = data_generator.random_element(stages)
         status = data_generator.random_element(statuses)
         duration = data_generator.random_int(min=20*60, max=60*60)
         speaking_time = data_generator.random_int(min=60, max=300)
         wpm = data_generator.random_int(min=100, max=200)
-        if interview_time < datetime.now() and n % int(100 / SYNTHETIC_INTERVIEW_PROCESSING_PERCENTAGE) == 0:
-            audio_url = 's3://voxai-test-audio-video/file_example_MP3_700KB.mp3'
-            video_url = 's3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4'
-        else:
-            audio_url = data_generator.url()
-            video_url = data_generator.url()
         score = data_generator.random_int(min=0, max=100)
         engagement = data_generator.random_int(min=0, max=100)
         sentiment = data_generator.random_int(min=0, max=100)
         keywords = data_generator.words(nb=5)
         under_review = data_generator.boolean()
         candidate = data_generator.random_element(candidates)
-        application = data_generator.random_element(applications)
+        if pace is not None:
+            application = applications[n]
+            if application.application_time >= new_pace_start_date: 
+                interview_time = application.application_time + timedelta(days=pace)
+            else:
+                interview_time = application.application_time + timedelta(days=old_pace)
+        else:
+            application = data_generator.random_element(applications)
+            interview_time = data_generator.date_time_between(start_date='-1y', end_date='+2m')
+        if interview_time < datetime.now() and n % int(100 / SYNTHETIC_INTERVIEW_PROCESSING_PERCENTAGE) == 0:
+            audio_url = 's3://voxai-test-audio-video/file_example_MP3_700KB.mp3'
+            video_url = 's3://voxai-test-audio-video/file_example_MP4_480_1_5MG.mp4'
+        else:
+            audio_url = data_generator.url()
+            video_url = data_generator.url()
 
         interview = Interview(
             interview_time=interview_time,
@@ -369,18 +398,35 @@ def generate_synthetic_data(
     generate_metric_history=True,
     account_id=None,
     match_threshold=None,
-    fitting_applications=None
+    fitting_applications=None,
+    days=None,
+    percentage_days=None,
+    pace=None,
+    old_pace=None
 ):
-    """Creates synthetic data to add to the database with customization options.
+    """
+    Creates synthetic data to add to the database with customization options.
     
     Args:
-        num (int): The number of entries in each table to create.
+        num (int): The number of entries in each table to create per batch.
+        batches (int): The number of batches to create.
         generate_accounts (bool): Whether to generate accounts or query existing ones.
         generate_skills (bool): Whether to generate skills or query existing ones.
         generate_roles (bool): Whether to generate roles or query existing ones.
         generate_candidates (bool): Whether to generate candidates or query existing ones.
         generate_applications (bool): Whether to generate applications or query existing ones.
         generate_interviews (bool): Whether to generate interviews or query existing ones.
+        generate_metric_history (bool): Whether to compute and update metric history after each batch.
+        account_id (int, optional): The account ID for which to generate data. If provided, the new data will be associated with this account.
+        match_threshold (float, optional): The match threshold for generating application data.
+        fitting_applications (int, optional): The number of fitting applications to generate.
+        days (int, optional): When pacing interviews, the number of days in the new pacing period, extending this number of days back from the current date.
+        percentage_days (int, optional): When pacing interviews, the number of days in the old pacing period, extending this number of days back from the current date (excluding the new pacing period).
+        pace (int, optional): When pacing interviews, the number of days between interviews or between application and interview in the new pacing period.
+        old_pace (int, optional): When pacing interviews, the number of days between interviews or between application and interview in the old pacing period.
+
+    Note:
+        When batches > 1, roles, applications, and interviews will always be generated (generate_roles, generate_applications, generate_interviews will be set to True).
     """
     
     accounts = generate_account_data(num) if generate_accounts else db.session.query(Account).filter(Account.account_type.in_(["Recruiter", "Hiring Manager"])).order_by(func.random()).limit(15).all()
@@ -398,12 +444,18 @@ def generate_synthetic_data(
         generate_applications = True 
         generate_interviews = True 
 
-    def generate_batch(account_id, num, roles, applications, interviews, match_threshold, fitting_applications):
+    if days is not None:
+        new_pace_start_date = datetime.now() - timedelta(days=pace + days)
+    else:
+        new_pace_start_date = None
+
+    def generate_batch(new_account, num, roles, applications, interviews, match_threshold, fitting_applications):
         """Helper function to create one batch of synthetic data for a new account."""
         
         new_roles = generate_role_data(num, accounts, skills, new_account) if generate_roles else Role.query.all()
-        new_applications = generate_application_data(num, new_roles, candidates, match_threshold, fitting_applications) if generate_applications else Application.query.all()
-        interviews += generate_interview_data(num, new_applications, accounts, candidates, skills, new_account) if generate_interviews else Interview.query.all()
+        new_applications = generate_application_data(num, new_roles, candidates, match_threshold, fitting_applications, percentage_days=percentage_days, new_pace_start_date=new_pace_start_date, pace=pace, old_pace=old_pace) if generate_applications else Application.query.all()
+        
+        interviews += generate_interview_data(num, new_applications, accounts, candidates, skills, new_account, pace, old_pace, new_pace_start_date) if generate_interviews else Interview.query.all()
         if generate_roles or not roles:
             roles += new_roles 
         if generate_applications or not applications:
@@ -413,7 +465,7 @@ def generate_synthetic_data(
         current_date = datetime.now().date()
         days_ago = batches * 6
     for batch_num in range(batches):
-        generate_batch(account_id, num, roles, applications, interviews, match_threshold, fitting_applications)
+        generate_batch(new_account, num, roles, applications, interviews, match_threshold, fitting_applications)
         if generate_metric_history:
             if batch_num < batches - 1:
                 # Compute and update MetricHistory after each batch
