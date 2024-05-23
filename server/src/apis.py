@@ -162,3 +162,38 @@ def calculate_engagement():
         return jsonify({"error": "Invalid URL"}), 400
     # (Temporary) Return a random number based on hashing the URL (in a different way than sentiment)
     return jsonify({"engagement_score": int(hashlib.md5(url.encode()).hexdigest(), 16) % 100}), 200
+
+@app.route('/api/join_meeting', methods=['POST'])
+def join_meeting():
+    """Joins and begins recording a meeting on Zoom, Google Meet, Microsoft Teams, or Slack with the bot account."""
+    url = request.json.get('url')
+    try:
+        with open(os.path.expanduser("~/.aws/credentials.json")) as f:
+            credentials = json.load(f)
+        recall_api_key = credentials["recall_api_key"]
+    except (FileNotFoundError, KeyError):
+        return jsonify({"error": "Missing or incorrect Recall API credentials"}), 500
+    
+    headers = {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'Authorization': f'Token {recall_api_key}'
+    }
+    
+    data = {
+        'meeting_url': url,
+        'bot_name': 'VoxAI Bot',
+        # 'real_time_transcription': {
+        # },
+        'automatic_leave': {
+            'everyone_left_timeout': 150
+        },
+        'recording_mode': 'speaker_view'
+    }
+    
+    response = requests.post('https://us-west-2.recall.ai/api/v1/bot/', headers=headers, json=data)
+    
+    if response.status_code == 201:
+        return jsonify(response.json()), 201
+    else:
+        return jsonify(response.json()), 400
