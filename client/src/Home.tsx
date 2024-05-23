@@ -6,6 +6,7 @@ import {
   FlatList,
   GestureResponderEvent,
   ListRenderItem,
+  TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
@@ -26,6 +27,7 @@ const Home: FC = () => {
   const { isLoggedIn, handleLogout } = useContext(AuthContext);
   const [interviews, setInterviews] = useState([]);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
+  const [temporaryUrl, setTemporaryUrl] = useState(""); // Placeholder to test bot from logged-out homepage
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -82,6 +84,12 @@ const Home: FC = () => {
       </View>
     </View>
   );
+
+  const temporaryBotJoinMeeting = () => {
+    axios.post(SERVER_ENDPOINT("join_meeting"), {
+      url: temporaryUrl,
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -162,6 +170,13 @@ const Home: FC = () => {
             style={styles.button}
           >
             <Text>Login</Text>
+          </Pressable>
+          <TextInput
+            style={styles.grayBackground}
+            onChangeText={setTemporaryUrl}
+          />
+          <Pressable onPress={temporaryBotJoinMeeting}>
+            <Text>Join meeting with bot at this URL</Text>
           </Pressable>
         </>
       )}
