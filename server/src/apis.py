@@ -1,5 +1,7 @@
 from .app import app as app
+from .constants import AWS_CREDENTIAL_FILEPATH
 from .database import Interview
+from .utils import get_recall_headers
 from flask import request, jsonify
 import requests
 import hashlib
@@ -10,7 +12,7 @@ import os
 
 # Configure S3 settings and create an S3 client
 S3_BUCKET_NAME = 'voxai-test-audio-video'
-aws_credentials = json.load(open(os.path.expanduser("~/.aws/credentials.json")))
+aws_credentials = json.load(open(AWS_CREDENTIAL_FILEPATH))
 s3_client = boto3.client('s3', aws_access_key_id=aws_credentials['aws_access_key_id'], aws_secret_access_key=aws_credentials['aws_secret_access_key'])
 
 def preprocess(interview, audio=False, video=False):
@@ -167,18 +169,9 @@ def calculate_engagement():
 def join_meeting():
     """Joins and begins recording a meeting on Zoom, Google Meet, Microsoft Teams, or Slack with the bot account."""
     url = request.json.get('url')
-    try:
-        with open(os.path.expanduser("~/.aws/credentials.json")) as f:
-            credentials = json.load(f)
-        recall_api_key = credentials["recall_api_key"]
-    except (FileNotFoundError, KeyError):
-        return jsonify({"error": "Missing or incorrect Recall API credentials"}), 500
-    
-    headers = {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'Authorization': f'Token {recall_api_key}'
-    }
+    headers = get_recall_headers()
+    if "error" in headers: 
+        return jsonify({"error": headers["error"]}), 500
     
     data = {
         'meeting_url': url,
@@ -193,7 +186,73 @@ def join_meeting():
     
     response = requests.post('https://us-west-2.recall.ai/api/v1/bot/', headers=headers, json=data)
     
+    # TODO: only pass full response to client when some debug flag is set 
     if response.status_code == 201:
         return jsonify(response.json()), 201
     else:
         return jsonify(response.json()), 400
+
+@app.route('/api/generate_transcript', methods=['POST'])
+def generate_transcript():
+    """Generates a transcript from a meeting recorded by the bot account."""
+    bot_id = request.json.get('id')
+
+    headers = get_recall_headers()
+    if "error" in headers: 
+        return jsonify({"error": headers["error"]}), 500
+
+    data = {
+        'assemblyai_async_transcription': {
+            # 'language': 'US English',
+            'language_code': 'en_us',
+            'speaker_labels': True, 
+            'disfluencies': True, # keep filler words
+            'sentiment_analysis': True,
+            'summarization': True,
+            'entity_detection': True,
+            # 'summary_model': 'informative',
+            # 'summary_type': 'bullets',
+            # 'word_boost': ['word 1', 'word 2'], # improve accuracy by specifying words likely to be in the transcript
+            # 'boost_param': 'default', # low, default, or high
+        }
+    }
+
+    response = requests.post('https://us-west-2.recall.ai/api/v2beta/bot/' + bot_id + '/analyze', headers=headers, json=data) 
+
+    # TODO: only pass full response to client when some debug flag is set 
+    if response.status_code == 201:
+        return jsonify(response.json()), 201
+    else:
+        return jsonify(response.json()), 400
+    """
+    Other possible parameters to the transcription API:
+
+    auto_highlights
+    boolean
+    Docs: https://www.assemblyai.com/docs/audio-intelligence#detect-important-phrases-and-words
+
+    custom_spelling
+    array of objects
+    Docs: https://www.assemblyai.com/docs/core-transcription#custom-spelling
+
+    language_detection
+    boolean
+    Docs: https://www.assemblyai.com/docs/core-transcription#automatic-language-detection
+
+    redact_pii_policies
+    array of strings
+    Docs: https://www.assemblyai.com/docs/audio-intelligence#pii-redaction
+
+    content_safety
+    boolean
+    Docs: https://www.assemblyai.com/docs/audio-intelligence#content-moderation
+
+    iab_categories
+    boolean
+    Docs: https://www.assemblyai.com/docs/audio-intelligence#topic-detection-iab-classification
+
+    auto_chapters
+    boolean
+    Docs: https://www.assemblyai.com/docs/audio-intelligence#auto-chapters
+
+    """

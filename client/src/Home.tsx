@@ -91,6 +91,12 @@ const Home: FC = () => {
     });
   };
 
+  const temporaryGenerateTranscript = () => {
+    axios.post(SERVER_ENDPOINT("generate_transcript"), {
+      id: temporaryUrl,
+    });
+  }
+
   return (
     <View style={styles.container}>
       {isLoggedIn ? (
@@ -177,6 +183,9 @@ const Home: FC = () => {
           />
           <Pressable onPress={temporaryBotJoinMeeting}>
             <Text>Join meeting with bot at this URL</Text>
+          </Pressable>
+          <Pressable onPress={temporaryGenerateTranscript}>
+            <Text>Generate transcript from bot ID</Text>
           </Pressable>
         </>
       )}

@@ -1,5 +1,5 @@
 import sys 
-from os import environ
+import os
 
 # Score required for an application to count for "fitting job application" metric
 MATCH_THRESHOLD = 80
@@ -14,16 +14,16 @@ INTERVIEW_PACE_DAYS_TO_AVERAGE = 7
 INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE = 30
 
 # Number of entries for each table when creating an account
-SYNTHETIC_DATA_ENTRIES = 3 if 'TEST' in environ else 10
+SYNTHETIC_DATA_ENTRIES = 3 if 'TEST' in os.environ else 10
 
 # Number of batches during account creation
-SYNTHETIC_DATA_BATCHES = 2 if 'TEST' in environ else 10 
+SYNTHETIC_DATA_BATCHES = 2 if 'TEST' in os.environ else 10 
 
 # Print debug lines for synthetic data
 DEBUG_SYNTHETIC_DATA = False 
 
 # Whether to preprocess audio and video during synthetic data generation
-ENABLE_SYNTHETIC_PREPROCESSING = "pytest" not in sys.modules and 'TEST' not in environ
+ENABLE_SYNTHETIC_PREPROCESSING = "pytest" not in sys.modules and 'TEST' not in os.environ
 
 # Whether to get sentiment for completed interviews during synthetic data generation
 ENABLE_SYNTHETIC_SENTIMENT = "pytest" not in sys.modules 
@@ -82,3 +82,7 @@ SKILL_LIST = set([
     "Customer service", "Negotiation", "Research", "Analysis", "Project management", "Business acumen", 
     "Emotional intelligence", "Stress management", "Work ethic"
 ])
+
+# Filepaths for third-party API credentials
+AWS_CREDENTIAL_FILEPATH = os.path.expanduser("~/.aws/credentials.json")
+RECALL_CREDENTIAL_FILEPATH = os.path.expanduser("~/.aws/credentials.json") # TODO: change
