@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
+import { InterviewData } from "./Interview";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
 import { HOME_LOGGING } from "./config/Logging";
@@ -61,27 +62,39 @@ const Home: FC = () => {
   };
 
   /**
+   * Handles a click on an interview item by navigaitng to the interview page.
+   * @param interview The interview data for the clicked item, sent from the server.
+   */
+  const handleInterviewClick = async (interview: InterviewData) => {
+    await navigation.navigate("Interview", { interview });
+  };
+
+  /**
    * Renders a single interview item within the interview list.
    * @param item The interview data object to be rendered.
    */
   const renderInterviewItem: ListRenderItem<any> = ({ item }) => (
     <View testID="interview-table-entry" style={styles.interviewItem}>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewDate}>{item.date}</Text>
-        <Text style={styles.interviewTime}>{item.time}</Text>
-      </View>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewCandidateName}>{item.candidateName}</Text>
-        <Text style={styles.interviewCurrentCompany}>
-          {item.currentCompany}
-        </Text>
-      </View>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewInterviewers}>{item.interviewers}</Text>
-      </View>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewRole}>{item.role}</Text>
-      </View>
+      <Pressable onPress={async () => handleInterviewClick(item)}>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewDate}>{item.date}</Text>
+          <Text style={styles.interviewTime}>{item.time}</Text>
+        </View>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewCandidateName}>
+            {item.candidateName}
+          </Text>
+          <Text style={styles.interviewCurrentCompany}>
+            {item.currentCompany}
+          </Text>
+        </View>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewInterviewers}>{item.interviewers}</Text>
+        </View>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewRole}>{item.role}</Text>
+        </View>
+      </Pressable>
     </View>
   );
 
@@ -95,7 +108,7 @@ const Home: FC = () => {
     axios.post(SERVER_ENDPOINT("generate_transcript"), {
       id: temporaryUrl,
     });
-  }
+  };
 
   return (
     <View style={styles.container}>

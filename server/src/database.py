@@ -123,6 +123,7 @@ class Interview(db.Model):
     video_url = db.Column(db.String)
     audio_url_preprocessed = db.Column(db.String)
     video_url_preprocessed = db.Column(db.String)
+    recall_id = db.Column(db.String(36))
     score = db.Column(db.Integer)
     engagement = db.Column(db.Integer)
     sentiment = db.Column(db.Integer)

@@ -2,6 +2,7 @@ from .app import app as app
 from .constants import AWS_CREDENTIAL_FILEPATH
 from .database import Interview
 from .utils import get_recall_headers
+# from .routes import handle_auth_token, valid_token_response
 from flask import request, jsonify
 import requests
 import hashlib
@@ -256,3 +257,23 @@ def generate_transcript():
     Docs: https://www.assemblyai.com/docs/audio-intelligence#auto-chapters
 
     """
+
+@app.route('/api/analyze_interview', methods=['POST'])
+def analyze_interview():
+    """Gets the result of the interview analysis for a given interview."""
+    # TODO: check auth here (can't currently due to circular import)
+    # current_user_id = handle_auth_token(sessions)
+    # if current_user_id is None:
+    #     return valid_token_response(False) 
+
+    headers = get_recall_headers()
+    if "error" in headers: 
+        return jsonify({"error": headers["error"]}), 500
+
+    bot_id = request.json.get('id')
+
+    transcript_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/transcript', headers=headers)
+    intelligence_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/intelligence', headers=headers)
+
+    return jsonify({"transcript_response": transcript_response.json(), "intelligence_response": intelligence_response.json()}), 200
+

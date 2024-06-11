@@ -194,6 +194,7 @@ def get_account_interviews(account_id, interviewer=True):
             "currentCompany": interview.candidate.current_company,
             "interviewers": interviewers,
             "role": role.role_name if role else "Unknown",
+            "analysisId": interview.recall_id
         })
 
     return interview_data
