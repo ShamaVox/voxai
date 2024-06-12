@@ -211,6 +211,7 @@ def generate_transcript():
             'sentiment_analysis': True,
             'summarization': True,
             'entity_detection': True,
+            'iab_categories': True,
             # 'summary_model': 'informative',
             # 'summary_type': 'bullets',
             # 'word_boost': ['word 1', 'word 2'], # improve accuracy by specifying words likely to be in the transcript
@@ -247,10 +248,6 @@ def generate_transcript():
     content_safety
     boolean
     Docs: https://www.assemblyai.com/docs/audio-intelligence#content-moderation
-
-    iab_categories
-    boolean
-    Docs: https://www.assemblyai.com/docs/audio-intelligence#topic-detection-iab-classification
 
     auto_chapters
     boolean

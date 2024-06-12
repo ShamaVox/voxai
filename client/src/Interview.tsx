@@ -55,7 +55,23 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
       const response = await axios.post(SERVER_ENDPOINT("analyze_interview"), {
         id: updatedInterview.analysisId,
       });
-      setAnalysisResults(response.data["intelligence_response"]);
+      // TODO: make this code robust to not enough topics
+
+      // Sort the topics array in descending order based on probability
+      const topics =
+        response.data["intelligence_response"][
+          "assembly_ai.iab_categories_result"
+        ]["summary"];
+      const topicsArray = Object.entries(topics);
+      const top5TopicsObject = Object.fromEntries(
+        topicsArray.sort((a, b) => b[1] - a[1]).slice(0, 5)
+      );
+
+      // Update the analysis results with the top 5 topics
+      setAnalysisResults({
+        ...response.data["intelligence_response"],
+        topics: top5TopicsObject,
+      });
     } catch (error) {
       console.log("Error fetching analysis:", error);
     }
@@ -85,6 +101,23 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
             <View>
               <Text style={styles.subheading}>Summary</Text>
               <Text>{analysisResults["assembly_ai.summary"]}</Text>
+              <Text style={styles.subheading}>Top 5 Topics</Text>
+              {Object.entries(analysisResults.topics).map(
+                ([topic, probability], index) => (
+                  <Text key={index}>
+                    {index + 1}.{" "}
+                    {
+                      // Only display part of the topic after the last ">", and convert from CamelCase to regular spacing
+                      topic
+                        .split(">")
+                        .pop()
+                        .replace(/([A-Z])/g, " $1")
+                        .trim()
+                    }
+                    : {probability.toFixed(4)}
+                  </Text>
+                )
+              )}
               <Text style={styles.subheading}>Transcript</Text>
               <Text>
                 Color coding key:{" "}
