@@ -1,6 +1,13 @@
 import { FC, useState } from "react";
 import styles from "./styles/InterviewStyles";
-import { View, Text, StyleSheet, TextInput, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  ScrollView,
+} from "react-native";
 import { RouteProp } from "@react-navigation/native";
 import { RootStackParamList } from "./App";
 import { INTERVIEW_LOGGING } from "./config/Logging";
@@ -98,7 +105,7 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
             <Text>Get Analysis Results</Text>
           </Pressable>
           {analysisResults && ( // Conditionally render analysis results
-            <View>
+            <ScrollView style={{ height: 600 }}>
               <Text style={styles.subheading}>Summary</Text>
               <Text>{analysisResults["assembly_ai.summary"]}</Text>
               <Text style={styles.subheading}>Top 5 Topics</Text>
@@ -138,7 +145,7 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
                   </Text>
                 )
               )}
-            </View>
+            </ScrollView>
           )}
         </View>
       )}
