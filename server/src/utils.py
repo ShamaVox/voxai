@@ -1,6 +1,8 @@
 import random
 from datetime import date, timedelta
 import string
+import json
+from .constants import RECALL_CREDENTIAL_FILEPATH
 
 def get_random(max_value, negative=False):
     """Generates a random integer within a specified range."""
@@ -47,3 +49,37 @@ def get_random_string(length):
         A random string of the specified length.
     """
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
+
+def get_recall_api_key():
+    """
+    Gets the recall.ai API key from the file it is stored in.
+
+    Returns:
+        The recall API key (a string).
+    """
+    try:
+        with open(RECALL_CREDENTIAL_FILEPATH) as f:
+            credentials = json.load(f)
+        recall_api_key = credentials["recall_api_key"]
+        return recall_api_key
+    except (FileNotFoundError, KeyError):
+        return None
+
+def get_recall_headers():
+    """
+    Returns an object with the headers for the recall.ai API. 
+
+    Args:
+        None, currently (may add some if different APIs require different headers).
+
+    Returns:
+        A dictionary containing the header data to send in the request to recall.ai. 
+    """
+    recall_api_key = get_recall_api_key()
+    if recall_api_key is None:
+        return {"error": "Missing or incorrect Recall API credentials"}
+    return {
+        'accept': 'application/json',
+        'content-type': 'application/json',
+        'Authorization': f'Token {recall_api_key}'
+    }

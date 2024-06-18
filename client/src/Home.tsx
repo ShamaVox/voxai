@@ -6,9 +6,11 @@ import {
   FlatList,
   GestureResponderEvent,
   ListRenderItem,
+  TextInput,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "./AuthContext";
+import { InterviewData } from "./Interview";
 import styles from "./styles/HomeStyles";
 import axios from "axios";
 import { HOME_LOGGING } from "./config/Logging";
@@ -26,6 +28,7 @@ const Home: FC = () => {
   const { isLoggedIn, handleLogout } = useContext(AuthContext);
   const [interviews, setInterviews] = useState([]);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
+  const [temporaryUrl, setTemporaryUrl] = useState(""); // Placeholder to test bot from logged-out homepage
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -59,29 +62,53 @@ const Home: FC = () => {
   };
 
   /**
+   * Handles a click on an interview item by navigaitng to the interview page.
+   * @param interview The interview data for the clicked item, sent from the server.
+   */
+  const handleInterviewClick = async (interview: InterviewData) => {
+    await navigation.navigate("Interview", { interview });
+  };
+
+  /**
    * Renders a single interview item within the interview list.
    * @param item The interview data object to be rendered.
    */
   const renderInterviewItem: ListRenderItem<any> = ({ item }) => (
     <View testID="interview-table-entry" style={styles.interviewItem}>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewDate}>{item.date}</Text>
-        <Text style={styles.interviewTime}>{item.time}</Text>
-      </View>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewCandidateName}>{item.candidateName}</Text>
-        <Text style={styles.interviewCurrentCompany}>
-          {item.currentCompany}
-        </Text>
-      </View>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewInterviewers}>{item.interviewers}</Text>
-      </View>
-      <View style={styles.interviewColumn}>
-        <Text style={styles.interviewRole}>{item.role}</Text>
-      </View>
+      <Pressable onPress={async () => handleInterviewClick(item)}>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewDate}>{item.date}</Text>
+          <Text style={styles.interviewTime}>{item.time}</Text>
+        </View>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewCandidateName}>
+            {item.candidateName}
+          </Text>
+          <Text style={styles.interviewCurrentCompany}>
+            {item.currentCompany}
+          </Text>
+        </View>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewInterviewers}>{item.interviewers}</Text>
+        </View>
+        <View style={styles.interviewColumn}>
+          <Text style={styles.interviewRole}>{item.role}</Text>
+        </View>
+      </Pressable>
     </View>
   );
+
+  const temporaryBotJoinMeeting = () => {
+    axios.post(SERVER_ENDPOINT("join_meeting"), {
+      url: temporaryUrl,
+    });
+  };
+
+  const temporaryGenerateTranscript = () => {
+    axios.post(SERVER_ENDPOINT("generate_transcript"), {
+      id: temporaryUrl,
+    });
+  };
 
   return (
     <View style={styles.container}>
@@ -162,6 +189,16 @@ const Home: FC = () => {
             style={styles.button}
           >
             <Text>Login</Text>
+          </Pressable>
+          <TextInput
+            style={styles.grayBackground}
+            onChangeText={setTemporaryUrl}
+          />
+          <Pressable onPress={temporaryBotJoinMeeting}>
+            <Text>Join meeting with bot at this URL</Text>
+          </Pressable>
+          <Pressable onPress={temporaryGenerateTranscript}>
+            <Text>Generate transcript from bot ID</Text>
           </Pressable>
         </>
       )}

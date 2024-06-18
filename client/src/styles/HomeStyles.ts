@@ -95,6 +95,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 20,
   },
+  grayBackground: {
+    backgroundColor: "#CCCCCC",
+  },
 });
 
 export default styles;

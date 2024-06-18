@@ -1,7 +1,9 @@
 import pytest
 from flask import json
+from .utils.synthetic_data import create_test_account_and_set_token
 
 def test_get_interviews(client):
+    create_test_account_and_set_token(client, "test_interviews@test.com", "AUTHTOKENINTERVIEWS", 10, 3)
     # Send a GET request to the endpoint
     response = client.get("/api/interviews")
 
@@ -9,7 +11,7 @@ def test_get_interviews(client):
     assert response.status_code == 200
     interviews = json.loads(response.data)
     assert isinstance(interviews, list)
-    assert len(interviews) == 10
+    assert len(interviews) == 10 * 3
 
     for interview in interviews:
         assert isinstance(interview, dict)

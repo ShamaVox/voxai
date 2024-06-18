@@ -9,6 +9,7 @@ import Login from "./Login";
 import Header from "./Header";
 import Candidates from "./Candidates";
 import NavBar from "./NavBar";
+import InterviewScreen, { InterviewData } from "./Interview";
 import { APP_LOGGING } from "./config/Logging";
 import styles from "./styles/AppStyles";
 
@@ -20,9 +21,13 @@ declare global {
       Dashboard: undefined;
       Home: undefined;
       Login: undefined;
+      Interview: { interview: InterviewData };
+      [key: string]: undefined | { interview: InterviewData }; // Index signature
     }
   }
 }
+
+export type RootStackParamList = ReactNavigation.RootParamList; // to use RootParamList outside of this function
 
 const Stack = createStackNavigator();
 
@@ -78,6 +83,7 @@ const AppContent: FC<{ enableAnimations: boolean }> = ({
           <Stack.Screen name="Login" component={Login} />
           <Stack.Screen name="Dashboard" component={Dashboard} />
           <Stack.Screen name="Candidates" component={Candidates} />
+          <Stack.Screen name="Interview" component={InterviewScreen} />
         </Stack.Navigator>
       </View>
     </View>

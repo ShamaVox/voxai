@@ -1,7 +1,9 @@
 import pytest
 from flask import json
+from .utils.synthetic_data import create_test_account_and_set_token
 
 def test_get_insights(client):
+    create_test_account_and_set_token(client, "test_insights@test.com", "AUTHTOKENINSIGHTS", 10, 3)
     # Send a GET request to the endpoint
     response = client.get("/api/insights")
 
@@ -23,3 +25,5 @@ def test_get_insights(client):
     assert isinstance(insights["lowerCompensationRange"], int)
     assert "upperCompensationRange" in insights
     assert isinstance(insights["upperCompensationRange"], int)
+
+# TODO: Test updating metric history

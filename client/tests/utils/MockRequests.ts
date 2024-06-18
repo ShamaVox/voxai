@@ -15,6 +15,26 @@ beforeEach(() => {
 });
 
 /**
+ * Helper function to delay responses.
+ * from https://github.com/ctimmerm/axios-mock-adapter/issues/232
+ *
+ * @param delay - Amount to delay the response.
+ * @param response - The response to return.
+ */
+const withDelay = <T>(
+  delay: number,
+  response: T
+): ((config: any) => Promise<T>) => {
+  return (config: any): Promise<T> => {
+    return new Promise<T>((resolve, reject) => {
+      setTimeout(() => {
+        resolve(response);
+      }, delay);
+    });
+  };
+};
+
+/**
  * Mocks the API response for fetching upcoming interviews.
  */
 export const mockUpcomingInterviews = () => {
@@ -113,5 +133,16 @@ export const mockTokenValidation = (
     mockAdapter.onAny(SERVER_ENDPOINT(api)).reply(valid ? 200 : 401, {
       validToken: valid,
     });
+  }
+};
+
+/**
+ * Mocks a response for a logout signal to server.
+ *
+ * @param delay - How much time to wait before responding.
+ */
+export const mockLogout = () => {
+  if (mock) {
+    mockAdapter.onAny(SERVER_ENDPOINT("logout")).reply(200, {});
   }
 };

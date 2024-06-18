@@ -34,8 +34,7 @@ class Account(db.Model):
     organization = db.Column(db.String, default="Default Company")
     roles = db.relationship('Role', back_populates="direct_manager")
     teammates = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
-    interviews = db.relationship("Interview", secondary="interview_interviewer", back_populates="interviewers")
-    speaking_metrics = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
+    interviews = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
     metric_history = db.relationship("MetricHistory", back_populates="account")
 
     def __repr__(self):
@@ -122,20 +121,22 @@ class Interview(db.Model):
     duration = db.Column(db.Integer) 
     audio_url = db.Column(db.String)
     video_url = db.Column(db.String)
+    audio_url_preprocessed = db.Column(db.String)
+    video_url_preprocessed = db.Column(db.String)
+    recall_id = db.Column(db.String(36))
     score = db.Column(db.Integer)
     engagement = db.Column(db.Integer)
     sentiment = db.Column(db.Integer)
     speaking_time = db.Column(db.Integer)
     wpm = db.Column(db.Integer)
-    skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
     keywords = db.Column(db.ARRAY(db.String)) 
     under_review = db.Column(db.Boolean)
 
     # Relationships
-    applications = db.relationship("Application", back_populates="interviews")
+    skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
+    applications = db.relationship("Application", back_populates="interviews") # TODO: change to "application"
     candidate = db.relationship("Candidate", back_populates="interviews")
-    interviewers = db.relationship("Account", secondary="interview_interviewer", back_populates="interviews")
-    interviewer_speaking_metrics = db.relationship("Account", secondary="interview_interviewer_speaking", back_populates="speaking_metrics")
+    interviewer_speaking_metrics = db.relationship("Account", secondary="interview_interviewer_speaking", back_populates="interviews")
 
     def __repr__(self):
         return f'<Interview {self.interview_id} - Application: {self.application_id}, Time: {self.interview_time}>'
@@ -148,20 +149,15 @@ interview_skill_score_table = db.Table(
     db.Column("score", db.Integer)
 )
 
-interview_interviewer_table = db.Table(
-    "interview_interviewer",
-    db.Column("interview_id", db.Integer, db.ForeignKey("interview.interview_id")),
-    db.Column("interviewer_email", db.String, db.ForeignKey("account.email")),
-    db.Column("candidate_score", db.Integer) # Interviewer's scoring of the candidate
-)
-
 # Speaking Time and WPM
 interview_interviewer_speaking_table = db.Table(
     "interview_interviewer_speaking",
     db.Column("interview_id", db.Integer, db.ForeignKey("interview.interview_id")),
     db.Column("interviewer_id", db.Integer, db.ForeignKey("account.account_id")),
     db.Column("speaking_time", db.Integer),  # in seconds
-    db.Column("wpm", db.Integer)
+    db.Column("wpm", db.Integer),
+    db.Column("interviewer_notes", db.String), # Notes taken by each interviewer
+    db.Column("interviewer_score", db.Integer) # Interviewer's score for the candidate
 )
 
 class MetricHistory(db.Model):
@@ -174,3 +170,5 @@ class MetricHistory(db.Model):
 
     def __repr__(self):
         return f'<MetricHistory {self.id}>'
+
+    # TODO: Enforce (account_id, metric_name, metric_day) should be unique 

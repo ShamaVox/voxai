@@ -1,14 +1,15 @@
-from .database import db, Application, Role, MetricHistory, Interview, Account
+from .database import db, Application, Role, MetricHistory, Interview, Account, interview_interviewer_speaking_table
 from datetime import datetime, timedelta
+from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
 
-def fitting_job_applications_percentage(match_threshold, current_user_id, days):
+def fitting_job_applications_percentage(current_user_id, match_threshold=MATCH_THRESHOLD, days=METRIC_HISTORY_DAYS_TO_AVERAGE):
     """
     Gets the percentage of job applications posted by a user with candidate score over a certain threshold. 
 
     Args:
         match_threshold: The required candidate score for an application to be counted as "Fitting".
         current_user_id: The user's account id. 
-        days: The number of days to consider for the average calculation (default: 7).
+        days: The number of days to consider for the average calculation.
 
     Returns:
         The percentage of job applications with score over match_threshold and the percentage change from the average.
@@ -23,7 +24,7 @@ def fitting_job_applications_percentage(match_threshold, current_user_id, days):
         .join(Role, Application.role_id == Role.role_id)\
         .filter(Role.direct_manager_id == current_user_id).scalar()
 
-    fitting_job_applications_percentage = round((fitting_applications_count / total_applications_count) * 100 if total_applications_count > 0 else 0)
+    fitting_job_applications_percentage = round((fitting_job_applications_count / total_applications_count) * 100 if total_applications_count > 0 else 0)
 
     if not fitting_job_applications_percentage:
         return 0, 0
@@ -48,6 +49,7 @@ def fitting_job_applications_percentage(match_threshold, current_user_id, days):
         .filter(MetricHistory.account_id == current_user_id)\
         .filter(MetricHistory.metric_name == 'fitting_job_applications_percentage')\
         .filter(MetricHistory.metric_day >= start_date)\
+        .filter(MetricHistory.metric_day != current_day)\
         .scalar()
 
     if average_percentage is None:
@@ -66,7 +68,7 @@ def fitting_job_applications_percentage(match_threshold, current_user_id, days):
 
     return fitting_job_applications_percentage, percentage_change
 
-def average_interview_pace(current_user_id, days, percentage_days):
+def average_interview_pace(current_user_id, days=INTERVIEW_PACE_DAYS_TO_AVERAGE, percentage_days=INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE):
     """
     Calculates the average interview pace for a user over the last N days and the percentage change compared to the last M days.
 
@@ -78,33 +80,34 @@ def average_interview_pace(current_user_id, days, percentage_days):
     Returns:
         The average interview pace in days and the percentage change.
     """
-    current_date = datetime.now().date()
+    # TODO: Extend to check for a given Candidate, and for a given Role 
+    current_date = datetime.now()
     start_date = current_date - timedelta(days=days)
     percentage_start_date = current_date - timedelta(days=percentage_days)
 
     # Get all interviews in the last N days where the account is an interviewer
-    interviews = Interview.query.join(Interview.interviewers).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).order_by(Interview.interview_time).all()
+    interviews = Interview.query.join(Interview.interviewer_speaking_metrics).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= start_date).filter(Interview.interview_time < current_date - timedelta(hours=3)).order_by(Interview.interview_time).all()
 
     if not interviews:
         return 0, 0
 
     total_time_diff = timedelta()
-    prev_interview_time = None
 
     for interview in interviews:
+        prev_interview_time = None
         if prev_interview_time is None:
             # For the first interview, use the application time as the previous date/time
             application = Application.query.filter_by(application_id=interview.application_id).first()
             if application:
                 prev_interview_time = application.application_time
         else:
-            total_time_diff += interview.interview_time - prev_interview_time
             prev_interview_time = interview.interview_time
+        total_time_diff += interview.interview_time - prev_interview_time
 
     average_pace = round(total_time_diff.days / len(interviews))
 
     # Calculate the average interview pace over the last M days excluding the last N days
-    percentage_interviews = Interview.query.join(Interview.interviewers).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= percentage_start_date).filter(Interview.interview_time < start_date).order_by(Interview.interview_time).all()
+    percentage_interviews = Interview.query.join(Interview.interviewer_speaking_metrics).filter(Account.account_id == current_user_id).filter(Interview.interview_time >= percentage_start_date).filter(Interview.interview_time < start_date).order_by(Interview.interview_time).all()
 
     if not percentage_interviews:
         return average_pace, 0
@@ -152,27 +155,36 @@ def average_compensation_range(current_user_id):
         total_lower_compensation += role.base_compensation_min
         total_upper_compensation += role.base_compensation_max
 
-    average_lower_compensation = round(total_lower_compensation / len(roles))
-    average_upper_compensation = round(total_upper_compensation / len(roles))
+    average_lower_compensation = round(total_lower_compensation / (1000 * len(roles)))
+    average_upper_compensation = round(total_upper_compensation / (1000 * len(roles)))
 
     return average_lower_compensation, average_upper_compensation
 
-def get_candidate_interviews(candidate_id):
+def get_account_interviews(account_id, interviewer=True):
     """
-    Retrieves interview data for a specific candidate.
+    Retrieves interview data for a specific candidate or interviewer.
 
     Args:
-        candidate_id: The candidate's ID.
+        account_id: The candidate or interviewer's account ID.
+        interviewer: Whether to search for candidates (if True) or interviewers (if False).
 
     Returns:
         A list of interview data for the candidate.
     """
-    interviews = Interview.query.filter_by(candidate_id=candidate_id).all()
+    if interviewer:
+        interviews = (
+            db.session.query(Interview)
+            .join(interview_interviewer_speaking_table, Interview.interview_id == interview_interviewer_speaking_table.c.interview_id)
+            .filter(interview_interviewer_speaking_table.c.interviewer_id == account_id)
+            .all()
+        )
+    else: 
+        interviews = Interview.query.filter_by(candidate_id=candidate_id).all()
 
     interview_data = []
     for interview in interviews:
-        role = Role.query.filter_by(role_id=interview.application.role_id).first()
-        interviewers = ", ".join([interviewer.name for interviewer in interview.interviewers])
+        role = Role.query.filter_by(role_id=interview.applications.role_id).first()
+        interviewers = ", ".join([interviewer.name for interviewer in interview.interviewer_speaking_metrics])
 
         interview_data.append({
             "id": interview.interview_id,
@@ -182,6 +194,7 @@ def get_candidate_interviews(candidate_id):
             "currentCompany": interview.candidate.current_company,
             "interviewers": interviewers,
             "role": role.role_name if role else "Unknown",
+            "analysisId": interview.recall_id
         })
 
     return interview_data

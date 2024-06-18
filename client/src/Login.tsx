@@ -6,6 +6,8 @@ import {
   Pressable,
   Keyboard,
   KeyboardTypeOptions,
+  NativeSyntheticEvent,
+  TextInputKeyPressEventData,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { AuthContext } from "./AuthContext";
@@ -30,6 +32,7 @@ interface InputWithErrorProps {
   keyboardType?: KeyboardTypeOptions;
   error?: string;
   testID: string;
+  handleKeyPress: (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => void;
 }
 
 /**
@@ -42,10 +45,12 @@ const InputWithError: FC<InputWithErrorProps> = ({
   keyboardType,
   error,
   testID,
+  handleKeyPress,
 }) => {
   return (
     <>
       <TextInput
+        onKeyPress={handleKeyPress}
         testID={testID}
         style={styles.input}
         placeholder={placeholder}
@@ -135,12 +140,16 @@ const Login: FC = () => {
   /**
    * Checks whether there are any errors preventing the code validation request from being sent.
    */
-  const canSubmit: () => boolean = () => {
+  const canSubmit = (fromButton = true) => {
+    if (!fromButton) {
+      validateForm();
+    }
     return (
-      showCodeField &&
-      errors.code === undefined &&
-      errors.name === undefined &&
-      errors.organization === undefined
+      (showCodeField &&
+        errors.code === undefined &&
+        errors.name === undefined &&
+        errors.organization === undefined) ||
+      (!showCodeField && errors.email === undefined)
     );
   };
 
@@ -153,6 +162,9 @@ const Login: FC = () => {
    */
   const handleSendCode = async () => {
     setPressedSendCode(true);
+    if (!canSubmit(false)) {
+      return;
+    }
     try {
       const response = await axios.post(SERVER_ENDPOINT("send_code"), {
         email,
@@ -187,6 +199,9 @@ const Login: FC = () => {
    */
   const handleSubmit: () => Promise<void> = async () => {
     setPressedSubmit(true);
+    if (!canSubmit(false)) {
+      return;
+    }
     if (validateCode()) {
       try {
         const response = await axios.post(SERVER_ENDPOINT("validate_code"), {
@@ -224,20 +239,20 @@ const Login: FC = () => {
   };
 
   /**
-   * Handles submitting the form when the Enter key is pressed. (Doesn't work yet)
+   * Handles submitting the form when the Enter key is pressed.
    */
-  //   const handleKeyPress = (e) => {
-  //     if (e.key === "Enter") {
-  //       e.preventDefault();
-  //       if (showCodeField()) {
-  //         handleSubmit();
-  //       } else {
-  //         handleSendCode();
-  //       }
-  //     }
-  //   };
-
-  // in top level of below view: onKeyPress={handleKeyPress}
+  const handleKeyPress = (
+    e: NativeSyntheticEvent<TextInputKeyPressEventData>
+  ) => {
+    if (e.nativeEvent.key === "Enter") {
+      e.preventDefault();
+      if (showCodeField) {
+        handleSubmit();
+      } else {
+        handleSendCode();
+      }
+    }
+  };
 
   return (
     <View style={styles.container} role={"form"}>
@@ -249,6 +264,7 @@ const Login: FC = () => {
         onChangeText={setEmail}
         keyboardType="email-address"
         error={pressedSendCode && errors.email}
+        handleKeyPress={handleKeyPress}
       />
       {showCodeField && (
         <InputWithError
@@ -258,6 +274,7 @@ const Login: FC = () => {
           onChangeText={setCode}
           keyboardType="numeric"
           error={pressedSubmit && errors.code}
+          handleKeyPress={handleKeyPress}
         />
       )}
       {showNewAccountFields && (
@@ -269,6 +286,7 @@ const Login: FC = () => {
             onChangeText={setName}
             keyboardType="default"
             error={pressedSubmit && errors.name}
+            handleKeyPress={handleKeyPress}
           />
           <InputWithError
             testID="organization-input"
@@ -277,6 +295,7 @@ const Login: FC = () => {
             onChangeText={setOrganization}
             keyboardType="default"
             error={pressedSubmit && errors.organization}
+            handleKeyPress={handleKeyPress}
           />
           <Text> Account type: </Text>
           <Picker

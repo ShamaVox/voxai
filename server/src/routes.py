@@ -1,14 +1,13 @@
 from flask import send_from_directory, request, jsonify, make_response
 import os
 from flask_cors import CORS
-from . import verification, input_validation, database, migrations
+from . import verification, input_validation, database, migrations, apis
 from .app import app as app
 from os import environ
 from faker import Faker
 from sqlalchemy import func
-from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_candidate_interviews
-from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
-from .synthetic_data import fake_interview
+from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_account_interviews
+from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
 from .utils import get_random, get_random_string
 
 isAccepted = False
@@ -37,9 +36,6 @@ def handle_auth_token(sessions):
           a default user ID of 0 is returned as a temporary workaround for Jest.
         - If the authentication token is invalid or not found in the sessions object, the function
           should handle the case appropriately (e.g., send a logout response).
-
-    TODO:
-        - Implement proper handling of invalid sessions and send a logout response.
     """
     auth_token = request.cookies.get('authToken', None)
     if 'TEST' in environ and environ['TEST'] == "Integration":
@@ -153,17 +149,15 @@ def validate_code():
                 }
                 return_code = 401
             else: 
-                # Get the maximum account_id from the account table
-                max_account_id = database.db.session.query(func.max(database.Account.account_id)).scalar()
-
-                # If there are no existing accounts, start the account_id from 1
-                next_account_id = 1 if max_account_id is None else max_account_id + 1
-                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'), account_id=next_account_id)
+                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
                 database.db.session.add(new_account)
+                database.db.session.flush()
+
+                generate_synthetic_data_on_account_creation(new_account.account_id)
                 database.db.session.commit()
 
                 auth_token = get_random_string(36)
-                sessions[auth_token] = request.json.get('email')
+                sessions[auth_token] = new_account.account_id
                 
                 data = {
                     "message": "Account created",
@@ -211,8 +205,8 @@ def get_insights():
         return valid_token_response(False) 
 
     # Run queries 
-    fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id, MATCH_THRESHOLD,METRIC_HISTORY_DAYS_TO_AVERAGE)
-    average_interview_pace_value, average_interview_pace_percentage = average_interview_pace(current_user_id, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE)
+    fitting_job_applications, fitting_job_applications_percentage_change = fitting_job_applications_percentage(current_user_id)
+    average_interview_pace_value, average_interview_pace_percentage = average_interview_pace(current_user_id)
     average_lower_compensation, average_upper_compensation = average_compensation_range(current_user_id)
 
     insights = {
@@ -239,16 +233,17 @@ def get_insights():
 
 @app.route("/api/interviews")
 def get_interviews():
-    """Provides interview data for a specific candidate."""
+    """Provides interview data for a specific candidate or interviewer."""
     current_user_id = handle_auth_token(sessions)
     if current_user_id is None:
         return valid_token_response(False) 
 
-    candidate_id = request.args.get('candidateId')
-    if candidate_id:
-        interviews = get_candidate_interviews(candidate_id)
+    if request.args.get('candidateId'):
+        interviews = get_account_interviews(request.args.get('candidateId'), False)
+    elif request.args.get('interviewerId'):
+        interviews = get_account_interviews(request.args.get('interviewerId'), True)
     else:
-        interviews = []
+        interviews = get_account_interviews(current_user_id, True)
 
     if 'TEST' in environ and not interviews:
         # Generate a fake interview if the interview list is empty in the test environment
@@ -257,3 +252,16 @@ def get_interviews():
         interviews.append(fake_interview_data)
 
     return jsonify(interviews)
+
+@app.route("/api/set_recall_id", methods=["POST"])
+def set_interview_recall_id():
+    """Sets the recall id value for an interview to allow the analysis result to be queried."""
+    current_user_id = handle_auth_token(sessions)
+    if current_user_id is None:
+        return valid_token_response(False) 
+
+    recall_id = request.json.get('recall_id')
+    interview = database.Interview.query.filter_by(interview_id=request.json.get('id')).first()
+    interview.recall_id = recall_id 
+    database.db.session.commit()
+    return make_response(jsonify({"success": True})), 200
