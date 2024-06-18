@@ -71,7 +71,7 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
         ]["summary"];
       const topicsArray = Object.entries(topics);
       const top5TopicsObject = Object.fromEntries(
-        topicsArray.sort((a, b) => b[1] - a[1]).slice(0, 5)
+        topicsArray.sort((a: any, b: any) => b[1] - a[1]).slice(0, 5)
       );
 
       // Update the analysis results with the top 5 topics
@@ -121,7 +121,10 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
                         .replace(/([A-Z])/g, " $1")
                         .trim()
                     }
-                    : {probability.toFixed(4)}
+                    :
+                    {typeof probability === "number"
+                      ? probability.toFixed(4)
+                      : " "}
                   </Text>
                 )
               )}
