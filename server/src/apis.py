@@ -1,6 +1,6 @@
 from .app import app as app
 from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE
-from .database import Interview
+from .database import Interview, db
 from .utils import get_recall_headers
 # from .routes import handle_auth_token, valid_token_response
 from flask import request, jsonify
@@ -271,6 +271,10 @@ def analyze_interview():
 
     bot_id = request.json.get('id')
 
+    interview = Interview.query.filter_by(recall_id=bot_id).first()
+    if not interview:
+        return jsonify({"error": "Interview not found"}), 404 
+
     transcript_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/transcript', headers=headers)
     intelligence_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/intelligence', headers=headers)
 
@@ -294,6 +298,11 @@ def analyze_interview():
     topics = intelligence_data.get("assembly_ai.iab_categories_result", {}).get("summary", {})
     top_5_topics = dict(sorted(topics.items(), key=lambda x: x[1], reverse=True)[:5])
     sentiment_analysis = intelligence_data.get("assembly_ai.sentiment_analysis_results", [])
+
+    # TODO: Verify auth privileges for user making this request
+    if interview:
+        interview.summary = summary
+        db.session.commit()
 
     return jsonify({
         "summary": summary,

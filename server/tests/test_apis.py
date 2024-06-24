@@ -2,18 +2,33 @@ import pytest
 from flask import json
 from server.src import input_validation, verification, database
 from server.app import app as flask_app
+from server.src.database import db, Interview
 from server.src.apis import preprocess, get_sentiment, get_engagement
 import server.src.utils 
 from .utils.synthetic_data import create_synthetic_data
 from unittest.mock import patch, Mock
 import requests
 import boto3
+from datetime import datetime as datetime
 
 @pytest.fixture
 def client():
     flask_app.config['TESTING'] = True
     with flask_app.test_client() as client:
         yield client
+
+@pytest.fixture
+def sample_data(client):
+    with flask_app.app_context():
+        # Generate synthetic data
+        create_synthetic_data(10,1)
+        
+        # Get the first interview
+        interview = Interview.query.first()
+        interview.recall_id = 'test_bot_id'
+        db.session.commit()
+
+        return interview
 
 @patch('requests.post')  # Mock external API calls
 def test_preprocess(mock_post):
@@ -198,16 +213,16 @@ def test_generate_transcript_missing_id(client):
     assert 'id' in data['error']
 
 @patch('requests.get')
-def test_analyze_interview_success(mock_requests_get, client):
-        # Mock the requests.get responses
+def test_analyze_interview_success(mock_requests_get, client, sample_data):
+    # Mock the responses
     mock_transcript_response = Mock()
     mock_transcript_response.status_code = 200
     mock_transcript_response.json.return_value = {"transcript": "This is a test transcript"}
-    
+
     mock_intelligence_response = Mock()
     mock_intelligence_response.status_code = 200
     mock_intelligence_response.json.return_value = {
-        "assembly_ai.summary": "Test summary",
+        "assembly_ai.summary": "This is a test summary",
         "assembly_ai.iab_categories_result": {
             "summary": {
                 "topic1": 0.9,
@@ -222,20 +237,24 @@ def test_analyze_interview_success(mock_requests_get, client):
             {"sentiment": "positive", "confidence": 0.8}
         ]
     }
-    
+
     mock_requests_get.side_effect = [mock_transcript_response, mock_intelligence_response]
-    
-    # Make the request
+
     response = client.post('/api/analyze_interview', json={'id': 'test_bot_id'})
-    
-    # Assert the response
+
     assert response.status_code == 200
     data = json.loads(response.data)
     assert "summary" in data
-    assert "topics" in data
+    assert data["summary"] == "This is a test summary"
     assert len(data["topics"]) == 5
     assert "sentiment_analysis" in data
     assert "transcript" in data
+
+    # Check that the interview record was updated in the database
+    with flask_app.app_context():
+        updated_interview = Interview.query.filter_by(recall_id='test_bot_id').first()
+        assert updated_interview is not None
+        assert updated_interview.summary == "This is a test summary"
 
 @patch('server.src.utils.get_recall_headers')
 def test_analyze_interview_header_error(mock_get_recall_headers, client):
@@ -291,3 +310,17 @@ def test_analyze_interview_missing_data(mock_requests_get, client):
     assert data["topics"] == {}
     assert data["sentiment_analysis"] == []
     assert data["transcript"] == {}
+
+    # Check that the interview record in the database was not updated
+    with flask_app.app_context():
+        updated_interview = Interview.query.filter_by(recall_id='test_bot_id').first()
+        assert updated_interview is not None
+        assert updated_interview.summary is None or updated_interview.summary == ""
+
+def test_analyze_interview_nonexistent_id(client):
+    response = client.post('/api/analyze_interview', json={'id': 'nonexistent_id'})
+    
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert "error" in data
+    assert "Interview not found" in data["error"]

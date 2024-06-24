@@ -131,6 +131,7 @@ class Interview(db.Model):
     wpm = db.Column(db.Integer)
     keywords = db.Column(db.ARRAY(db.String)) 
     under_review = db.Column(db.Boolean)
+    summary = db.Column(db.Text)
 
     # Relationships
     skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")

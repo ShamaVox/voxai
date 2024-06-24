@@ -25,6 +25,15 @@ export interface InterviewData {
   analysisId: string | undefined;
 }
 
+interface AnalysisResults {
+  summary: string;
+  topics: Record<string, number>;
+  sentiment_analysis: Array<{
+    text: string;
+    sentiment: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+  }>;
+}
+
 type InterviewScreenRouteProp = RouteProp<RootStackParamList, "Interview">;
 
 const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
@@ -35,7 +44,10 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
     interview
   );
   const [interviewAnalysisId, setInterviewAnalysisId] = useState("");
-  const [analysisResults, setAnalysisResults] = useState<any>(null);
+  const [
+    analysisResults,
+    setAnalysisResults,
+  ] = useState<AnalysisResults | null>(null);
 
   /**
    * Sends the URL to the server to link an interview to its transcript and analysis.
@@ -119,17 +131,25 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
                 neutral sentiment,{" "}
                 <Text style={styles.negativeText}>negative sentiment</Text>
               </Text>
-              {analysisResults.sentiment_analysis.map((segment, index) => (
-                <Text
-                  key={index}
-                  style={[
-                    segment.sentiment === "POSITIVE" && styles.positiveText,
-                    segment.sentiment === "NEGATIVE" && styles.negativeText,
-                  ]}
-                >
-                  {segment.text}
-                </Text>
-              ))}
+              {analysisResults.sentiment_analysis.map(
+                (
+                  segment: {
+                    text: string;
+                    sentiment: "POSITIVE" | "NEGATIVE" | "NEUTRAL";
+                  },
+                  index: number
+                ) => (
+                  <Text
+                    key={index}
+                    style={[
+                      segment.sentiment === "POSITIVE" && styles.positiveText,
+                      segment.sentiment === "NEGATIVE" && styles.negativeText,
+                    ]}
+                  >
+                    {segment.text}
+                  </Text>
+                )
+              )}
             </ScrollView>
           )}
         </View>
