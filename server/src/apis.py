@@ -197,6 +197,8 @@ def join_meeting():
 def generate_transcript():
     """Generates a transcript from a meeting recorded by the bot account."""
     bot_id = request.json.get('id')
+    if not bot_id:
+        return jsonify({"error": "Missing required field: id"}), 400
 
     headers = get_recall_headers()
     if "error" in headers: 
@@ -272,8 +274,19 @@ def analyze_interview():
     transcript_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/transcript', headers=headers)
     intelligence_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/intelligence', headers=headers)
 
-    transcript_response.raise_for_status()
-    intelligence_response.raise_for_status()
+    # Check for HTTP errors in transcript response
+    if transcript_response.status_code != 200:
+        return jsonify({
+            "error": f"Transcript API request failed with status code {transcript_response.status_code}",
+            "details": transcript_response.text
+        }), 500
+
+    # Check for HTTP errors in intelligence response
+    if intelligence_response.status_code != 200:
+        return jsonify({
+            "error": f"Intelligence API request failed with status code {intelligence_response.status_code}",
+            "details": intelligence_response.text
+        }), 500
 
     intelligence_data = intelligence_response.json()
 

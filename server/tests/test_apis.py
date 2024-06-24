@@ -3,9 +3,17 @@ from flask import json
 from server.src import input_validation, verification, database
 from server.app import app as flask_app
 from server.src.apis import preprocess, get_sentiment, get_engagement
+import server.src.utils 
 from .utils.synthetic_data import create_synthetic_data
 from unittest.mock import patch, Mock
+import requests
 import boto3
+
+@pytest.fixture
+def client():
+    flask_app.config['TESTING'] = True
+    with flask_app.test_client() as client:
+        yield client
 
 @patch('requests.post')  # Mock external API calls
 def test_preprocess(mock_post):
@@ -120,3 +128,166 @@ def test_preprocess(client, audio_url, video_url, expected_status, expected_prep
         assert response.json == mock_response_json
     else:
         assert "error" in response.json
+
+@patch('requests.post')
+def test_join_meeting_success(mock_post, client):
+    mock_response = Mock()
+    mock_response.status_code = 201
+    mock_response.json.return_value = {'id': 'test_bot_id'}
+    mock_post.return_value = mock_response
+
+    response = client.post('/api/join_meeting', json={'url': 'https://zoom.us/test'})
+    
+    assert response.status_code == 201
+    data = json.loads(response.data)
+    assert 'id' in data
+
+@patch('requests.post')
+def test_join_meeting_failure(mock_post, client):
+    mock_response = Mock()
+    mock_response.status_code = 400
+    mock_response.json.return_value = {'error': 'Invalid meeting URL'}
+    mock_post.return_value = mock_response
+
+    response = client.post('/api/join_meeting', json={'url': 'invalid_url'})
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_join_meeting_missing_url(client):
+    response = client.post('/api/join_meeting', json={})
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'meeting_url' in data
+    assert data['meeting_url'] == ['This field may not be null.']
+
+@patch('requests.post')
+def test_generate_transcript_success(mock_post, client):
+    mock_response = Mock()
+    mock_response.status_code = 201
+    mock_response.json.return_value = {'transcript_id': 'test_transcript_id'}
+    mock_post.return_value = mock_response
+
+    response = client.post('/api/generate_transcript', json={'id': 'test_bot_id'})
+    
+    assert response.status_code == 201
+    data = json.loads(response.data)
+    assert 'transcript_id' in data
+
+@patch('requests.post')
+def test_generate_transcript_failure(mock_post, client):
+    mock_response = Mock()
+    mock_response.status_code = 400
+    mock_response.json.return_value = {'error': 'Invalid bot ID'}
+    mock_post.return_value = mock_response
+
+    response = client.post('/api/generate_transcript', json={'id': 'invalid_id'})
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+
+def test_generate_transcript_missing_id(client):
+    response = client.post('/api/generate_transcript', json={})
+    
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert 'error' in data
+    assert 'id' in data['error']
+
+@patch('requests.get')
+def test_analyze_interview_success(mock_requests_get, client):
+        # Mock the requests.get responses
+    mock_transcript_response = Mock()
+    mock_transcript_response.status_code = 200
+    mock_transcript_response.json.return_value = {"transcript": "This is a test transcript"}
+    
+    mock_intelligence_response = Mock()
+    mock_intelligence_response.status_code = 200
+    mock_intelligence_response.json.return_value = {
+        "assembly_ai.summary": "Test summary",
+        "assembly_ai.iab_categories_result": {
+            "summary": {
+                "topic1": 0.9,
+                "topic2": 0.8,
+                "topic3": 0.7,
+                "topic4": 0.6,
+                "topic5": 0.5,
+                "topic6": 0.4
+            }
+        },
+        "assembly_ai.sentiment_analysis_results": [
+            {"sentiment": "positive", "confidence": 0.8}
+        ]
+    }
+    
+    mock_requests_get.side_effect = [mock_transcript_response, mock_intelligence_response]
+    
+    # Make the request
+    response = client.post('/api/analyze_interview', json={'id': 'test_bot_id'})
+    
+    # Assert the response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert "summary" in data
+    assert "topics" in data
+    assert len(data["topics"]) == 5
+    assert "sentiment_analysis" in data
+    assert "transcript" in data
+
+@patch('server.src.utils.get_recall_headers')
+def test_analyze_interview_header_error(mock_get_recall_headers, client):
+    # Mock the get_recall_headers function to return an error
+    mock_get_recall_headers.return_value = {"error": "Failed to get headers"}
+    
+    # Make the request
+    response = client.post('/api/analyze_interview', json={'id': 'test_bot_id'})
+    
+    # Assert the response
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert "error" in data
+
+@patch('requests.get')
+def test_analyze_interview_api_error(mock_requests_get, client):
+    # Mock a failed response
+    mock_response = Mock()
+    mock_response.status_code = 404
+    mock_response.text = "Not Found"
+    mock_requests_get.return_value = mock_response
+
+    response = client.post('/api/analyze_interview', json={'id': 'test_bot_id'})
+    
+    assert response.status_code == 500
+    data = json.loads(response.data)
+    assert "error" in data
+    assert "API request failed with status code 404" in data["error"]
+    assert "details" in data
+    assert data["details"] == "Not Found"
+
+@patch('requests.get')
+def test_analyze_interview_missing_data(mock_requests_get, client):
+    # TODO: Add handling for missing data and update this test to verify behavior
+    # Mock the requests.get responses with missing data
+    mock_transcript_response = Mock()
+    mock_transcript_response.status_code = 200
+    mock_transcript_response.json.return_value = {}
+    
+    mock_intelligence_response = Mock()
+    mock_intelligence_response.status_code = 200
+    mock_intelligence_response.json.return_value = {}
+    
+    mock_requests_get.side_effect = [mock_transcript_response, mock_intelligence_response]
+    
+    # Make the request
+    response = client.post('/api/analyze_interview', json={'id': 'test_bot_id'})
+    
+    # Assert the response
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["summary"] == ""
+    assert data["topics"] == {}
+    assert data["sentiment_analysis"] == []
+    assert data["transcript"] == {}
