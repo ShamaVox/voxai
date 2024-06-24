@@ -1,5 +1,5 @@
 from .app import app as app
-from .constants import AWS_CREDENTIAL_FILEPATH
+from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE
 from .database import Interview
 from .utils import get_recall_headers
 # from .routes import handle_auth_token, valid_token_response
@@ -271,6 +271,24 @@ def analyze_interview():
 
     transcript_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/transcript', headers=headers)
     intelligence_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/intelligence', headers=headers)
+
+    transcript_response.raise_for_status()
+    intelligence_response.raise_for_status()
+
+    intelligence_data = intelligence_response.json()
+
+    summary = intelligence_data.get("assembly_ai.summary", "")
+    topics = intelligence_data.get("assembly_ai.iab_categories_result", {}).get("summary", {})
+    top_5_topics = dict(sorted(topics.items(), key=lambda x: x[1], reverse=True)[:5])
+    sentiment_analysis = intelligence_data.get("assembly_ai.sentiment_analysis_results", [])
+
+    return jsonify({
+        "summary": summary,
+        "topics": top_5_topics,
+        "sentiment_analysis": sentiment_analysis,
+        "transcript": transcript_response.json(),
+        "debug_intelligence_response": intelligence_response.json() if DEBUG_RECALL_INTELLIGENCE else None 
+    }), 200
 
     return jsonify({"transcript_response": transcript_response.json(), "intelligence_response": intelligence_response.json()}), 200
 

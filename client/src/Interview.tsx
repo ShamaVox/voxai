@@ -65,20 +65,7 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
       // TODO: make this code robust to not enough topics
 
       // Sort the topics array in descending order based on probability
-      const topics =
-        response.data["intelligence_response"][
-          "assembly_ai.iab_categories_result"
-        ]["summary"];
-      const topicsArray = Object.entries(topics);
-      const top5TopicsObject = Object.fromEntries(
-        topicsArray.sort((a: any, b: any) => b[1] - a[1]).slice(0, 5)
-      );
-
-      // Update the analysis results with the top 5 topics
-      setAnalysisResults({
-        ...response.data["intelligence_response"],
-        topics: top5TopicsObject,
-      });
+      setAnalysisResults(response.data);
     } catch (error) {
       console.log("Error fetching analysis:", error);
     }
@@ -107,21 +94,18 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
           {analysisResults && ( // Conditionally render analysis results
             <ScrollView style={{ height: 600 }}>
               <Text style={styles.subheading}>Summary</Text>
-              <Text>{analysisResults["assembly_ai.summary"]}</Text>
+              <Text>{analysisResults.summary}</Text>
               <Text style={styles.subheading}>Top 5 Topics</Text>
               {Object.entries(analysisResults.topics).map(
                 ([topic, probability], index) => (
                   <Text key={index}>
                     {index + 1}.{" "}
-                    {
-                      // Only display part of the topic after the last ">", and convert from CamelCase to regular spacing
-                      topic
-                        .split(">")
-                        .pop()
-                        .replace(/([A-Z])/g, " $1")
-                        .trim()
-                    }
-                    :
+                    {topic
+                      .split(">")
+                      .pop()
+                      .replace(/([A-Z])/g, " $1")
+                      .trim()}
+                    :{" "}
                     {typeof probability === "number"
                       ? probability.toFixed(4)
                       : " "}
@@ -135,19 +119,17 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
                 neutral sentiment,{" "}
                 <Text style={styles.negativeText}>negative sentiment</Text>
               </Text>
-              {analysisResults["assembly_ai.sentiment_analysis_results"].map(
-                (segment: any, index: number) => (
-                  <Text
-                    key={index}
-                    style={[
-                      segment.sentiment === "POSITIVE" && styles.positiveText,
-                      segment.sentiment === "NEGATIVE" && styles.negativeText,
-                    ]}
-                  >
-                    {segment.text}
-                  </Text>
-                )
-              )}
+              {analysisResults.sentiment_analysis.map((segment, index) => (
+                <Text
+                  key={index}
+                  style={[
+                    segment.sentiment === "POSITIVE" && styles.positiveText,
+                    segment.sentiment === "NEGATIVE" && styles.negativeText,
+                  ]}
+                >
+                  {segment.text}
+                </Text>
+              ))}
             </ScrollView>
           )}
         </View>
