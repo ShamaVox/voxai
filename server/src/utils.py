@@ -2,6 +2,7 @@ import random
 from datetime import date, timedelta
 import string
 import json
+from flask import jsonify
 from .constants import RECALL_CREDENTIAL_FILEPATH
 
 def get_random(max_value, negative=False):
@@ -83,3 +84,6 @@ def get_recall_headers():
         'content-type': 'application/json',
         'Authorization': f'Token {recall_api_key}'
     }
+
+def api_error_response(message, status_code):
+    return jsonify({"error": message}), status_code

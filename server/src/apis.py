@@ -1,9 +1,10 @@
 from .app import app as app
 from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE
 from .database import Interview, db
-from .utils import get_recall_headers
+from .utils import get_recall_headers, api_error_response
 # from .routes import handle_auth_token, valid_token_response
 from flask import request, jsonify
+from botocore.exceptions import BotoCoreError, ClientError
 import requests
 import hashlib
 import random
@@ -50,45 +51,35 @@ def preprocess(interview, audio=False, video=False):
         # Handle API error
         print(f"Preprocessing API error: {response.status_code}")
 
-def get_sentiment(url, video=False):
+def get_analysis(url, analysis_type, video=False):
     """
-    Calls the sentiment API.
+    Calls the sentiment or engagement API.
     Args:
         url: The audio or video URL to load the interview recording file from.
+        analysis_type: Either 'sentiment' or 'engagement'.
         video: Whether to process video (if true) or audio (if false).
     Returns:
-        A single sentiment score for the content at the URL.
+        A single score for the content at the URL.
     """
-    # Make a request to the sentiment API
-    # TODO: Replace test implementation with real API call
     with app.test_client() as client:
-        response = client.post('/test/sentiment', json={'url': url, 'video': video})
+        response = client.post(f'/test/{analysis_type}', json={'url': url, 'video': video})
     if response.status_code == 200:
-        return response.json['sentiment_score']
+        return response.json[f'{analysis_type}_score']
     else:
-        # Handle API error
-        print(f"Sentiment API error: {response.status_code}")
+        print(f"{analysis_type.capitalize()} API error: {response.status_code}")
         return None
+
+def get_sentiment(url, video=False):
+    """
+    Calls get_analysis with analysis_type="sentiment". 
+    """
+    return get_analysis(url, "sentiment", video)
 
 def get_engagement(url, video=False):
     """
-    Calls the engagement API.
-    Args:
-        url: The audio or video URL to load the interview recording file from.
-        video: Whether to process video (if true) or audio (if false).
-    Returns:
-        A single sentiment score for the content at the URL.
+    Calls get_analysis with analysis_type="engagement". 
     """
-    # Make a request to the engagement API
-    # TODO: Replace test implementation with real API call
-    with app.test_client() as client:
-        response = client.post('/test/engagement', json={'url': url, 'video': video})
-    if response.status_code == 200:
-        return response.json['engagement_score']
-    else:
-        # Handle API error
-        print(f"Engagement API error: {response.status_code}")
-        return None
+    return get_analysis(url, "engagement", video)
 
 
 # Temporary implementations of APIs
@@ -103,26 +94,29 @@ def preprocess_media():
     video_url = request.json.get('video_url')
     
     if not audio_url and not video_url:
-        return jsonify({"error": "No URL provided"}), 400
+        return api_error_response("No URL provided", 400)
     if (audio_url and "s3://" not in audio_url) or (video_url and "s3://" not in video_url):
-        return jsonify({"error": "Invalid URL provided"}), 400
+        return api_error_response("Invalid URL provided", 400)
     
     data = {}
     
     def download_and_reupload_file(input_url, output_key):
         """Download a file from input_url and re-upload it to a new S3 key."""
-        bucket_name = input_url.split('/')[2]
-        input_key = input_url.split('/')[-1]
-        
-        # Download the original file
-        file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
-        
-        # Upload to the new location
-        # TODO: Don't wait for this upload to finish
-        s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
-        
-        # Return the new S3 URL
-        return f's3://{S3_BUCKET_NAME}/{output_key}'
+        try:
+            bucket_name = input_url.split('/')[2]
+            input_key = input_url.split('/')[-1]
+            
+            # Download the original file
+            file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
+            
+            # Upload to the new location
+            s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
+            
+            # Return the new S3 URL
+            return f's3://{S3_BUCKET_NAME}/{output_key}'
+        except (BotoCoreError, ClientError) as e:
+            print(f"Error in S3 operation: {str(e)}")
+            return None
     
     if audio_url:
         audio_output_key = 'file_example_MP3_700KB.mp3'
@@ -131,6 +125,9 @@ def preprocess_media():
     if video_url:
         video_output_key = 'file_example_MP4_480_1_5MG.mp4'
         data['video_url_preprocessed'] = download_and_reupload_file(video_url, video_output_key)
+
+    if (audio_url and data['audio_url_preprocessed'] is None) or (video_url and data['video_url_preprocessed'] is None):
+        return api_error_response("Invalid S3 file", 500)
     
     return jsonify(data), 200
 
@@ -146,7 +143,7 @@ def calculate_sentiment():
     if url.startswith("s3://"):
         s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=url.split("/")[-1]) 
     else:
-        return jsonify({"error": "Invalid URL"}), 400
+        return api_error_response("Invalid URL", 400)
     # (Temporary) Return a random number based on hashing the URL
     return jsonify({"sentiment_score": int(hashlib.sha256(url.encode()).hexdigest(), 16) % 100}), 200
 
@@ -162,7 +159,7 @@ def calculate_engagement():
     if url.startswith("s3://"):
         s3_client.get_object(Bucket=S3_BUCKET_NAME, Key=url.split("/")[-1]) 
     else:
-        return jsonify({"error": "Invalid URL"}), 400
+        return api_error_response("Invalid URL", 400)
     # (Temporary) Return a random number based on hashing the URL (in a different way than sentiment)
     return jsonify({"engagement_score": int(hashlib.md5(url.encode()).hexdigest(), 16) % 100}), 200
 
@@ -172,7 +169,7 @@ def join_meeting():
     url = request.json.get('url')
     headers = get_recall_headers()
     if "error" in headers: 
-        return jsonify({"error": headers["error"]}), 500
+        return api_error_response(headers["error"], 500)
     
     data = {
         'meeting_url': url,
@@ -198,11 +195,11 @@ def generate_transcript():
     """Generates a transcript from a meeting recorded by the bot account."""
     bot_id = request.json.get('id')
     if not bot_id:
-        return jsonify({"error": "Missing required field: id"}), 400
+        return api_error_response("Missing required field: id", 400)
 
     headers = get_recall_headers()
     if "error" in headers: 
-        return jsonify({"error": headers["error"]}), 500
+        return api_error_response(headers["error"], 500)
 
     data = {
         'assemblyai_async_transcription': {
@@ -267,13 +264,13 @@ def analyze_interview():
 
     headers = get_recall_headers()
     if "error" in headers: 
-        return jsonify({"error": headers["error"]}), 500
+        return api_error_response(headers["error"], 500)
 
     bot_id = request.json.get('id')
 
     interview = Interview.query.filter_by(recall_id=bot_id).first()
     if not interview:
-        return jsonify({"error": "Interview not found"}), 404 
+        return api_error_response("Interview not found", 404)
 
     transcript_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/transcript', headers=headers)
     intelligence_response = requests.get('https://us-west-2.recall.ai/api/v1/bot/' + bot_id + '/intelligence', headers=headers)

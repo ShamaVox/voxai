@@ -10,6 +10,7 @@ from unittest.mock import patch, Mock
 import requests
 import boto3
 from datetime import datetime as datetime
+from botocore.exceptions import BotoCoreError
 
 @pytest.fixture
 def client():
@@ -19,13 +20,18 @@ def client():
 
 @pytest.fixture
 def sample_data(client):
+    # TODO: wipe previous database
     with flask_app.app_context():
+        db.drop_all()
+        db.create_all()
         # Generate synthetic data
         create_synthetic_data(10,1)
         
         # Get the first interview
-        interview = Interview.query.first()
-        interview.recall_id = 'test_bot_id'
+        interview = Interview.query.filter_by(recall_id='test_bot_id').first()
+        if interview is None:
+            interview = Interview.query.first()
+            interview.recall_id = 'test_bot_id'
         db.session.commit()
 
         return interview
