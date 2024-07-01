@@ -299,6 +299,10 @@ def analyze_interview():
     # TODO: Verify auth privileges for user making this request
     if interview:
         interview.summary = summary
+        interview.keywords = list(top_5_topics.keys())
+
+        # Process and save TranscriptLines
+        process_transcript_lines(interview.interview_id, intelligence_data, transcript_data)
         db.session.commit()
 
     return jsonify({
@@ -311,3 +315,82 @@ def analyze_interview():
 
     return jsonify({"transcript_response": transcript_response.json(), "intelligence_response": intelligence_response.json()}), 200
 
+def process_transcript_lines(interview_id, intelligence_data, transcript_data):
+    # Create a dictionary to store labels for each time range
+    label_dict = {}
+    for result in intelligence_data['assembly_ai.iab_categories_result']['results']:
+        start = result['timestamp']['start']
+        end = result['timestamp']['end']
+        labels = [f"{label['label']}:{label['relevance']}" for label in result['labels']]
+        label_dict[(start, end)] = labels
+
+    # Process each utterance from the transcript
+    utterances = intelligence_data.get("assembly_ai.iab_categories_result", {}).get("sentiment_analysis_results", {})
+    for utterance in utterances:
+        # Find matching labels
+        matching_labels = []
+        for (start, end), labels in label_dict.items():
+            if utterance['start'] >= start and utterance['end'] <= end:
+                matching_labels = labels
+                break
+
+        # Find matching sentiment analysis
+        matching_sentiment = next((s for s in intelligence_data['assembly_ai.iab_categories_result']['sentiment_analysis_results']
+                                   if s['start'] <= utterance['start'] and s['end'] >= utterance['end']), None)
+
+        # Create or update TranscriptLine
+        transcript_line = TranscriptLine.query.filter_by(
+            interview_id=interview_id,
+            start=utterance['start'],
+            end=utterance['end']
+        ).first()
+
+        if transcript_line:
+            # Update existing TranscriptLine
+            transcript_line.text = utterance['text']
+            transcript_line.confidence = utterance['confidence']
+            transcript_line.speaker = utterance['speaker']
+            transcript_line.labels = json.dumps(matching_labels)
+            transcript_line.sentiment = matching_sentiment['sentiment'] if matching_sentiment else None
+        else:
+            # Create new TranscriptLine
+            transcript_line = TranscriptLine(
+                interview_id=interview_id,
+                text=utterance['text'],
+                start=utterance['start'],
+                end=utterance['end'],
+                confidence=utterance['confidence'],
+                speaker=utterance['speaker'],
+                labels=json.dumps(matching_labels),
+                sentiment=matching_sentiment['sentiment'] if matching_sentiment else None
+            )
+            db.session.add(transcript_line)
+
+    # Calculate and update interview metrics
+    update_interview_metrics(interview_id)
+
+def update_interview_metrics(interview_id):
+    # Calculate total duration
+    duration = db.session.query(func.max(TranscriptLine.end) - func.min(TranscriptLine.start)).filter_by(interview_id=interview_id).scalar()
+
+    # Calculate speaking time and word count
+    speaking_time = db.session.query(func.sum(TranscriptLine.end - TranscriptLine.start)).filter_by(interview_id=interview_id).scalar()
+    word_count = db.session.query(func.sum(func.array_length(func.string_to_array(TranscriptLine.text, ' '), 1))).filter_by(interview_id=interview_id).scalar()
+
+    # Calculate WPM
+    wpm = int((word_count / (speaking_time / 60)) if speaking_time > 0 else 0)
+
+    # Calculate overall sentiment
+    sentiments = db.session.query(TranscriptLine.sentiment).filter_by(interview_id=interview_id).all()
+    sentiment_scores = {'POSITIVE': 1, 'NEUTRAL': 0, 'NEGATIVE': -1}
+    overall_sentiment = sum(sentiment_scores.get(s[0], 0) for s in sentiments if s[0]) / len(sentiments) if sentiments else 0
+
+    # Update Interview object
+    interview = Interview.query.get(interview_id)
+    if interview:
+        interview.duration = duration
+        interview.speaking_time = speaking_time
+        interview.wpm = wpm
+        interview.sentiment = int((overall_sentiment + 1) * 50)  # Convert to 0-100 scale
+
+    db.session.commit()

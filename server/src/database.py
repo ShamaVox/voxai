@@ -138,9 +138,28 @@ class Interview(db.Model):
     applications = db.relationship("Application", back_populates="interviews") # TODO: change to "application"
     candidate = db.relationship("Candidate", back_populates="interviews")
     interviewer_speaking_metrics = db.relationship("Account", secondary="interview_interviewer_speaking", back_populates="interviews")
+    transcript_lines = db.relationship('TranscriptLine', back_populates='interview', order_by='TranscriptLine.start')
 
     def __repr__(self):
         return f'<Interview {self.interview_id} - Application: {self.application_id}, Time: {self.interview_time}>'
+
+class TranscriptLine(db.Model):
+    __tablename__ = 'transcript_lines'
+    
+    id = Column(Integer, primary_key=True)
+    text = Column(Text)
+    start = Column(Integer)
+    end = Column(Integer)
+    confidence = Column(Float)
+    sentiment = Column(String)
+    speaker = Column(String)
+    labels = Column(Text)
+
+    # Relationships
+    interview = db.relationship('Interview', back_populates='transcript_lines')
+
+    def __repr__(self):
+        return f'<TranscriptLine {self.id} - Interview: {self.interview_id}, Start: {self.start}>'
 
 # Skill Scores
 interview_skill_score_table = db.Table(
