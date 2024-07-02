@@ -1,6 +1,7 @@
 from .app import app as app
 from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE
-from .database import Interview, db
+from .database import Interview, db, TranscriptLine
+from .queries import get_transcript_lines_in_order
 from .utils import get_recall_headers, api_error_response
 # from .routes import handle_auth_token, valid_token_response
 from flask import request, jsonify
@@ -11,6 +12,7 @@ import random
 import boto3 
 import json
 import os
+from sqlalchemy import func
 
 # Configure S3 settings and create an S3 client
 S3_BUCKET_NAME = 'voxai-test-audio-video'
@@ -302,7 +304,7 @@ def analyze_interview():
         interview.keywords = list(top_5_topics.keys())
 
         # Process and save TranscriptLines
-        process_transcript_lines(interview.interview_id, intelligence_data, transcript_data)
+        process_transcript_lines(interview.interview_id, intelligence_data)
         db.session.commit()
 
     return jsonify({
@@ -315,7 +317,36 @@ def analyze_interview():
 
     return jsonify({"transcript_response": transcript_response.json(), "intelligence_response": intelligence_response.json()}), 200
 
-def process_transcript_lines(interview_id, intelligence_data, transcript_data):
+
+@app.route('/api/interviews/<int:interview_id>/transcript', methods=['GET'])
+def get_interview_transcript(interview_id):
+    """Gets the transcript for a given interview."""
+    # Check if the interview exists
+    interview = Interview.query.get(interview_id)
+    if not interview:
+        return jsonify({"error": "Interview not found"}), 404
+
+    # Retrieve all transcript lines for this interview using the existing function
+    transcript_lines = get_transcript_lines_in_order(interview_id)
+
+    # Serialize the transcript lines
+    transcript_data = []
+    for line in transcript_lines:
+        transcript_data.append({
+            "id": line.id,
+            "text": line.text,
+            "start": line.start,
+            "end": line.end,
+            "confidence": line.confidence,
+            "sentiment": line.sentiment,
+            "engagement": line.engagement,
+            "speaker": line.speaker,
+            "labels": line.labels
+        })
+
+    return jsonify(transcript_data), 200
+
+def process_transcript_lines(interview_id, intelligence_data):
     # Create a dictionary to store labels for each time range
     label_dict = {}
     for result in intelligence_data['assembly_ai.iab_categories_result']['results']:
@@ -378,7 +409,7 @@ def update_interview_metrics(interview_id):
     word_count = db.session.query(func.sum(func.array_length(func.string_to_array(TranscriptLine.text, ' '), 1))).filter_by(interview_id=interview_id).scalar()
 
     # Calculate WPM
-    wpm = int((word_count / (speaking_time / 60)) if speaking_time > 0 else 0)
+    wpm = int((word_count / (speaking_time / 60)) if speaking_time is not None and speaking_time > 0 else 0)
 
     # Calculate overall sentiment
     sentiments = db.session.query(TranscriptLine.sentiment).filter_by(interview_id=interview_id).all()
@@ -394,3 +425,110 @@ def update_interview_metrics(interview_id):
         interview.sentiment = int((overall_sentiment + 1) * 50)  # Convert to 0-100 scale
 
     db.session.commit()
+
+@app.route('/api/transcript_lines', methods=['POST'])
+def create_transcript_line():
+    data = request.json
+    
+    # Validate input
+    required_fields = ['interview_id', 'text', 'start', 'end', 'confidence', 'sentiment', 'engagement', 'speaker', 'labels']
+    if not all(field in data for field in required_fields):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    try:
+        new_line = TranscriptLine(
+            interview_id=data['interview_id'],
+            text=data['text'],
+            start=float(data['start']),
+            end=float(data['end']),
+            confidence=float(data['confidence']),
+            sentiment=data['sentiment'],
+            engagement=data['engagement'],
+            speaker=data['speaker'],
+            labels=data['labels']
+        )
+        
+        # Additional validations
+        if not (0 <= new_line.confidence <= 1):
+            return jsonify({"error": "Confidence must be between 0 and 1"}), 400
+        
+        if new_line.sentiment not in ['positive', 'negative', 'neutral', 'very positive', 'very negative']:
+            return jsonify({"error": "Invalid sentiment value"}), 400
+        
+        if new_line.engagement not in ['low', 'medium', 'high']:
+            return jsonify({"error": "Invalid engagement value"}), 400
+        
+        db.session.add(new_line)
+        db.session.commit()
+        
+        return jsonify({
+            "id": new_line.id,
+            "text": new_line.text,
+            "start": new_line.start,
+            "end": new_line.end,
+            "confidence": new_line.confidence,
+            "sentiment": new_line.sentiment,
+            "engagement": new_line.engagement,
+            "speaker": new_line.speaker,
+            "labels": new_line.labels
+        }), 201
+    except ValueError:
+        return jsonify({"error": "Invalid data types provided"}), 400
+
+@app.route('/api/transcript_lines/<int:line_id>', methods=['PUT'])
+def update_transcript_line(line_id):
+    line = TranscriptLine.query.get(line_id)
+    if not line:
+        return jsonify({"error": "Transcript line not found"}), 404
+    
+    data = request.json
+    
+    try:
+        if 'text' in data:
+            line.text = data['text']
+        if 'start' in data:
+            line.start = float(data['start'])
+        if 'end' in data:
+            line.end = float(data['end'])
+        if 'confidence' in data:
+            line.confidence = float(data['confidence'])
+        if 'sentiment' in data:
+            line.sentiment = data['sentiment']
+        if 'engagement' in data:
+            line.engagement = data['engagement']
+        if 'speaker' in data:
+            line.speaker = data['speaker']
+        if 'labels' in data:
+            line.labels = data['labels']
+        
+        db.session.commit()
+        
+        return jsonify({
+            "id": line.id,
+            "text": line.text,
+            "start": line.start,
+            "end": line.end,
+            "confidence": line.confidence,
+            "sentiment": line.sentiment,
+            "engagement": line.engagement,
+            "speaker": line.speaker,
+            "labels": line.labels
+        }), 200
+    except ValueError:
+        return jsonify({"error": "Invalid data types provided"}), 400
+
+@app.route('/api/transcript_lines/<int:line_id>', methods=['DELETE'])
+def delete_transcript_line(line_id):
+    line = TranscriptLine.query.get(line_id)
+    if not line:
+        return jsonify({"error": "Transcript line not found"}), 404
+    
+    db.session.delete(line)
+    db.session.commit()
+    
+    return '', 204
+
+# Error handling for methods not allowed
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": "Method not allowed"}), 405

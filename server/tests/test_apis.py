@@ -2,7 +2,7 @@ import pytest
 from flask import json
 from server.src import input_validation, verification, database
 from server.app import app as flask_app
-from server.src.database import db, Interview
+from server.src.database import db, Interview, TranscriptLine
 from server.src.apis import preprocess, get_sentiment, get_engagement
 import server.src.utils 
 from .utils.synthetic_data import create_synthetic_data
@@ -19,8 +19,7 @@ def client():
         yield client
 
 @pytest.fixture
-def sample_data(client):
-    # TODO: wipe previous database
+def sample_data():
     with flask_app.app_context():
         db.drop_all()
         db.create_all()
@@ -34,7 +33,39 @@ def sample_data(client):
             interview.recall_id = 'test_bot_id'
         db.session.commit()
 
-        return interview
+        # Return the interview
+        return interview.interview_id
+
+@pytest.fixture
+def sample_transcript(sample_data):
+    with flask_app.app_context():
+        transcript_lines = [
+            TranscriptLine(
+                interview_id=sample_data,
+                text="Hello, how are you?",
+                start=0,
+                end=3000,
+                confidence=0.95,
+                sentiment="positive",
+                engagement="high",
+                speaker="interviewer",
+                labels="greeting"
+            ),
+            TranscriptLine(
+                interview_id=sample_data,
+                text="I'm doing well, thank you.",
+                start=3500,
+                end=6000,
+                confidence=0.98,
+                sentiment="positive",
+                engagement="medium",
+                speaker="candidate",
+                labels="response"
+            )
+        ]
+        db.session.add_all(transcript_lines)
+        db.session.commit()
+        return [line.id for line in transcript_lines]
 
 @patch('requests.post')  # Mock external API calls
 def test_preprocess(mock_post):
@@ -219,11 +250,28 @@ def test_generate_transcript_missing_id(client):
     assert 'id' in data['error']
 
 @patch('requests.get')
-def test_analyze_interview_success(mock_requests_get, client, sample_data):
+def test_analyze_interview_success(mock_requests_get, client, sample_data, sample_transcript):
     # Mock the responses
     mock_transcript_response = Mock()
     mock_transcript_response.status_code = 200
-    mock_transcript_response.json.return_value = {"transcript": "This is a test transcript"}
+    mock_transcript_response.json.return_value = {
+        "transcript": [
+            {
+                "text": "Hello, how are you?",
+                "start": 0,
+                "end": 3000,
+                "confidence": 0.95,
+                "speaker": "interviewer"
+            },
+            {
+                "text": "I'm doing well, thank you.",
+                "start": 3500,
+                "end": 6000,
+                "confidence": 0.98,
+                "speaker": "candidate"
+            }
+        ]
+    }
 
     mock_intelligence_response = Mock()
     mock_intelligence_response.status_code = 200
@@ -255,12 +303,20 @@ def test_analyze_interview_success(mock_requests_get, client, sample_data):
     assert len(data["topics"]) == 5
     assert "sentiment_analysis" in data
     assert "transcript" in data
+    assert len(data["transcript"]["transcript"]) == 2
 
     # Check that the interview record was updated in the database
     with flask_app.app_context():
         updated_interview = Interview.query.filter_by(recall_id='test_bot_id').first()
         assert updated_interview is not None
         assert updated_interview.summary == "This is a test summary"
+        assert set(updated_interview.keywords) == set(["topic1", "topic2", "topic3", "topic4", "topic5"])
+
+        # Check that TranscriptLines were updated
+        transcript_lines = TranscriptLine.query.filter_by(interview_id=updated_interview.interview_id).all()
+        assert len(transcript_lines) == 2
+        assert transcript_lines[0].text == "Hello, how are you?"
+        assert transcript_lines[1].text == "I'm doing well, thank you."
 
 @patch('server.src.utils.get_recall_headers')
 def test_analyze_interview_header_error(mock_get_recall_headers, client):
@@ -293,8 +349,7 @@ def test_analyze_interview_api_error(mock_requests_get, client):
     assert data["details"] == "Not Found"
 
 @patch('requests.get')
-def test_analyze_interview_missing_data(mock_requests_get, client):
-    # TODO: Add handling for missing data and update this test to verify behavior
+def test_analyze_interview_missing_data(mock_requests_get, client, sample_data):
     # Mock the requests.get responses with missing data
     mock_transcript_response = Mock()
     mock_transcript_response.status_code = 200
@@ -322,6 +377,11 @@ def test_analyze_interview_missing_data(mock_requests_get, client):
         updated_interview = Interview.query.filter_by(recall_id='test_bot_id').first()
         assert updated_interview is not None
         assert updated_interview.summary is None or updated_interview.summary == ""
+        assert updated_interview.keywords is None or updated_interview.keywords == []
+
+        # Check that no new TranscriptLines were added
+        transcript_lines = TranscriptLine.query.filter_by(interview_id=updated_interview.interview_id).all()
+        assert len(transcript_lines) == 0
 
 def test_analyze_interview_nonexistent_id(client):
     response = client.post('/api/analyze_interview', json={'id': 'nonexistent_id'})
@@ -330,3 +390,101 @@ def test_analyze_interview_nonexistent_id(client):
     data = json.loads(response.data)
     assert "error" in data
     assert "Interview not found" in data["error"]
+
+def test_create_transcript_line(client, sample_data):
+    new_line = {
+        "interview_id": sample_data,
+        "text": "This is a test line.",
+        "start": 6500,
+        "end": 9000,
+        "confidence": 0.92,
+        "sentiment": "neutral",
+        "engagement": "medium",
+        "speaker": "interviewer",
+        "labels": "question"
+    }
+    
+    response = client.post('/api/transcript_lines', json=new_line)
+    assert response.status_code == 201
+    data = json.loads(response.data)
+    assert "id" in data
+    assert data["text"] == "This is a test line."
+
+def test_get_transcript_lines(client, sample_data, sample_transcript):
+    response = client.get(f'/api/interviews/{sample_data}/transcript')
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert len(data) == 2
+    assert data[0]["text"] == "Hello, how are you?"
+    assert data[1]["text"] == "I'm doing well, thank you."
+    
+    # Additional assertions to check the structure of the response
+    assert "id" in data[0]
+    assert "start" in data[0]
+    assert "end" in data[0]
+    assert "confidence" in data[0]
+    assert "sentiment" in data[0]
+    assert "engagement" in data[0]
+    assert "speaker" in data[0]
+    assert "labels" in data[0]
+
+def test_update_transcript_line(client, sample_transcript):
+    line_id = sample_transcript[0]
+    updated_data = {
+        "text": "Updated text",
+        "sentiment": "very positive"
+    }
+    
+    response = client.put(f'/api/transcript_lines/{line_id}', json=updated_data)
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data["text"] == "Updated text"
+    assert data["sentiment"] == "very positive"
+
+def test_delete_transcript_line(client, sample_transcript):
+    line_id = sample_transcript[0]
+    
+    response = client.delete(f'/api/transcript_lines/{line_id}')
+    assert response.status_code == 204
+
+    # Verify the line has been deleted
+    with flask_app.app_context():
+        deleted_line = TranscriptLine.query.get(line_id)
+        assert deleted_line is None
+
+def test_get_nonexistent_transcript(client):
+    response = client.get('/api/interviews/9999/transcript')
+    assert response.status_code == 404
+
+def test_get_transcript_nonexistent_interview(client):
+    response = client.get('/api/interviews/99999/transcript')
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert "error" in data
+    assert data["error"] == "Interview not found"
+
+def test_create_invalid_transcript_line(client, sample_data):
+    invalid_line = {
+        "interview_id": sample_data,
+        "text": "Invalid line",
+        "start": "not a number",  # Invalid start time
+        "end": 3000,
+        "confidence": 1.5,  # Invalid confidence (should be between 0 and 1)
+        "sentiment": "invalid_sentiment",
+        "engagement": "super high",  # Invalid engagement level
+        "speaker": "interviewer",
+        "labels": ["label1", "label2"]  # Invalid labels format (should be a string)
+    }
+    
+    response = client.post('/api/transcript_lines', json=invalid_line)
+    assert response.status_code == 400
+    data = json.loads(response.data)
+    assert "error" in data
+
+def test_update_nonexistent_transcript_line(client):
+    response = client.put('/api/transcript_lines/9999', json={"text": "Updated text"})
+    assert response.status_code == 404
+
+def test_delete_nonexistent_transcript_line(client):
+    response = client.delete('/api/transcript_lines/9999')
+    assert response.status_code == 404

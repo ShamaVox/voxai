@@ -199,5 +199,5 @@ def get_account_interviews(account_id, interviewer=True):
 
     return interview_data
 
-def get_transcript_lines_in_order():
-    return TranscriptLine.query.filter_by(interview_id=some_interview_id).order_by(TranscriptLine.start).all()
+def get_transcript_lines_in_order(interview_id):
+    return TranscriptLine.query.filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()

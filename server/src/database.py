@@ -146,14 +146,16 @@ class Interview(db.Model):
 class TranscriptLine(db.Model):
     __tablename__ = 'transcript_lines'
     
-    id = Column(Integer, primary_key=True)
-    text = Column(Text)
-    start = Column(Integer)
-    end = Column(Integer)
-    confidence = Column(Float)
-    sentiment = Column(String)
-    speaker = Column(String)
-    labels = Column(Text)
+    id = db.Column(db.Integer, primary_key=True)
+    interview_id = db.Column(db.Integer, db.ForeignKey('interview.interview_id'), nullable=False)
+    text = db.Column(db.Text)
+    start = db.Column(db.Integer)
+    end = db.Column(db.Integer)
+    confidence = db.Column(db.Float)
+    sentiment = db.Column(db.String)
+    engagement = db.Column(db.String)
+    speaker = db.Column(db.String)
+    labels = db.Column(db.Text)
 
     # Relationships
     interview = db.relationship('Interview', back_populates='transcript_lines')
