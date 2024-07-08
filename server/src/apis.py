@@ -545,12 +545,7 @@ def delete_transcript_line(line_id):
     
     return '', 204
 
-# Error handling for methods not allowed
-@app.errorhandler(405)
-def method_not_allowed(e):
-    return jsonify({"error": "Method not allowed"}), 405
-
-@app.route('/api/bot/<string:bot_id>', methods=['GET'])
+@app.route('/api/save_recording/<string:bot_id>', methods=['GET'])
 def save_recording(bot_id):
     """Saves the recording from a specific bot."""
     headers = get_recall_headers()
@@ -579,3 +574,8 @@ def save_recording(bot_id):
         }), 200
     else:
         return api_error_response(f"Failed to retrieve bot information: {response.text}", response.status_code)
+
+# Error handling for methods not allowed
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify({"error": "Method not allowed"}), 405

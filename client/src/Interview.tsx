@@ -72,7 +72,7 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
   const saveRecording = async () => {
     try {
       const response = await axios.get(
-        SERVER_ENDPOINT("bot/" + updatedInterview.analysisId)
+        SERVER_ENDPOINT("save_recording/" + updatedInterview.analysisId)
       );
       console.log(response.data);
     } catch (error) {

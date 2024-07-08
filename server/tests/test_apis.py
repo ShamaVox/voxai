@@ -496,3 +496,55 @@ def test_update_nonexistent_transcript_line(client):
 def test_delete_nonexistent_transcript_line(client):
     response = client.delete('/api/transcript_lines/9999')
     assert response.status_code == 404
+
+@patch('requests.get')
+@patch('server.src.apis.download_and_reupload_file')
+def test_save_recording_success(mock_download, mock_requests_get, client, sample_data):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_response.json.return_value = {
+        'video_url': 'https://example.com/video.mp4',
+        'meeting_url': 'https://zoom.us/j/123456789'
+    }
+    mock_requests_get.return_value = mock_response
+    
+    mock_download.return_value = 's3://your-bucket/test_bot_id.mp4'
+
+    response = client.get('/api/save_recording/test_bot_id')
+    
+    assert response.status_code == 200
+    data = json.loads(response.data)
+    assert data['bot_id'] == 'test_bot_id'
+    assert data['meeting_url'] == 'https://zoom.us/j/123456789'
+    
+    mock_requests_get.assert_called_once()
+    mock_download.assert_called_once_with('https://example.com/video.mp4', 'test_bot_id.mp4')
+    
+    updated_interview = Interview.query.filter_by(recall_id='test_bot_id').first()
+    assert updated_interview.video_url == 'https://example.com/video.mp4'
+
+@patch('requests.get')
+def test_save_recording_api_error(mock_requests_get, client, sample_data):
+    mock_response = Mock()
+    mock_response.status_code = 404
+    mock_response.text = "Bot not found"
+    mock_requests_get.return_value = mock_response
+    
+    response = client.get('/api/save_recording/test_bot_id')
+    
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert "error" in data
+    assert "Failed to retrieve bot information: Bot not found" in data["error"]
+
+@patch('requests.get')
+def test_save_recording_interview_not_found(mock_requests_get, client, sample_data):
+    mock_response = Mock()
+    mock_response.status_code = 200
+    mock_requests_get.return_value = mock_response
+    response = client.get('/api/save_recording/nonexistent_bot_id')
+    
+    assert response.status_code == 404
+    data = json.loads(response.data)
+    assert "error" in data
+    assert data["error"] == "Interview not found"

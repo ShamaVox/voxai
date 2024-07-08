@@ -125,8 +125,8 @@ class Interview(db.Model):
     video_url_preprocessed = db.Column(db.String)
     recall_id = db.Column(db.String(36))
     score = db.Column(db.Integer)
-    engagement = db.Column(db.Integer)
-    sentiment = db.Column(db.Integer)
+    engagement = db.Column(db.Integer) # Summary score over the entire interview
+    sentiment = db.Column(db.Integer) # Summary score over the entire interview
     speaking_time = db.Column(db.Integer)
     wpm = db.Column(db.Integer)
     keywords = db.Column(db.ARRAY(db.String)) 
