@@ -457,7 +457,7 @@ def test_delete_transcript_line(client, sample_transcript):
 
     # Verify the line has been deleted
     with flask_app.app_context():
-        deleted_line = TranscriptLine.query.get(line_id)
+        deleted_line = db.session.get(TranscriptLine, line_id)
         assert deleted_line is None
 
 def test_get_nonexistent_transcript(client):

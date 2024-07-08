@@ -339,7 +339,7 @@ def analyze_interview():
 def get_interview_transcript(interview_id):
     """Gets the transcript for a given interview."""
     # Check if the interview exists
-    interview = Interview.query.get(interview_id)
+    interview = db.session.get(Interview, interview_id)
     if not interview:
         return jsonify({"error": "Interview not found"}), 404
 
@@ -434,7 +434,7 @@ def update_interview_metrics(interview_id):
     overall_sentiment = sum(sentiment_scores.get(s[0], 0) for s in sentiments if s[0]) / len(sentiments) if sentiments else 0
 
     # Update Interview object
-    interview = Interview.query.get(interview_id)
+    interview = db.session.get(Interview, interview_id)
     if interview:
         interview.duration = duration
         interview.speaking_time = speaking_time
@@ -494,7 +494,7 @@ def create_transcript_line():
 
 @app.route('/api/transcript_lines/<int:line_id>', methods=['PUT'])
 def update_transcript_line(line_id):
-    line = TranscriptLine.query.get(line_id)
+    line = db.session.get(TranscriptLine, line_id)
     if not line:
         return jsonify({"error": "Transcript line not found"}), 404
     
@@ -536,7 +536,7 @@ def update_transcript_line(line_id):
 
 @app.route('/api/transcript_lines/<int:line_id>', methods=['DELETE'])
 def delete_transcript_line(line_id):
-    line = TranscriptLine.query.get(line_id)
+    line = db.session.get(TranscriptLine, line_id)
     if not line:
         return jsonify({"error": "Transcript line not found"}), 404
     
