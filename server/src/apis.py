@@ -1,5 +1,5 @@
 from .app import app as app
-from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE
+from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE, DEBUG_RECALL_RECORDING_RETRIEVAL
 from .database import Interview, db, TranscriptLine
 from .queries import get_transcript_lines_in_order
 from .utils import get_recall_headers, api_error_response
@@ -83,6 +83,41 @@ def get_engagement(url, video=False):
     """
     return get_analysis(url, "engagement", video)
 
+import requests
+from urllib.parse import urlparse
+
+def download_and_reupload_file(input_url, output_key):
+    """Download a file from input_url (S3 or HTTP) and re-upload it to a new S3 key."""
+    try:
+        parsed_url = urlparse(input_url)
+        
+        if parsed_url.scheme in ['http', 'https']:
+            # Handle HTTP/HTTPS URL
+            response = requests.get(input_url)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            file_content = response.content
+        elif parsed_url.scheme == 's3':
+            # Handle S3 URL
+            bucket_name = parsed_url.netloc
+            input_key = parsed_url.path.lstrip('/')
+            file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
+        else:
+            raise ValueError(f"Unsupported URL scheme: {parsed_url.scheme}")
+        
+        # Upload to the new location
+        s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
+        
+        # Return the new S3 URL
+        return f's3://{S3_BUCKET_NAME}/{output_key}'
+    except (BotoCoreError, ClientError) as e:
+        print(f"Error in S3 operation: {str(e)}")
+        return None
+    except requests.RequestException as e:
+        print(f"Error downloading file from URL: {str(e)}")
+        return None
+    except ValueError as e:
+        print(str(e))
+        return None
 
 # Temporary implementations of APIs
 @app.route('/test/preprocess', methods=['POST'])
@@ -101,24 +136,6 @@ def preprocess_media():
         return api_error_response("Invalid URL provided", 400)
     
     data = {}
-    
-    def download_and_reupload_file(input_url, output_key):
-        """Download a file from input_url and re-upload it to a new S3 key."""
-        try:
-            bucket_name = input_url.split('/')[2]
-            input_key = input_url.split('/')[-1]
-            
-            # Download the original file
-            file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
-            
-            # Upload to the new location
-            s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
-            
-            # Return the new S3 URL
-            return f's3://{S3_BUCKET_NAME}/{output_key}'
-        except (BotoCoreError, ClientError) as e:
-            print(f"Error in S3 operation: {str(e)}")
-            return None
     
     if audio_url:
         audio_output_key = 'file_example_MP3_700KB.mp3'
@@ -532,3 +549,33 @@ def delete_transcript_line(line_id):
 @app.errorhandler(405)
 def method_not_allowed(e):
     return jsonify({"error": "Method not allowed"}), 405
+
+@app.route('/api/bot/<string:bot_id>', methods=['GET'])
+def save_recording(bot_id):
+    """Saves the recording from a specific bot."""
+    headers = get_recall_headers()
+    if "error" in headers:
+        return api_error_response(headers["error"], 500)
+
+    response = requests.get(f'https://us-west-2.recall.ai/api/v1/bot/{bot_id}/', headers=headers)
+
+    if response.status_code == 200:
+        interview = Interview.query.filter_by(recall_id=bot_id).first()
+        if not interview:
+            return api_error_response("Interview not found", 404)
+        data = response.json()
+        video_url = data.get('video_url')
+        download_and_reupload_file(video_url, bot_id + ".mp4")
+        meeting_url = data.get('meeting_url')
+
+        # Save video URL to database
+        interview.video_url = video_url
+        db.session.commit()
+
+        return jsonify({
+            "bot_id": bot_id,
+            "meeting_url": meeting_url,
+            "full_response": data if DEBUG_RECALL_RECORDING_RETRIEVAL else None 
+        }), 200
+    else:
+        return api_error_response(f"Failed to retrieve bot information: {response.text}", response.status_code)

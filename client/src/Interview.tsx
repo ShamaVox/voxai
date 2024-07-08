@@ -69,6 +69,20 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
   /**
    * Gets the analysis results for this interview.
    */
+  const saveRecording = async () => {
+    try {
+      const response = await axios.get(
+        SERVER_ENDPOINT("bot/" + updatedInterview.analysisId)
+      );
+      console.log(response.data);
+    } catch (error) {
+      console.log("Error fetching analysis:", error);
+    }
+  };
+
+  /**
+   * Gets the analysis results for this interview.
+   */
   const getAnalysisResults = async () => {
     try {
       const response = await axios.post(SERVER_ENDPOINT("analyze_interview"), {
@@ -100,6 +114,9 @@ const InterviewScreen: FC<{ route: InterviewScreenRouteProp }> = ({
       ) : (
         <View>
           <Text style={styles.heading}>Analysis</Text>
+          <Pressable onPress={saveRecording} style={styles.blueBackground}>
+            <Text>Save Recording</Text>
+          </Pressable>
           <Pressable onPress={getAnalysisResults} style={styles.blueBackground}>
             <Text>Get Analysis Results</Text>
           </Pressable>

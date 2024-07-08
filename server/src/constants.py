@@ -25,6 +25,9 @@ DEBUG_SYNTHETIC_DATA = False
 # Print debug data for recall intelligence API
 DEBUG_RECALL_INTELLIGENCE = True
 
+# Print debug data for recall upload API
+DEBUG_RECALL_RECORDING_RETRIEVAL = False
+
 # Whether to preprocess audio and video during synthetic data generation
 ENABLE_SYNTHETIC_PREPROCESSING = "pytest" not in sys.modules and 'TEST' not in os.environ
 
