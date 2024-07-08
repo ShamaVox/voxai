@@ -285,10 +285,11 @@ def test_analyze_interview_success(mock_requests_get, client, sample_data, sampl
                 "topic4": 0.6,
                 "topic5": 0.5,
                 "topic6": 0.4
-            }
+            },
+            "results": []  # Add this empty list to avoid KeyError
         },
         "assembly_ai.sentiment_analysis_results": [
-            {"sentiment": "positive", "confidence": 0.8}
+            {"sentiment": "positive", "confidence": 0.8, "text": "Sample text", "start": 0, "end": 1000}
         ]
     }
 
@@ -357,7 +358,14 @@ def test_analyze_interview_missing_data(mock_requests_get, client, sample_data):
     
     mock_intelligence_response = Mock()
     mock_intelligence_response.status_code = 200
-    mock_intelligence_response.json.return_value = {}
+    mock_intelligence_response.json.return_value = {
+        "assembly_ai.summary": "",
+        "assembly_ai.iab_categories_result": {
+            "summary": {},
+            "results": []
+        },
+        "assembly_ai.sentiment_analysis_results": []
+    }
     
     mock_requests_get.side_effect = [mock_transcript_response, mock_intelligence_response]
     
