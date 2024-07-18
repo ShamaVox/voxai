@@ -35,10 +35,12 @@ Concurrently: Install with npm install -g concurrently.
     cd voxai
 
 If this doesn't work, try cloning via ssh:
+
     ssh-keygen -t ed25519 -C <your email>
     git clone git@github.com:ShamaVox/voxai.git   
 
 After cloning, check out the dev branch:
+
     cd voxai    
     git checkout dev
 
