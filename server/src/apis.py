@@ -13,6 +13,11 @@ import boto3
 import json
 import os
 from sqlalchemy import func
+from collections import Counter
+import re
+from itertools import groupby
+from operator import attrgetter
+from collections import Counter
 
 # Configure S3 settings and create an S3 client
 S3_BUCKET_NAME = 'voxai-test-audio-video'
@@ -433,6 +438,15 @@ def update_interview_metrics(interview_id):
     sentiment_scores = {'POSITIVE': 1, 'NEUTRAL': 0, 'NEGATIVE': -1}
     overall_sentiment = sum(sentiment_scores.get(s[0], 0) for s in sentiments if s[0]) / len(sentiments) if sentiments else 0
 
+    transcript_lines = db.session.query(TranscriptLine).filter_by(interview_id=interview_id) # TODO: add an order_by here? 
+    engagement_json= {
+        #"interview_duration": calculated_duration,
+        #"conversation_silence_duration": calculated_silence,
+        "word_counts": count_all_words(transcript_lines),
+        "talk_duration_by_speaker": calculate_talk_duration(transcript_lines),
+        "speaking_rate_variations": calculate_speaking_rate_variations(transcript_lines)
+    }
+
     # Update Interview object
     interview = db.session.get(Interview, interview_id)
     if interview:
@@ -440,6 +454,7 @@ def update_interview_metrics(interview_id):
         interview.speaking_time = speaking_time
         interview.wpm = wpm
         interview.sentiment = int((overall_sentiment + 1) * 50)  # Convert to 0-100 scale
+        interview.engagement_json = engagement_json
 
     db.session.commit()
 
@@ -574,6 +589,69 @@ def save_recording(bot_id):
         }), 200
     else:
         return api_error_response(f"Failed to retrieve bot information: {response.text}", response.status_code)
+
+def calculate_talk_duration(transcript_lines):
+    durations = {}
+    
+    for speaker, group in groupby(transcript_lines, key=attrgetter('speaker')):
+        total_duration = sum((line.end - line.start) for line in group)
+        durations[speaker] = total_duration
+    
+    return durations
+
+def calculate_speaking_rate_variations(transcript_lines, window_size=60):
+    variations = []
+    
+    for line in transcript_lines:
+        words = len(line.text.split())
+        duration = (line.end - line.start) / 60  # Convert to minutes
+        wpm = words / duration if duration > 0 else 0
+        
+        variations.append({
+            "speaker": line.speaker,
+            "start_time": line.start,
+            "end_time": line.end,
+            "wpm": round(wpm, 2)
+        })
+    
+    return variations
+
+def calculate_engagement_metrics(interview_id):
+    transcript_lines = TranscriptLine.query.filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()
+    
+    if not transcript_lines:
+        return None
+    
+    interview_duration = transcript_lines[-1].end - transcript_lines[0].start
+    
+    # Calculate silence duration
+    total_talk_time = sum(line.end - line.start for line in transcript_lines)
+    silence_duration = interview_duration - total_talk_time
+    
+    engagement_json = {
+        "interview_duration": interview_duration,
+        "conversation_silence_duration": silence_duration,
+        "common_words_utterance_count": count_common_words(transcript_lines),
+        "talk_duration_by_speaker": calculate_talk_duration(transcript_lines),
+        "speaking_rate_variations": calculate_speaking_rate_variations(transcript_lines)
+    }
+    
+    return engagement_json
+
+def count_all_words(transcript_lines):
+    word_counter = Counter()
+    
+    for line in transcript_lines:
+        # Convert to lowercase and split into words
+        # This regex splits on any non-word character, effectively separating words and removing punctuation
+        words = re.findall(r'\w+', line.text.lower())
+        word_counter.update(words)
+    
+    # Convert to a regular dictionary and sort by count (descending)
+    word_count_dict = dict(word_counter)
+    sorted_word_count = dict(sorted(word_count_dict.items(), key=lambda item: item[1], reverse=True))
+    
+    return sorted_word_count
 
 # Error handling for methods not allowed
 @app.errorhandler(405)

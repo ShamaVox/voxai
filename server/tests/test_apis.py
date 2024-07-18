@@ -11,6 +11,12 @@ import requests
 import boto3
 from datetime import datetime as datetime
 from botocore.exceptions import BotoCoreError
+from server.src.apis import (
+    count_all_words,
+    calculate_talk_duration,
+    calculate_speaking_rate_variations,
+    calculate_engagement_metrics
+)
 
 @pytest.fixture
 def client():
@@ -66,6 +72,38 @@ def sample_transcript(sample_data):
         db.session.add_all(transcript_lines)
         db.session.commit()
         return [line.id for line in transcript_lines]
+
+@pytest.fixture
+def sample_transcript_lines():
+    return [
+        TranscriptLine(
+            interview_id=1,
+            text="Hello, how are you today?",
+            start=0,
+            end=3000,
+            confidence=0.95,
+            sentiment="positive",
+            speaker="interviewer"
+        ),
+        TranscriptLine(
+            interview_id=1,
+            text="I'm doing well, thank you for asking.",
+            start=3500,
+            end=7000,
+            confidence=0.98,
+            sentiment="positive",
+            speaker="candidate"
+        ),
+        TranscriptLine(
+            interview_id=1,
+            text="Great! Let's begin the interview.",
+            start=7500,
+            end=10000,
+            confidence=0.97,
+            sentiment="positive",
+            speaker="interviewer"
+        )
+    ]
 
 @patch('requests.post')  # Mock external API calls
 def test_preprocess(mock_post):
@@ -548,3 +586,97 @@ def test_save_recording_interview_not_found(mock_requests_get, client, sample_da
     data = json.loads(response.data)
     assert "error" in data
     assert data["error"] == "Interview not found"
+    
+def test_count_all_words(sample_transcript_lines):
+    word_count = count_all_words(sample_transcript_lines)
+    assert word_count == {
+        'hello': 1,
+        'how': 1,
+        'are': 1,
+        'you': 1,
+        'today': 1,
+        'im': 1,
+        'doing': 1,
+        'well': 1,
+        'thank': 1,
+        'for': 1,
+        'asking': 1,
+        'great': 1,
+        'lets': 1,
+        'begin': 1,
+        'the': 1,
+        'interview': 1
+    }
+
+def test_calculate_talk_duration(sample_transcript_lines):
+    durations = calculate_talk_duration(sample_transcript_lines)
+    assert durations == {
+        'interviewer': 5500,
+        'candidate': 3500
+    }
+
+def test_calculate_speaking_rate_variations(sample_transcript_lines):
+    variations = calculate_speaking_rate_variations(sample_transcript_lines)
+    assert len(variations) == 3
+    assert variations[0] == {
+        'speaker': 'interviewer',
+        'start_time': 0,
+        'end_time': 3000,
+        'wpm': 100.0
+    }
+    assert variations[1] == {
+        'speaker': 'candidate',
+        'start_time': 3500,
+        'end_time': 7000,
+        'wpm': 102.86
+    }
+    assert variations[2] == {
+        'speaker': 'interviewer',
+        'start_time': 7500,
+        'end_time': 10000,
+        'wpm': 96.0
+    }
+
+@pytest.fixture
+def mock_interview(sample_transcript_lines):
+    return Interview(
+        interview_id=1,
+        interview_time=datetime.utcnow(),
+        recall_id='test_bot_id'
+    )
+
+def test_calculate_engagement_metrics(mock_interview, sample_transcript_lines):
+    def mock_query_filter_by(*args, **kwargs):
+        class MockQuery:
+            def order_by(self, *args):
+                return sample_transcript_lines
+        return MockQuery()
+    
+    with mock.patch.object(TranscriptLine.query, 'filter_by', mock_query_filter_by):
+        engagement_metrics = calculate_engagement_metrics(mock_interview.interview_id)
+        
+        assert engagement_metrics['interview_duration'] == 10000
+        assert engagement_metrics['conversation_silence_duration'] == 1000
+        assert engagement_metrics['word_count'] == {
+            'hello': 1,
+            'how': 1,
+            'are': 1,
+            'you': 1,
+            'today': 1,
+            'im': 1,
+            'doing': 1,
+            'well': 1,
+            'thank': 1,
+            'for': 1,
+            'asking': 1,
+            'great': 1,
+            'lets': 1,
+            'begin': 1,
+            'the': 1,
+            'interview': 1
+        }
+        assert engagement_metrics['talk_duration_by_speaker'] == {
+            'interviewer': 5500,
+            'candidate': 3500
+        }
+        assert len(engagement_metrics['speaking_rate_variations']) == 3

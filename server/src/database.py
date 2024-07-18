@@ -23,7 +23,7 @@ if 'TEST' in environ:
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://ubuntu:voxai@localhost:5432/voxai_db_integration_test"
     print("Server using integration test database")
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://ubuntu:voxai@localhost:5432/voxai_db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://localhost:5432/voxai_db"
 db = SQLAlchemy(app)
 
 class Account(db.Model):
@@ -125,6 +125,7 @@ class Interview(db.Model):
     video_url_preprocessed = db.Column(db.String)
     recall_id = db.Column(db.String(36)) # Should be unique eventually, but duplicates can exist for now for testing
     score = db.Column(db.Integer)
+    engagement_json = db.Column(db.JSON)
     engagement = db.Column(db.Integer) # Summary score over the entire interview
     sentiment = db.Column(db.Integer) # Summary score over the entire interview
     speaking_time = db.Column(db.Integer)
@@ -153,6 +154,7 @@ class TranscriptLine(db.Model):
     end = db.Column(db.Integer)
     confidence = db.Column(db.Float)
     sentiment = db.Column(db.String)
+    # TODO: Remove engagement from TranscriptLine
     engagement = db.Column(db.String)
     speaker = db.Column(db.String)
     labels = db.Column(db.Text)
