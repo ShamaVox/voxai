@@ -8,3 +8,5 @@ botocore
 requests
 boto3
 faker
+mocker
+pytest-mock
