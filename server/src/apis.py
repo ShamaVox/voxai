@@ -431,7 +431,7 @@ def update_interview_metrics(interview_id):
     word_count = db.session.query(func.sum(func.array_length(func.string_to_array(TranscriptLine.text, ' '), 1))).filter_by(interview_id=interview_id).scalar()
 
     # Calculate WPM
-    wpm = int((word_count / (speaking_time / 60)) if speaking_time is not None and speaking_time > 0 else 0)
+    wpm = (word_count / (speaking_time / 60000) if speaking_time is not None and speaking_time > 0 else 0)
 
     # Calculate overall sentiment
     sentiments = db.session.query(TranscriptLine.sentiment).filter_by(interview_id=interview_id).all()
@@ -604,8 +604,8 @@ def calculate_speaking_rate_variations(transcript_lines, window_size=60):
     
     for line in transcript_lines:
         words = len(line.text.split())
-        duration = (line.end - line.start) / 60  # Convert to minutes
-        wpm = words / duration if duration > 0 else 0
+        duration = (line.end - line.start) / 60000  # Convert to minutes
+        wpm = words / (duration) if duration > 0 else 0
         
         variations.append({
             "speaker": line.speaker,
@@ -617,7 +617,8 @@ def calculate_speaking_rate_variations(transcript_lines, window_size=60):
     return variations
 
 def calculate_engagement_metrics(interview_id):
-    transcript_lines = TranscriptLine.query.filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()
+    with app.app_context():
+        transcript_lines = TranscriptLine.query.filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()
     
     if not transcript_lines:
         return None
@@ -631,7 +632,7 @@ def calculate_engagement_metrics(interview_id):
     engagement_json = {
         "interview_duration": interview_duration,
         "conversation_silence_duration": silence_duration,
-        "common_words_utterance_count": count_common_words(transcript_lines),
+        "word_count": count_all_words(transcript_lines),
         "talk_duration_by_speaker": calculate_talk_duration(transcript_lines),
         "speaking_rate_variations": calculate_speaking_rate_variations(transcript_lines)
     }
@@ -644,7 +645,7 @@ def count_all_words(transcript_lines):
     for line in transcript_lines:
         # Convert to lowercase and split into words
         # This regex splits on any non-word character, effectively separating words and removing punctuation
-        words = re.findall(r'\w+', line.text.lower())
+        words = re.findall(r"\b[a-z']+\b", line.text.lower())
         word_counter.update(words)
     
     # Convert to a regular dictionary and sort by count (descending)
