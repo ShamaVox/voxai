@@ -1,6 +1,7 @@
 from .app import app as app
 from .constants import AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE, DEBUG_RECALL_RECORDING_RETRIEVAL
 from .database import Interview, db, TranscriptLine
+from .transcripts import calculate_talk_duration, calculate_silence_by_speaker, calculate_speaking_rate_variations, calculate_engagement_metrics, count_all_words, count_words_by_speaker
 from .queries import get_transcript_lines_in_order
 from .utils import get_recall_headers, api_error_response
 # from .routes import handle_auth_token, valid_token_response
@@ -13,11 +14,7 @@ import boto3
 import json
 import os
 from sqlalchemy import func
-from collections import Counter
-import re
-from itertools import groupby
 from operator import attrgetter
-from collections import Counter
 
 # Configure S3 settings and create an S3 client
 S3_BUCKET_NAME = 'voxai-test-audio-video'
@@ -423,25 +420,42 @@ def process_transcript_lines(interview_id, intelligence_data):
     update_interview_metrics(interview_id)
 
 def update_interview_metrics(interview_id):
-    # Calculate total duration
-    duration = db.session.query(func.max(TranscriptLine.end) - func.min(TranscriptLine.start)).filter_by(interview_id=interview_id).scalar()
+    transcript_lines = db.session.query(TranscriptLine).filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()
+    
+    if not transcript_lines:
+        return
+
+    # 1. Interview duration
+    duration = transcript_lines[-1].end - transcript_lines[0].start
+
+    # 2. Word count by speaker and overall
+    word_count_by_speaker = count_words_by_speaker(transcript_lines)
+
+    word_count = count_all_words(transcript_lines)
+
+    # 3. Overall silence duration
+    total_speech_duration = sum(line.end - line.start for line in transcript_lines)
+    overall_silence_duration = duration - total_speech_duration
+
+    # 4. Silence duration by speaker
+    silence_duration_by_speaker = calculate_silence_by_speaker(transcript_lines)
 
     # Calculate speaking time and word count
-    speaking_time = db.session.query(func.sum(TranscriptLine.end - TranscriptLine.start)).filter_by(interview_id=interview_id).scalar()
-    word_count = db.session.query(func.sum(func.array_length(func.string_to_array(TranscriptLine.text, ' '), 1))).filter_by(interview_id=interview_id).scalar()
+    word_count = sum(word_count.values())
 
     # Calculate WPM
-    wpm = (word_count / (speaking_time / 60000) if speaking_time is not None and speaking_time > 0 else 0)
+    wpm = (word_count / (total_speech_duration / 60000) if total_speech_duration > 0 else 0)
 
     # Calculate overall sentiment
-    sentiments = db.session.query(TranscriptLine.sentiment).filter_by(interview_id=interview_id).all()
+    sentiments = [line.sentiment for line in transcript_lines if line.sentiment]
     sentiment_scores = {'POSITIVE': 1, 'NEUTRAL': 0, 'NEGATIVE': -1}
-    overall_sentiment = sum(sentiment_scores.get(s[0], 0) for s in sentiments if s[0]) / len(sentiments) if sentiments else 0
+    overall_sentiment = sum(sentiment_scores.get(s, 0) for s in sentiments) / len(sentiments) if sentiments else 0
 
-    transcript_lines = db.session.query(TranscriptLine).filter_by(interview_id=interview_id) # TODO: add an order_by here? 
-    engagement_json= {
-        #"interview_duration": calculated_duration,
-        #"conversation_silence_duration": calculated_silence,
+    engagement_json = {
+        "interview_duration": duration,
+        "word_count_by_speaker": word_count_by_speaker,
+        "overall_silence_duration": overall_silence_duration,
+        "silence_duration_by_speaker": silence_duration_by_speaker,
         "word_counts": count_all_words(transcript_lines),
         "talk_duration_by_speaker": calculate_talk_duration(transcript_lines),
         "speaking_rate_variations": calculate_speaking_rate_variations(transcript_lines)
@@ -451,7 +465,7 @@ def update_interview_metrics(interview_id):
     interview = db.session.get(Interview, interview_id)
     if interview:
         interview.duration = duration
-        interview.speaking_time = speaking_time
+        interview.speaking_time = total_speech_duration
         interview.wpm = wpm
         interview.sentiment = int((overall_sentiment + 1) * 50)  # Convert to 0-100 scale
         interview.engagement_json = engagement_json
@@ -589,70 +603,6 @@ def save_recording(bot_id):
         }), 200
     else:
         return api_error_response(f"Failed to retrieve bot information: {response.text}", response.status_code)
-
-def calculate_talk_duration(transcript_lines):
-    durations = {}
-    
-    for speaker, group in groupby(transcript_lines, key=attrgetter('speaker')):
-        total_duration = sum((line.end - line.start) for line in group)
-        durations[speaker] = total_duration
-    
-    return durations
-
-def calculate_speaking_rate_variations(transcript_lines, window_size=60):
-    variations = []
-    
-    for line in transcript_lines:
-        words = len(line.text.split())
-        duration = (line.end - line.start) / 60000  # Convert to minutes
-        wpm = words / (duration) if duration > 0 else 0
-        
-        variations.append({
-            "speaker": line.speaker,
-            "start_time": line.start,
-            "end_time": line.end,
-            "wpm": round(wpm, 2)
-        })
-    
-    return variations
-
-def calculate_engagement_metrics(interview_id):
-    with app.app_context():
-        transcript_lines = TranscriptLine.query.filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()
-    
-    if not transcript_lines:
-        return None
-    
-    interview_duration = transcript_lines[-1].end - transcript_lines[0].start
-    
-    # Calculate silence duration
-    total_talk_time = sum(line.end - line.start for line in transcript_lines)
-    silence_duration = interview_duration - total_talk_time
-    
-    engagement_json = {
-        "interview_duration": interview_duration,
-        "conversation_silence_duration": silence_duration,
-        "word_count": count_all_words(transcript_lines),
-        "talk_duration_by_speaker": calculate_talk_duration(transcript_lines),
-        "speaking_rate_variations": calculate_speaking_rate_variations(transcript_lines)
-    }
-    
-    return engagement_json
-
-def count_all_words(transcript_lines):
-    word_counter = Counter()
-    
-    for line in transcript_lines:
-        # Convert to lowercase and split into words
-        # This regex splits on any non-word character, effectively separating words and removing punctuation
-        words = re.findall(r"\b[a-z']+\b", line.text.lower())
-        word_counter.update(words)
-    
-    # Convert to a regular dictionary and sort by count (descending)
-    word_count_dict = dict(word_counter)
-    sorted_word_count = dict(sorted(word_count_dict.items(), key=lambda item: item[1], reverse=True))
-    
-    return sorted_word_count
 
 # Error handling for methods not allowed
 @app.errorhandler(405)
