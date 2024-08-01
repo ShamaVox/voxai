@@ -1,6 +1,6 @@
 from .app import app as app
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+import datetime
 from os import environ
 
 EXPERIENCE_LEVELS = {
@@ -87,7 +87,7 @@ class Application(db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('role.role_id'), nullable=False)
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.candidate_id'), nullable=False)
     candidate_match = db.Column(db.Integer)  # Resume score
-    application_time = db.Column(db.DateTime, default=datetime.utcnow)
+    application_time = db.Column(db.DateTime, default=datetime.datetime.now(datetime.UTC))
 
     role = db.relationship("Role", back_populates="applications")
     candidate = db.relationship("Candidate", back_populates="applications")

@@ -8,6 +8,7 @@ from server.src.apis import (
     calculate_engagement_metrics,
     update_interview_metrics
 )
+from datetime import datetime as datetime
 
 from .test_apis import sample_data
 
@@ -208,13 +209,13 @@ def test_calculate_speaking_rate_variations(transcript_lines, expected_variation
 def mock_interview(sample_transcript_lines):
     return Interview(
         interview_id=1,
-        interview_time=datetime.utcnow(),
+        interview_time=datetime.now(datetime.timezone.utc),
         recall_id='test_bot_id'
     )
 
 def test_update_interview_metrics(sample_data, extended_sample_transcript_lines):
     with flask_app.app_context():
-        interview = Interview.query.get(sample_data)
+        interview = db.session.get(Interview, sample_data)
         
         # Clear existing transcript lines
         TranscriptLine.query.filter_by(interview_id=interview.interview_id).delete()
@@ -228,7 +229,7 @@ def test_update_interview_metrics(sample_data, extended_sample_transcript_lines)
 
         update_interview_metrics(interview.interview_id)
 
-        updated_interview = Interview.query.get(interview.interview_id)
+        updated_interview = db.session.get(Interview, interview.interview_id)
         assert updated_interview.duration == 18000
         assert updated_interview.speaking_time == 15000
         assert round(updated_interview.wpm, 2) == 136.0
@@ -241,7 +242,7 @@ def test_update_interview_metrics(sample_data, extended_sample_transcript_lines)
 
 def test_engagement_metrics_single_speaker(sample_data):
     with flask_app.app_context():
-        interview = Interview.query.get(sample_data)
+        interview = db.session.get(Interview, sample_data)
         
         # Clear existing transcript lines
         TranscriptLine.query.filter_by(interview_id=interview.interview_id).delete()
@@ -261,7 +262,7 @@ def test_engagement_metrics_single_speaker(sample_data):
 
         update_interview_metrics(interview.interview_id)
 
-        updated_interview = Interview.query.get(interview.interview_id)
+        updated_interview = db.session.get(Interview, interview.interview_id)
         assert updated_interview.duration == 5000
         assert updated_interview.speaking_time == 5000
         assert round(updated_interview.wpm, 2) == 96.0

@@ -73,7 +73,7 @@ def sample_transcript(sample_data):
 def mock_interview_with_transcript(extended_sample_transcript_lines):
     interview = Interview(
         interview_id=1,
-        interview_time=datetime.utcnow(),
+        interview_time=datetime.now(datetime.timezone.utc),
         recall_id='test_bot_id'
     )
     for line in extended_sample_transcript_lines:

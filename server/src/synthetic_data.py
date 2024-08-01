@@ -191,10 +191,10 @@ def generate_application_data(num_records, roles, candidates, match_threshold=No
             candidate_match=candidate_match,
             application_time=application_time
         )
+        db.session.add(application)
         applications.append(application)
         pairs.add((role.role_id, candidate.candidate_id))
     
-    db.session.add_all(applications)
     return applications
 
 def generate_interview_data(num_records, applications, interviewers, candidates, skills, main_interviewer=None, pace=None, old_pace=None, new_pace_start_date=None):
