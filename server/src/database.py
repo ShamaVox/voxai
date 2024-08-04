@@ -23,7 +23,7 @@ if 'TEST' in environ:
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://ubuntu:voxai@localhost:5432/voxai_db_integration_test"
     print("Server using integration test database")
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://localhost:5432/voxai_db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://linux:password@localhost:5432/voxai_db"
 db = SQLAlchemy(app)
 
 class Account(db.Model):

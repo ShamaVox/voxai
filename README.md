@@ -31,6 +31,7 @@ Concurrently: Install with npm install -g concurrently.
 ## Backend Setup
 
 ### Clone the Repository:
+
     git clone https://github.com/ShamaVox/voxai/voxai.git
     cd voxai
 
@@ -51,9 +52,15 @@ Install the requirements, if not installed already.
 On Ubuntu or any Linux distro supporting apt-get:
 
     sudo apt-get update
-    sudo apt-get install python3
+    sudo apt-get install python3.12
+    sudo apt-get install python3.12-venv
+    sudo apt-get install python3-dev libpq-dev
     sudo apt-get install postgresql
-    sudo apt-get install nvm
+
+Installing nvm on Linux:
+
+    sudo apt-get install curl
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
 
 On MacOS: 
 
@@ -61,7 +68,7 @@ On MacOS:
     brew install postgres
     brew install nvm
 
-Set up NVM and install node through NVM:
+(On both Mac and Linux) Set up NVM and install node through NVM:
 
     export NVM_DIR="$HOME/.nvm"
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
@@ -69,11 +76,16 @@ Set up NVM and install node through NVM:
 
 You may need to restart your shell after running the first two commands. 
 
-Install the required Python libraries:
+Create a Python virtual environment and install the required Python libraries:
 
     cd server
+    python3 -m venv venv
     source venv/bin/activate
+    pip install --upgrade wheel
+    pip install --upgrade setuptools
     pip install -r requirements.txt
+
+To avoid running the nvm commands every time the virtual environment is initialized, add them to the bottom of server/venv/bin/activate. 
 
 ### Database Setup:
 
@@ -81,10 +93,14 @@ Start the postgres server:
 
     psql start
 
+Create a role:
+
+    sudo -u postgres createuser -s YOUR_USERNAME
+
 In a new terminal, create a database for the application:
 
     psql POSTGRES
-    CREATE_DATABASE voxai_db
+    CREATE DATABASE voxai_db;
 
 Edit the database URI in server/src/database.py to match the database credentials:
 
@@ -93,6 +109,10 @@ Edit the database URI in server/src/database.py to match the database credential
 If you set up a different postgres user than the default, the line will look something like this:
 
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://username:password@localhost:5432/voxai_db"
+
+### AWS / Recall Setup:
+
+Download the AWS and Recall credentials to ~/.aws/credentials.json. (These will be shared in the Slack once the VoxAI AWS account is set up.)
 
 ### Database Migrations:
 
