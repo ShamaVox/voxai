@@ -14,7 +14,7 @@
     "config:integration": "cp -f tests/config/IntegrationConfig.ts tests/config/Config.ts",
     "build": "npm run config:aws && expo export -p web",
     "local": "expo export -p web",
-    "test": "npm run ts:check && npm run config:test && jest",
+    "test": "npm run config:test && npm run ts:check && jest",
     "test:integration": "npm run ts:check && npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
     "test:integration_light": "npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
     "ts:check": "tsc --noEmit --noImplicitAny",
@@ -22,6 +22,9 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~3.1.3",
+    "@okta/okta-auth-js": "^7.7.0",
+    "@okta/okta-react": "^6.9.0",
+    "@okta/okta-react-native": "^2.12.0",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/stack": "^6.3.29",
     "@types/react": "~18.2.45",

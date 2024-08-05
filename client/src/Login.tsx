@@ -18,6 +18,15 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { checkStatus } from "./utils/Axios";
 
+import { Security } from '@okta/okta-react';
+import { OktaAuth } from '@okta/okta-auth-js';
+
+const oktaAuth = new OktaAuth({
+  issuer: 'https://dev-05459793.okta.com/oauth2/default',
+  clientId: '{clientId}',
+  redirectUri: window.location.origin + '/login/callback'
+});
+
 interface Errors {
   email?: string;
   code?: string;
@@ -254,9 +263,22 @@ const Login: FC = () => {
     }
   };
 
+  const handleOktaLogin = async () => {
+    try {
+      const response = await oktaAuth.signInWithRedirect();
+      navigation.navigate("Home");
+    } catch (error) {
+      console.error("Okta login error:", error);
+    }
+  };
+
   return (
     <View style={styles.container} role={"form"}>
       <Text style={styles.title}>Login</Text>
+      {/* Add the Okta Sign-In Button */}
+      <Pressable style={styles.button} onPress={handleOktaLogin}>
+        <Text style={styles.buttonText}>Sign in with Okta</Text>
+      </Pressable>
       <InputWithError
         testID="email-input"
         placeholder="Email"
