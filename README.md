@@ -1,19 +1,25 @@
 # Overview
+
 VoxAI is a comprehensive recruitment platform that leverages cutting-edge AI technologies to streamline the hiring process and enhance decision-making. It integrates seamlessly with popular video conferencing platforms, such as Zoom, to provide valuable insights from interview recordings.
 
 # Features
-## Automated Interview Recording and Transcription: 
-* Generate accurate transcripts with speaker identification from interviews conducted through platforms like Zoom, Google Meet, Microsoft Teams, and Slack. 
+
+## Automated Interview Recording and Transcription:
+
+- Generate accurate transcripts with speaker identification from interviews conducted through platforms like Zoom, Google Meet, Microsoft Teams, and Slack.
 
 ## Advanced Interview Analysis
+
 Gain deeper insights into candidate performance through:
-* Sentiment Analysis: Understand the emotional tone of candidates throughout the interview.
-* Engagement Analysis: Assess candidate engagement levels and enthusiasm.
-* Topic Extraction: Identify key topics discussed during the interview, allowing for quick review and comparison.
-* Summarization: Get a concise overview of the interview, highlighting important points.
-* Actionable Insights Dashboard: Track key metrics and trends, such as average interview pace, fitting job application percentage, and compensation ranges, to make data-driven decisions.
+
+- Sentiment Analysis: Understand the emotional tone of candidates throughout the interview.
+- Engagement Analysis: Assess candidate engagement levels and enthusiasm.
+- Topic Extraction: Identify key topics discussed during the interview, allowing for quick review and comparison.
+- Summarization: Get a concise overview of the interview, highlighting important points.
+- Actionable Insights Dashboard: Track key metrics and trends, such as average interview pace, fitting job application percentage, and compensation ranges, to make data-driven decisions.
 
 # Technology Stack
+
 Backend: Python, Flask, SQLAlchemy
 Database: PostgreSQL
 Frontend: React Native (TypeScript)
@@ -22,6 +28,7 @@ AI APIs: Recall.ai (for meeting recording, transcription, and analysis)
 # Installation and Setup
 
 ## Prerequisites
+
 Git: Ensure you have Git installed for cloning the repository.
 Node.js and npm: Download and install Node.js (which includes npm) from https://nodejs.org/.
 Python 3 and venv: Install Python 3 and ensure the venv module is available for creating virtual environments.
@@ -38,16 +45,16 @@ Concurrently: Install with npm install -g concurrently.
 If this doesn't work, try cloning via ssh:
 
     ssh-keygen -t ed25519 -C <your email>
-    git clone git@github.com:ShamaVox/voxai.git   
+    git clone git@github.com:ShamaVox/voxai.git
 
 After cloning, check out the dev branch:
 
-    cd voxai    
+    cd voxai
     git checkout dev
 
 ### Backend Setup:
 
-Install the requirements, if not installed already. 
+Install the requirements, if not installed already.
 
 On Ubuntu or any Linux distro supporting apt-get:
 
@@ -62,7 +69,7 @@ Installing nvm on Linux:
     sudo apt-get install curl
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
 
-On MacOS: 
+On MacOS:
 
     brew install python3
     brew install postgres
@@ -74,7 +81,7 @@ On MacOS:
     [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
     nvm install node
 
-You may need to restart your shell after running the first two commands. 
+You may need to restart your shell after running the first two commands.
 
 Create a Python virtual environment and install the required Python libraries:
 
@@ -85,7 +92,7 @@ Create a Python virtual environment and install the required Python libraries:
     pip install --upgrade setuptools
     pip install -r requirements.txt
 
-To avoid running the nvm commands every time the virtual environment is initialized, add them to the bottom of server/venv/bin/activate. 
+To avoid running the nvm commands every time the virtual environment is initialized, add them to the bottom of server/venv/bin/activate.
 
 ### Database Setup:
 
@@ -116,20 +123,43 @@ Download the AWS and Recall credentials to ~/.aws/credentials.json. (These will 
 
 ### Database Migrations:
 
-   npm run upgrade
+npm run upgrade
 
 ### Frontend Setup
+
 **Work in progress - instructions may be incomplete**
 
-Navigate to Frontend Directory:
-
-    cd client
-
-Install Frontend Dependencies:
+Install dependencies for running server and client at the same time:
 
     npm install
 
+Install frontend dependencies:
+
+    cd client
+    npm install
+
+Edit client/node_modules/expo/AppEntry.js to point at the correct file. Change the following line:
+
+import App from '../../App';
+
+To this line:
+
+import App from '../../src/App';
+
+### Configuring server URL
+
+To run the server locally:
+
+    cd client
+    npm run config:local
+
+To run the server on AWS:
+
+    cd client
+    npm run config:aws
+
 ### Running the Application
+
 Run in Development mode on the AWS server:
 
     npm run dev
@@ -140,9 +170,10 @@ This command also runs in development mode:
 
 Run locally (server will be on localhost):
 
-    npm run local 
+    npm run local
 
 ### Running Backend and Frontend Separately:
+
 Backend:
 
     npm run server
@@ -152,6 +183,7 @@ Frontend:
     npm run client
 
 ### Running Tests
+
 Run the integration tests:
 
     npm run test
