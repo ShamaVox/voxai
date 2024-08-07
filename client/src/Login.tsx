@@ -17,15 +17,7 @@ import { SERVER_ENDPOINT } from "./utils/Axios";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { checkStatus } from "./utils/Axios";
-
-import { Security } from '@okta/okta-react';
-import { OktaAuth } from '@okta/okta-auth-js';
-
-const oktaAuth = new OktaAuth({
-  issuer: 'https://dev-05459793.okta.com/oauth2/default',
-  clientId: '{clientId}',
-  redirectUri: window.location.origin + '/login/callback'
-});
+import { createConfig, signIn, getAccessToken } from '@okta/okta-react-native';
 
 interface Errors {
   email?: string;
@@ -89,6 +81,20 @@ const Login: FC = () => {
   const [pressedSubmit, setPressedSubmit] = useState(false);
   const { handleLogin } = useContext(AuthContext);
   const navigation = useNavigation();
+
+  useEffect(() => {
+    const initOkta = async () => {
+      await createConfig({
+        clientId: '{clientId}',
+        redirectUri: '{redirectUri}',
+        endSessionRedirectUri: '{endSessionRedirectUri}',
+        discoveryUri: 'https://dev-05459793.okta.com/oauth2/default',
+        scopes: ['openid', 'profile', 'offline_access'],
+        requireHardwareBackedKeyStore: false,
+      });
+    };
+    initOkta();
+  }, []);
 
   /**
    * Validates the email address using a regular expression.
@@ -265,13 +271,18 @@ const Login: FC = () => {
 
   const handleOktaLogin = async () => {
     try {
-      const response = await oktaAuth.signInWithRedirect();
-      navigation.navigate("Home");
+      const authResult = await signIn();
+      if (authResult && typeof authResult === 'object' && 'access_token' in authResult) {
+        // Successful login
+        console.log('Access Token:', authResult.access_token);
+        navigation.navigate("Home");
+      } else {
+        console.error('Login failed: Unexpected auth result', authResult);
+      }
     } catch (error) {
       console.error("Okta login error:", error);
     }
   };
-
   return (
     <View style={styles.container} role={"form"}>
       <Text style={styles.title}>Login</Text>
