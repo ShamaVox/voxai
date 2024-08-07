@@ -85,9 +85,9 @@ const Login: FC = () => {
   useEffect(() => {
     const initOkta = async () => {
       await createConfig({
-        clientId: '{clientId}',
-        redirectUri: '{redirectUri}',
-        endSessionRedirectUri: '{endSessionRedirectUri}',
+        clientId: '0oaitt4y79BThLYvY5d7', // TODO: find these
+        redirectUri: 'http://localhost:8080/okta/login',
+        endSessionRedirectUri: 'http://localhost:8080/okta/logout',
         discoveryUri: 'https://dev-05459793.okta.com/oauth2/default',
         scopes: ['openid', 'profile', 'offline_access'],
         requireHardwareBackedKeyStore: false,
