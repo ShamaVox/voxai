@@ -14,7 +14,7 @@
     "config:integration": "cp -f tests/config/IntegrationConfig.ts tests/config/Config.ts",
     "build": "npm run config:aws && expo export -p web",
     "local": "expo export -p web",
-    "test": "npm run config:test && npm run ts:check && jest"
+    "test": "npm run config:test && npm run ts:check && jest",
     "test:integration": "npm run config:integration && npm run config:local && npm run ts:check && jest -i 'AppIntegration.test.tsx'",
     "test:integration_light": "npm run config:integration && npm run config:local && jest -i 'AppIntegration.test.tsx'",
     "ts:check": "tsc --noEmit --noImplicitAny",
