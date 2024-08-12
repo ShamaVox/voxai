@@ -50,6 +50,29 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 8,
   },
+  addRolesContainer: {
+    marginTop: 20, 
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+  },
+  addRolesHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    marginBottom: 10,
+    borderRadius: 4,
+  },
+  addRolesDescription: {
+    fontSize: 14,
+    marginBottom: 10,
+  },
 });
 
 export default styles;
