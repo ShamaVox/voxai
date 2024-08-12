@@ -134,7 +134,7 @@ const { handleLogout } = useContext(AuthContext);
 
   const handleAddRoles = async () => {
     try {
-      const response = await axios.post(SERVER_ENDPOINT("apis/greenhouse"), {
+      const response = await axios.post(SERVER_ENDPOINT("greenhouse"), {
         url: greenhouseUrl,
       });
       // Handle successful response, e.g., show a success message

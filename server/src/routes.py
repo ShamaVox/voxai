@@ -7,47 +7,11 @@ from os import environ
 from faker import Faker
 from sqlalchemy import func
 from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_account_interviews
+from .sessions import sessions
 from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
-from .utils import get_random, get_random_string
+from .utils import get_random, get_random_string, valid_token_response, handle_auth_token
 
 isAccepted = False
-
-# Temporary, to test client cookie handling
-sessions = {} 
-
-def handle_auth_token(sessions):
-    """
-    Handles the authentication token and returns the current user's ID.
-
-    This function retrieves the authentication token from the request cookies and determines
-    the current user's ID based on the token. If the environment is set to "Integration" testing,
-    it assigns a default user ID of 0 (temporary workaround for Jest). Otherwise, it retrieves
-    the user ID from the sessions object using the authentication token.
-
-    Args:
-        sessions (dict): A dictionary mapping authentication tokens to user IDs.
-
-    Returns:
-        int: The current user's ID.
-
-    Notes:
-        - This function requires that the authentication token is stored in the 'authToken' cookie.
-        - If the environment is set to "Integration" testing (using the 'TEST' environment variable),
-          a default user ID of 0 is returned as a temporary workaround for Jest.
-        - If the authentication token is invalid or not found in the sessions object, the function
-          should handle the case appropriately (e.g., send a logout response).
-    """
-    auth_token = request.cookies.get('authToken', None)
-    if 'TEST' in environ and environ['TEST'] == "Integration":
-        # Temporary Jest workaround
-        current_user_id = 0
-    else:
-        if auth_token not in sessions: 
-            # Session is invalid, tell user to log out
-            return None 
-        current_user_id = sessions[auth_token]
-
-    return current_user_id
 
 @app.route('/', defaults={'path': ''})
 
@@ -183,12 +147,6 @@ def logout():
     response = make_response()
     response.delete_cookie('authToken')
     return response
-
-def valid_token_response(valid_token):
-    """Returns a response informing the client of whether the auth token is valid."""
-    response = make_response(jsonify({"validToken": valid_token}))
-    response.delete_cookie('authToken')
-    return response, 200 if valid_token else 401
 
 @app.route('/api/check_token', methods=['POST'])
 def check_token():
