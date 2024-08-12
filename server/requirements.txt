@@ -10,4 +10,3 @@ boto3
 faker
 mocker
 pytest-mock
-okta-jwt-verifier
