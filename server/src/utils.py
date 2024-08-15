@@ -2,8 +2,9 @@ import random
 from datetime import date, timedelta
 import string
 import json
-from flask import jsonify
+from flask import jsonify, make_response, request
 from .constants import RECALL_CREDENTIAL_FILEPATH
+from os import environ
 
 def get_random(max_value, negative=False):
     """Generates a random integer within a specified range."""
@@ -87,3 +88,40 @@ def get_recall_headers():
 
 def api_error_response(message, status_code):
     return jsonify({"error": message}), status_code
+
+def valid_token_response(valid_token):
+    """Returns a response informing the client of whether the auth token is valid."""
+    response = make_response(jsonify({"validToken": valid_token}))
+    response.delete_cookie('authToken')
+    return response, 200 if valid_token else 401
+
+def handle_auth_token(sessions):
+    """
+    Handles the authentication token and returns the current user's ID.
+
+    This function retrieves the authentication token from the request cookies and determines the current user's ID based on the token. If the environment is set to "Integration" testing, it assigns a default user ID of 0 (temporary workaround for Jest). Otherwise, it retrieves the user ID from the sessions object using the authentication token.
+
+    Args:
+        sessions (dict): A dictionary mapping authentication tokens to user IDs.
+
+    Returns:
+        int: The current user's ID.
+
+    Notes:
+        - This function requires that the authentication token is stored in the 'authToken' cookie.
+        - If the environment is set to "Integration" testing (using the 'TEST' environment variable),
+          a default user ID of 0 is returned as a temporary workaround for Jest.
+        - If the authentication token is invalid or not found in the sessions object, the function
+          should handle the case appropriately (e.g., send a logout response).
+    """
+    auth_token = request.cookies.get('authToken', None)
+    if 'TEST' in environ and environ['TEST'] == "Integration":
+        # Temporary Jest workaround
+        current_user_id = 0
+    else:
+        if auth_token not in sessions: 
+            # Session is invalid, tell user to log out
+            return None 
+        current_user_id = sessions[auth_token]
+
+    return current_user_id

@@ -1,5 +1,5 @@
 import React, { FC, useState, useEffect, useContext } from "react";
-import { View, Text, Image } from "react-native";
+import { View, Text, Image, Button, TextInput } from "react-native";
 import axios from "axios";
 import styles from "./styles/DashboardStyles";
 import { AuthContext } from "./AuthContext";
@@ -126,7 +126,50 @@ const InsightsScreen: FC = () => {
  * The Dashboard component displays insights and data visualizations related to the user's recruitment activities.
  */
 const Dashboard: FC = () => {
-  return <InsightsScreen />;
+  const [greenhouseUrl, setGreenhouseUrl] = useState(
+    "https://boards.greenhouse.io/your-company"
+  );
+
+const { handleLogout } = useContext(AuthContext);
+
+  const handleAddRoles = async () => {
+    try {
+      const response = await axios.post(SERVER_ENDPOINT("greenhouse"), {
+        url: greenhouseUrl,
+      });
+      // Handle successful response, e.g., show a success message
+      console.log("Roles added successfully:", response.data);
+    } catch (error) {
+      await handleLogoutResponse(
+        handleLogout,
+        error.response,
+        DASHBOARD_LOGGING
+      );
+      if (DASHBOARD_LOGGING) {
+        console.log("Error adding roles:", error);
+      }
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <InsightsScreen />
+      <View style={styles.addRolesContainer}>
+        <Text style={styles.addRolesHeader}>Add roles from Greenhouse</Text>
+        <TextInput
+          style={styles.input}
+          value={greenhouseUrl}
+          onChangeText={setGreenhouseUrl}
+          placeholder="https://boards.greenhouse.io/your-company"
+        />
+        <Text style={styles.addRolesDescription}>
+          This will add all of the roles listed on the linked page to your
+          company, with you as the hiring manager.
+        </Text>
+        <Button title="Add Roles" onPress={handleAddRoles} />
+      </View>
+    </View>
+  );
 };
 
 export default Dashboard;
