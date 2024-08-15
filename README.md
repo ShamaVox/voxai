@@ -138,14 +138,6 @@ Install frontend dependencies:
     cd client
     npm install
 
-Edit client/node_modules/expo/AppEntry.js to point at the correct file. Change the following line:
-
-import App from '../../App';
-
-To this line:
-
-import App from '../../src/App';
-
 ### Configuring server URL
 
 To run the server locally:
