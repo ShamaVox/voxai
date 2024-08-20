@@ -8,8 +8,9 @@ from faker import Faker
 from sqlalchemy import func
 from .constants import DEBUG_OKTA
 from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_account_interviews
+from .sessions import sessions
 from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
-from .utils import get_random, get_random_string
+from .utils import get_random, get_random_string, valid_token_response, handle_auth_token
 import requests
 import os
 import json
@@ -60,7 +61,7 @@ def handle_auth_token(sessions):
         current_user_id = sessions[auth_token]
 
     return current_user_id
-
+  
 @app.route('/', defaults={'path': ''})
 
 @app.route('/<path:path>')
@@ -196,12 +197,6 @@ def logout():
     response.delete_cookie('authToken')
     return response
 
-def valid_token_response(valid_token):
-    """Returns a response informing the client of whether the auth token is valid."""
-    response = make_response(jsonify({"validToken": valid_token}))
-    response.delete_cookie('authToken')
-    return response, 200 if valid_token else 401
-
 @app.route('/api/check_token', methods=['POST'])
 def check_token():
     """Checks if a provided authentication token is valid.""" 
@@ -284,19 +279,6 @@ OKTA_CLIENT_ID = '0oaitt4y79BThLYvY5d7'
 OKTA_CLIENT_SECRET = '6Mw9w_N7FIYvvsntXy1shnSKHexnEBZMNyiGqC9XF53Hzq6win2cIdKBGamxG_cm'
 OKTA_ISSUER = 'https://dev-05459793.okta.com/oauth2'
 OKTA_REDIRECT_URI = 'http://localhost:5000/okta'
-
-# @app.route('/okta')
-# def okta_callback():
-#     code = request.args.get('code')
-    
-#     if not code:
-#         response = make_response(redirect(url_for('login')))
-#         # TODO: display an error in this scenario 
-    
-#     else: 
-#         response = make_response(redirect(url_for('process_okta')))
-
-#     return response
 
 @app.route('/api/okta', methods=['POST'])
 def okta_login():
