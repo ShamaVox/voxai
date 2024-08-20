@@ -1,6 +1,8 @@
 import pytest
 from server.src.database import Account, db
 from server.app import app as flask_app
+from sqlalchemy.exc import IntegrityError
+
 
 def test_account_repr(init_database):
     """Test the __repr__ method of the Account model."""
@@ -38,3 +40,44 @@ def test_account_creation(init_database):
         retrieved_account = Account.query.filter_by(email="test4@example.com").first()
         assert retrieved_account is not None
         assert retrieved_account.name == "Test User"
+
+def test_unique_email_constraint():
+    """Test that two accounts cannot have the same email."""
+    with flask_app.app_context():
+        account1 = Account(email="duplicate@example.com", name="Test User 1")
+        db.session.add(account1)
+        db.session.commit()
+
+        account2 = Account(email="duplicate@example.com", name="Test User 2")
+        db.session.add(account2)
+        with pytest.raises(IntegrityError):
+            db.session.commit()
+
+
+def test_account_update():
+    """Test updating an account's information."""
+    with flask_app.app_context():
+        account = Account(email="update@example.com", name="Original Name")
+        db.session.add(account)
+        db.session.commit()
+
+        account.name = "Updated Name"
+        account.organization = "New Company"
+        db.session.commit()
+
+        updated_account = Account.query.filter_by(email="update@example.com").first()
+        assert updated_account.name == "Updated Name"
+        assert updated_account.organization == "New Company"
+
+def test_account_delete():
+    """Test deleting an account."""
+    with flask_app.app_context():
+        account = Account(email="delete@example.com", name="Delete Test")
+        db.session.add(account)
+        db.session.commit()
+
+        db.session.delete(account)
+        db.session.commit()
+
+        deleted_account = Account.query.filter_by(email="delete@example.com").first()
+        assert deleted_account is None

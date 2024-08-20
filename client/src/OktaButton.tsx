@@ -1,19 +1,39 @@
 import React from 'react';
+import axios from "axios";
+import { SERVER_ENDPOINT } from "./utils/Axios";
 import { Button, Linking } from 'react-native';
+import { server_url } from "./config/ServerUrl";
+import { generateRandomState } from './utils/Random';
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from './AuthContext';
 
 const OktaSignInButton = () => {
-  const redirectToOkta = () => {
-    
-    const authorizationUrl = `https://dev-05459793.okta.com/oauth2/default/v1/authorize?client_id=0oaitt4y79BThLYvY5d7&redirect_uri=${encodeURIComponent("http://localhost:5000/okta")}&response_type=code&scope=openid profile email&state=test`;
+  const navigation = useNavigation();
+  const { handleLogin } = useAuth();
+  const loginWithOkta = async () => {
+
+    const state = generateRandomState();
+
+    const authorizationUrl = `https://dev-05459793.okta.com/oauth2/default/v1/authorize?client_id=0oaitt4y79BThLYvY5d7&redirect_uri=${encodeURIComponent(server_url + "/okta")}&response_type=code&scope=openid profile email&state=${state}`;
 
     // Open the authorization URL in the browser or an in-app browser
     Linking.openURL(authorizationUrl).catch(err => console.error('Error opening URL:', err));
+
+    const response = await axios.post(SERVER_ENDPOINT('okta'), { state: state });
+
+    if (response.data.success) {
+      const { email, name, authToken } = response.data;
+      await handleLogin(email, name, authToken);
+      navigation.navigate('Home');
+    } else {
+      throw new Error('Login failed');
+    }
   };
 
   return (
     <Button
       title="Sign in with Okta"
-      onPress={redirectToOkta}
+      onPress={loginWithOkta}
     />
   );
 };
