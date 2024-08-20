@@ -17,6 +17,7 @@ import { SERVER_ENDPOINT } from "./utils/Axios";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { checkStatus } from "./utils/Axios";
+import OktaSignInButton from "./OktaButton";
 
 interface Errors {
   email?: string;
@@ -308,6 +309,7 @@ const Login: FC = () => {
         </>
       )}
       {!showCodeField ? (
+        <>
         <Pressable
           style={[
             styles.button,
@@ -319,6 +321,8 @@ const Login: FC = () => {
         >
           <Text style={styles.buttonText}>Send code</Text>
         </Pressable>
+        <OktaSignInButton />
+        </>
       ) : (
         <Pressable
           style={[styles.button, { opacity: canSubmit() ? 1 : 0.5 }]}

@@ -1,6 +1,7 @@
 import React, {
   createContext,
   useState,
+  useContext,
   FC,
   ReactNode,
   useEffect,
@@ -174,4 +175,5 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 };
 
+export const useAuth = () => useContext(AuthContext);
 export default AuthProvider;
