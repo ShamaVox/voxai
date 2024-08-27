@@ -22,8 +22,8 @@ const OktaSignInButton = () => {
     const response = await axios.post(SERVER_ENDPOINT('okta'), { state: state });
 
     if (response.data.success) {
-      const { email, name, authToken } = response.data;
-      await handleLogin(email, name, authToken);
+      const { email, name, authToken, onboarded } = response.data;
+      await handleLogin(email, name, authToken, onboarded);
       navigation.navigate('Home');
     } else {
       throw new Error('Login failed');

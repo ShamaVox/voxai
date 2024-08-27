@@ -223,7 +223,7 @@ const Login: FC = () => {
           setErrors({ code: "Invalid code" });
           return;
         }
-        await handleLogin(email, response.data.name, response.data.authToken);
+        await handleLogin(email, response.data.name, response.data.authToken, response.data.onboarded);
         await navigation.navigate("Home");
       } catch (error) {
         if (LOGIN_LOGGING) {
