@@ -20,19 +20,24 @@ interface AuthContextProps {
   handleLogin: (
     email: string,
     name: string,
-    authToken: string
+    authToken: string,
+    onboarded: boolean
   ) => Promise<void>;
   authToken: string;
   handleLogout: (a: boolean) => Promise<void>;
+  onboarded: boolean;
+  finishOnboarding: () => void;
 }
 
 export const AuthContext = createContext<AuthContextProps>({
   isLoggedIn: false,
   email: "",
   username: "",
-  handleLogin: async (email: string, name: string, authToken: string) => {},
+  handleLogin: async (email: string, name: string, authToken: string, onboarded: boolean) => {},
   authToken: "",
   handleLogout: async (a: boolean) => {},
+  onboarded: false,
+  finishOnboarding: () => {},
 });
 
 /**
@@ -44,6 +49,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [authToken, setAuthToken] = useState("");
+  const [onboarded, setOnboarded] = useState(false);
   const [cookies, setCookie, removeCookie] = useCookies(["voxai"]);
   const [needTokenCheck, setNeedTokenCheck] = useState(false);
   const [firstLoad, setFirstLoad] = useState(true);
@@ -75,7 +81,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
               handleLogin(
                 cookies["voxai"]["auth"]["email"],
                 cookies["voxai"]["auth"]["username"],
-                cookies["voxai"]["auth"]["authToken"]
+                cookies["voxai"]["auth"]["authToken"],
+                Boolean(cookies["voxai"]["auth"]["onboarded"])
               );
             }
           })
@@ -96,6 +103,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         email: email,
         username: username,
         authToken: authToken,
+        onboarded: String(onboarded)
       };
       if (
         cookies["voxai"] == undefined ||
@@ -116,11 +124,13 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const handleLogin: (
     a: string,
     b: string,
-    c: string
-  ) => Promise<void> = async (email, name, authToken) => {
+    c: string,
+    d: boolean
+  ) => Promise<void> = async (email, name, authToken, onboarded) => {
     setEmail(email);
     setUsername(name);
     setAuthToken(authToken);
+    setOnboarded(onboarded);
     if (AUTH_LOGGING) {
       console.log("Username set to: ", username);
     }
@@ -140,6 +150,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     setEmail("");
     setUsername("");
     setAuthToken("");
+    setOnboarded(false);
     try {
       await axios.post(SERVER_ENDPOINT("logout"), {
         authToken: authToken,
@@ -159,6 +170,11 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     console.log("email value:", email);
   }
 
+  const finishOnboarding = () => 
+  {
+    setOnboarded(true);
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -168,6 +184,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         handleLogin,
         authToken,
         handleLogout,
+        onboarded,
+        finishOnboarding
       }}
     >
       {children}

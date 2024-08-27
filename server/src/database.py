@@ -32,6 +32,7 @@ class Account(db.Model):
     name = db.Column(db.String, nullable=False, default="Default Name")
     account_type = db.Column(db.String, nullable=False, default="Recruiter")
     organization = db.Column(db.String, default="Default Company")
+    onboarded = db.Column(db.Boolean, nullable=False, default=False) 
     roles = db.relationship('Role', back_populates="direct_manager")
     teammates = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
     interviews = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")

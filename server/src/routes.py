@@ -7,6 +7,7 @@ from os import environ
 from faker import Faker
 from sqlalchemy import func
 from .constants import DEBUG_OKTA
+from .database import Skill
 from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_account_interviews
 from .sessions import sessions
 from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
@@ -17,7 +18,7 @@ import json
 from urllib.parse import urlencode
 from threading import Lock
 import time 
-
+import random
 
 isAccepted = False
 
@@ -138,7 +139,8 @@ def validate_code():
                 "name": existing_account.name,
                 "account_type": existing_account.account_type,
                 "email": email,
-                "authToken": auth_token
+                "authToken": auth_token,
+                "onboarded": existing_account.onboarded
             }
             return_code = 200
             
@@ -178,7 +180,8 @@ def validate_code():
                     "organization": request.json.get('organization'),
                     "account_type": request.json.get('accountType'),
                     "email": email,
-                    "authToken": auth_token
+                    "authToken": auth_token,
+                    "onboarded": False
                 }
                 return_code = 201 
 
@@ -294,6 +297,7 @@ def okta_login():
             if 'authToken' in pending_requests.get(state, {}):
                 auth_token = pending_requests[state]['authToken']
                 email = pending_requests[state]['email']
+                onboarded = pending_requests[state]['onboarded']
                 name = pending_requests[state]['name']
                 del pending_requests[state]
 
@@ -357,6 +361,7 @@ def process_okta():
             auth_token = get_random_string(36)
             sessions[auth_token] = existing_account.account_id
             name = existing_account.name 
+            onboarded = existing_account.onboarded
             
         else:
             # User doesn't exist, create a new account
@@ -375,12 +380,14 @@ def process_okta():
             auth_token = get_random_string(36)
             sessions[auth_token] = new_account.account_id
             name = new_account.name
+            onboarded = False
         
         with pending_requests_lock:
             if state in pending_requests:
                 pending_requests[state]['email'] = email 
                 pending_requests[state]['name'] = name
                 pending_requests[state]['authToken'] = auth_token
+                pending_requests[state]['onboarded'] = onboarded
 
         html = """
         <!DOCTYPE html>
@@ -404,3 +411,32 @@ def process_okta():
             return jsonify({"error": "Error during Okta authentication"}), 500
         else:
             raise
+
+@app.route('/api/onboarding', methods=['POST'])
+def process_onboarding():
+    """Marks the onboarding process as complete for the current user."""
+    current_user_id = handle_auth_token(sessions)
+    if current_user_id is None:
+        return valid_token_response(False)
+    
+    # Fetch the account from the database
+    user_account = database.Account.query.filter_by(account_id=current_user_id).first()
+    if not user_account:
+        return jsonify({"success": False, "message": "User not found"}), 404
+    
+    # Mark onboarding as complete
+    user_account.onboarded = True
+    database.db.session.commit()
+    
+    return jsonify({"success": True}), 200
+
+@app.route('/api/skills', methods=['GET'])
+def get_skills():
+    """Fetches available skills from the database."""
+    # TODO: Move to queries.py
+    skills = Skill.query.all()
+
+    # TODO: Add type to skills in database
+    skill_types = ['hard', 'soft', 'behavioral']
+    skill_list = [{"skill_id": skill.skill_id, "skill_name": skill.skill_name, "type": random.choice(skill_types)} for skill in skills]
+    return jsonify({"skills": skill_list}), 200

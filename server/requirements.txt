@@ -11,3 +11,4 @@ faker
 mocker
 pytest-mock
 beautifulsoup4
+sqlalchemy_utils

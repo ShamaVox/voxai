@@ -15,9 +15,11 @@ import styles from "./styles/HomeStyles";
 import axios from "axios";
 import { HOME_LOGGING } from "./config/Logging";
 import { SERVER_ENDPOINT, handleLogoutResponse } from "./utils/Axios";
+import Onboarding from "./Onboarding";
 
 // TODO: Fix pagination
 // TODO: Fix dates & sort by date
+// TODO: Prevent navigation away from Home screen during onboarding
 
 /**
  * The Home component displays upcoming interviews and other relevant information for logged-in users.
@@ -25,7 +27,7 @@ import { SERVER_ENDPOINT, handleLogoutResponse } from "./utils/Axios";
  */
 const Home: FC = () => {
   const navigation = useNavigation();
-  const { isLoggedIn, handleLogout } = useContext(AuthContext);
+  const { isLoggedIn, handleLogout, onboarded } = useContext(AuthContext);
   const [interviews, setInterviews] = useState([]);
   const [selectedTab, setSelectedTab] = useState("Upcoming");
   const [temporaryUrl, setTemporaryUrl] = useState(""); // Placeholder to test bot from logged-out homepage
@@ -112,7 +114,7 @@ const Home: FC = () => {
 
   return (
     <View style={styles.container}>
-      {isLoggedIn ? (
+      {isLoggedIn ? ( onboarded ? (
         <>
           <Text style={styles.title}>Overview</Text>
           <View style={styles.tabContainer}></View>
@@ -178,7 +180,7 @@ const Home: FC = () => {
             </View>
           </View>
         </>
-      ) : (
+      ) : (<Onboarding />) ) : (
         <>
           <Text>This is a placeholder homepage</Text>
           <Pressable
@@ -201,7 +203,8 @@ const Home: FC = () => {
             <Text>Generate transcript from bot ID</Text>
           </Pressable>
         </>
-      )}
+      )
+      }
     </View>
   );
 };
