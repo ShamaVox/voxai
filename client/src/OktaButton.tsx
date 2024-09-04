@@ -14,7 +14,7 @@ const OktaSignInButton = () => {
 
     const state = generateRandomState();
 
-    const authorizationUrl = `https://dev-05459793.okta.com/oauth2/default/v1/authorize?client_id=0oaitt4y79BThLYvY5d7&redirect_uri=${encodeURIComponent(server_url + "/okta")}&response_type=code&scope=openid profile email&state=${state}`;
+    const authorizationUrl = `https://dev-05459793.okta.com/oauth2/default/v1/authorize?client_id=0oaitt4y79BThLYvY5d7&redirect_uri=${encodeURIComponent(server_url + "/okta")}&response_type=code&scope=openid profile email https://www.googleapis.com/auth/calendar&state=${state}`;
 
     // Open the authorization URL in the browser or an in-app browser
     Linking.openURL(authorizationUrl).catch(err => console.error('Error opening URL:', err));
@@ -22,8 +22,8 @@ const OktaSignInButton = () => {
     const response = await axios.post(SERVER_ENDPOINT('okta'), { state: state });
 
     if (response.data.success) {
-      const { email, name, authToken, onboarded } = response.data;
-      await handleLogin(email, name, authToken, onboarded);
+      const { email, name, authToken, onboarded, okta } = response.data;
+      await handleLogin(email, name, authToken, onboarded, okta);
       navigation.navigate('Home');
     } else {
       throw new Error('Login failed');

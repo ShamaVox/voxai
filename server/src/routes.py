@@ -140,7 +140,8 @@ def validate_code():
                 "account_type": existing_account.account_type,
                 "email": email,
                 "authToken": auth_token,
-                "onboarded": existing_account.onboarded
+                "onboarded": existing_account.onboarded,
+                "okta": False,
             }
             return_code = 200
             
@@ -181,7 +182,8 @@ def validate_code():
                     "account_type": request.json.get('accountType'),
                     "email": email,
                     "authToken": auth_token,
-                    "onboarded": False
+                    "onboarded": False,
+                    "okta": False,
                 }
                 return_code = 201 
 
@@ -306,7 +308,8 @@ def okta_login():
                     "success": True,
                     "email": email,
                     "name": name,
-                    "authToken": auth_token
+                    "authToken": auth_token,
+                    "okta": True
                 })
                 response.set_cookie("authToken", value=auth_token, httponly=True, samesite="Strict")
                 return response

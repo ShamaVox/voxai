@@ -171,6 +171,21 @@ const Onboarding: FC = () => {
     </View>
   );
 
+  const handleConnectCalendar = (calendarType: string) => {
+    // TODO: Use Okta to sync with Google Calendar if the option is available
+    // const { okta } = useContext(AuthContext);
+    // if (okta) {
+    //   // Make an API request to Okta to get Google Calendar token
+    //   // User may need to log in again to Okta 
+    // }
+    // else {
+      // Open a Google sign in tab 
+      // Request Google Calendar permissions 
+      // Get the token 
+    // }
+    return; 
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.paginationContainer}>
@@ -211,110 +226,114 @@ const Onboarding: FC = () => {
       )}
 
       {currentPage === 2 && (
-        <View>
-          <Text>Job Title</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.jobTitle}
-            onChangeText={(text) => handleInputChange('jobTitle', text)}
-          />
+        <View style={styles.twoColumnLayout}>
+          <View style={styles.leftColumn}>
+            <Text>Job Title</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.jobTitle}
+              onChangeText={(text) => handleInputChange('jobTitle', text)}
+            />
+            
+            <Text>Position Type</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.positionType}
+              onChangeText={(text) => handleInputChange('positionType', text)}
+            />
+            
+            <Text>Department</Text>
+            <TextInput
+              style={styles.input}
+              value={formData.department}
+              onChangeText={(text) => handleInputChange('department', text)}
+            />
+            
+            <Text>Job Summary</Text>
+            <TextInput
+              style={styles.textArea}
+              value={formData.jobSummary}
+              onChangeText={(text) => handleInputChange('jobSummary', text)}
+              multiline
+            />
+            
+            <Text>Responsibilities</Text>
+            <TextInput
+              style={styles.textArea}
+              value={formData.responsibilities}
+              onChangeText={(text) => handleInputChange('responsibilities', text)}
+              multiline
+            />
+            
+            <Text>Job Requirements</Text>
+            <TextInput
+              style={styles.textArea}
+              value={formData.jobRequirements}
+              onChangeText={(text) => handleInputChange('jobRequirements', text)}
+              multiline
+            />
+          </View>
           
-          <Text>Position Type</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.positionType}
-            onChangeText={(text) => handleInputChange('positionType', text)}
-          />
-          
-          <Text>Department</Text>
-          <TextInput
-            style={styles.input}
-            value={formData.department}
-            onChangeText={(text) => handleInputChange('department', text)}
-          />
-          
-          <Text>Job Summary</Text>
-          <TextInput
-            style={styles.textArea}
-            value={formData.jobSummary}
-            onChangeText={(text) => handleInputChange('jobSummary', text)}
-            multiline
-          />
-          
-          <Text>Responsibilities</Text>
-          <TextInput
-            style={styles.textArea}
-            value={formData.responsibilities}
-            onChangeText={(text) => handleInputChange('responsibilities', text)}
-            multiline
-          />
-          
-          <Text>Job Requirements</Text>
-          <TextInput
-            style={styles.textArea}
-            value={formData.jobRequirements}
-            onChangeText={(text) => handleInputChange('jobRequirements', text)}
-            multiline
-          />
+          <View style={styles.rightColumn}>
+            {(['hard', 'soft', 'behavioral'] as const).map(skillType => (
+              <View key={skillType}>
+                <Text>{skillType.charAt(0).toUpperCase() + skillType.slice(1)} Skills</Text>
+                <TextInput
+                  style={styles.input}
+                  value={currentSkillType === skillType ? currentSkillInput : ''}
+                  onChangeText={(text) => handleSkillInputChange(text, skillType)}
+                  onSubmitEditing={() => {
+                    if (skillSuggestions.length > 0) {
+                      addSkill(skillSuggestions[0]);
+                    }
+                  }}
+                />
+                {currentSkillType === skillType && skillSuggestions.length > 0 && (
+                  <FlatList
+                    style={styles.suggestionList}
+                    data={skillSuggestions}
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.suggestionItem}
+                        onPress={() => addSkill(item)}
+                      >
+                        <Text>{item.skill_name}</Text>
+                      </TouchableOpacity>
+                    )}
+                    keyExtractor={(item) => item.skill_id}
+                  />
+                )}
+                <View style={styles.skillTags}>
+                  {formData[`${skillType}Skills` as SkillKey].map(skill => (
+                    <View key={skill.skill_id} style={styles.skillTag}>
+                      <Text style={styles.skillTagText}>{skill.skill_name}</Text>
+                      <TouchableOpacity onPress={() => removeSkill(skill, `${skillType}Skills` as SkillKey)}>
+                        <Text style={styles.removeSkillButton}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
       {currentPage === 3 && (
         <View>
-          {(['hard', 'soft', 'behavioral'] as const).map(skillType => (
-          <View key={skillType}>
-            <Text>{skillType.charAt(0).toUpperCase() + skillType.slice(1)} Skills</Text>
-            <TextInput
-              style={styles.input}
-              value={currentSkillType === skillType ? currentSkillInput : ''}
-              onChangeText={(text) => handleSkillInputChange(text, skillType)}
-              onSubmitEditing={() => {
-                if (skillSuggestions.length > 0) {
-                  addSkill(skillSuggestions[0]);
-                }
-              }}
-            />
-            {currentSkillType === skillType && skillSuggestions.length > 0 && (
-              <FlatList
-                style={styles.suggestionList}
-                data={skillSuggestions}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.suggestionItem}
-                    onPress={() => addSkill(item)}
-                  >
-                    <Text>{item.skill_name}</Text>
-                  </TouchableOpacity>
-                )}
-                keyExtractor={(item) => item.skill_id}
-              />
-            )}
-            <View style={styles.skillTags}>
-              {formData[`${skillType}Skills` as SkillKey].map(skill => (
-                <View key={skill.skill_id} style={styles.skillTag}>
-                  <Text style={styles.skillTagText}>{skill.skill_name}</Text>
-                  <TouchableOpacity onPress={() => removeSkill(skill, `${skillType}Skills` as SkillKey)}>
-                    <Text style={styles.removeSkillButton}>×</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          </View>
-        ))}
-        </View>
-      )}
-
-      {currentPage === 4 && (
-        <View>
-          <Text>Select Default Interview Option</Text>
-          <Picker
-            selectedValue={formData.interviewOption}
-            onValueChange={(itemValue) => handleInputChange('interviewOption', itemValue)}
+          <Text>Connect Your Calendars</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => handleConnectCalendar('Google')}
           >
-            <Picker.Item label="Select an option" value="" />
-            <Picker.Item label="Phone Interview" value="Phone" />
-            <Picker.Item label="Video Interview" value="Video" />
-          </Picker>
+            <Text style={styles.buttonText}>Connect Google Calendar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => handleConnectCalendar('Calendly')}
+          >
+            <Text style={styles.buttonText}>Connect Calendly</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -323,7 +342,7 @@ const Onboarding: FC = () => {
         onPress={handleNextPage}
       >
         <Text style={styles.buttonText}>
-          {currentPage < 4 ? 'Next page' : 'Submit'}
+          {currentPage < 3 ? 'Next page' : 'Submit'}
         </Text>
       </TouchableOpacity>
     </ScrollView>

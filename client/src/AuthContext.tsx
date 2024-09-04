@@ -21,11 +21,13 @@ interface AuthContextProps {
     email: string,
     name: string,
     authToken: string,
-    onboarded: boolean
+    onboarded: boolean,
+    okta: boolean
   ) => Promise<void>;
   authToken: string;
   handleLogout: (a: boolean) => Promise<void>;
   onboarded: boolean;
+  okta: boolean;
   finishOnboarding: () => void;
 }
 
@@ -33,10 +35,11 @@ export const AuthContext = createContext<AuthContextProps>({
   isLoggedIn: false,
   email: "",
   username: "",
-  handleLogin: async (email: string, name: string, authToken: string, onboarded: boolean) => {},
+  handleLogin: async (email: string, name: string, authToken: string, onboarded: boolean, okta: boolean) => {},
   authToken: "",
   handleLogout: async (a: boolean) => {},
   onboarded: false,
+  okta: false,
   finishOnboarding: () => {},
 });
 
@@ -56,6 +59,7 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
   // Buffer login navigation if navigation is not loaded
   const [loginNavigationPending, setLoginNavigationPending] = useState(false);
   const navigation = useNavigation();
+  const [okta, setOkta] = useState(false); // may need to set some kind of token
 
   if (AUTH_LOGGING) {
     console.log("AuthProvider rendered");
@@ -82,7 +86,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
                 cookies["voxai"]["auth"]["email"],
                 cookies["voxai"]["auth"]["username"],
                 cookies["voxai"]["auth"]["authToken"],
-                Boolean(cookies["voxai"]["auth"]["onboarded"])
+                Boolean(cookies["voxai"]["auth"]["onboarded"]),
+                Boolean(cookies["voxai"]["auth"]["okta"]),
               );
             }
           })
@@ -125,12 +130,14 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     a: string,
     b: string,
     c: string,
-    d: boolean
-  ) => Promise<void> = async (email, name, authToken, onboarded) => {
+    d: boolean,
+    e: boolean
+  ) => Promise<void> = async (email, name, authToken, onboarded, okta) => {
     setEmail(email);
     setUsername(name);
     setAuthToken(authToken);
     setOnboarded(onboarded);
+    setOkta(okta);
     if (AUTH_LOGGING) {
       console.log("Username set to: ", username);
     }
@@ -185,7 +192,8 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         authToken,
         handleLogout,
         onboarded,
-        finishOnboarding
+        finishOnboarding,
+        okta
       }}
     >
       {children}

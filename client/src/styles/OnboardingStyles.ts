@@ -114,6 +114,18 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 10,
   },
+  twoColumnLayout: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  leftColumn: {
+    flex: 1,
+    marginRight: 10,
+  },
+  rightColumn: {
+    flex: 1,
+    marginLeft: 10,
+  },
 });
 
 export default styles;
