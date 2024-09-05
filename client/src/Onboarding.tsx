@@ -18,6 +18,7 @@ interface Skill {
 
 interface FormData {
   jobDescriptionFile: DocumentPicker.DocumentPickerAsset[] | null;
+  companyName: string;
   companyWebsite: string;
   companySize: string;
   hiringDocument: DocumentPicker.DocumentPickerAsset[] | null;
@@ -30,7 +31,6 @@ interface FormData {
   hardSkills: Skill[];
   softSkills: Skill[];
   behavioralSkills: Skill[];
-  interviewOption: string;
 }
 
 interface FormErrors {
@@ -47,7 +47,6 @@ interface FormErrors {
   hardSkills?: string;
   softSkills?: string;
   behavioralSkills?: string;
-  interviewOption?: string;
   submission?: string;
 }
 
@@ -76,10 +75,12 @@ const ErrorModal: FC<{ visible: boolean; errors: string[]; onClose: () => void }
 );
 
 const Onboarding: FC = () => {
+  const { okta } = useContext(AuthContext);
   const [currentPage, setCurrentPage] = useState(1);
   const { finishOnboarding } = useContext(AuthContext);
   const [formData, setFormData] = useState<FormData>({
     jobDescriptionFile: null,
+    companyName: '',
     companyWebsite: '',
     companySize: '',
     hiringDocument: null,
@@ -92,7 +93,6 @@ const Onboarding: FC = () => {
     hardSkills: [],
     softSkills: [],
     behavioralSkills: [],
-    interviewOption: '',
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -151,7 +151,7 @@ const Onboarding: FC = () => {
 
   const validatePage = (): boolean => {
     const fieldsToValidate: (keyof FormData)[] = 
-      currentPage === 1 ? ['jobDescriptionFile', 'companyWebsite', 'companySize', 'hiringDocument'] :
+      currentPage === 1 ? ['jobDescriptionFile', 'companyName', 'companyWebsite', 'companySize', 'hiringDocument'] :
       currentPage === 2 ? ['jobTitle', 'positionType', 'department', 'jobSummary', 'responsibilities', 'jobRequirements', 'hardSkills', 'softSkills', 'behavioralSkills'] :
       currentPage === 3 ? [] : [];
 
@@ -191,15 +191,10 @@ const Onboarding: FC = () => {
     }
   };
 
-  const renderErrorMessage = (fieldName: keyof FormErrors) => {
-    if (formErrors[fieldName]) {
-      return <Text style={errorStyles.modalText}>{formErrors[fieldName]}</Text>;
-    }
-    return null;
-  };
-
   const validateField = (field: keyof FormData, value: any): string | undefined => {
     switch (field) {
+      case 'companyName':
+          return (value || !okta) ? undefined : `${field} is required`;
       case 'jobDescriptionFile':
       case 'hiringDocument':
         return value ? undefined : `${field} is required`;
@@ -218,7 +213,6 @@ const Onboarding: FC = () => {
       case 'jobSummary':
       case 'responsibilities':
       case 'jobRequirements':
-      case 'interviewOption':
         return value ? undefined : `${field} is required`; // TODO: Print this as 'Job Requirements' instead of 'jobRequirements'
       case 'hardSkills':
       case 'softSkills':
@@ -288,6 +282,17 @@ const Onboarding: FC = () => {
           <TouchableOpacity style={styles.uploadButton} onPress={() => handleFileChange('jobDescriptionFile')}>
             <Text>{formData.jobDescriptionFile ? 'File selected' : 'Select file'}</Text>
           </TouchableOpacity>
+
+          {okta && (
+            <View>
+              <Text>Company Name</Text>
+              <TextInput
+                style={styles.input}
+                value={formData.companyName}
+                onChangeText={(text) => handleInputChange('companyName', text)}
+              />
+            </View>
+          )}
           
           <Text>Company Website</Text>
           <TextInput

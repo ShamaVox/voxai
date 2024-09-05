@@ -26,15 +26,25 @@ else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://linux:password@localhost:5432/voxai_db"
 db = SQLAlchemy(app)
 
+class Organization(db.Model):
+    organization_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
+    name = db.Column(db.String)
+    accounts = db.relationship('Account', back_populates='organization')
+    hiring_document_url = db.Column(db.String)
+    website_url = db.Column(db.String)
+    size = db.Column(db.Integer)
+
 class Account(db.Model):
     account_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     email = db.Column(db.String, nullable=False, unique=True)
     name = db.Column(db.String, nullable=False, default="Default Name")
     account_type = db.Column(db.String, nullable=False, default="Recruiter")
-    organization = db.Column(db.String, default="Default Company")
     onboarded = db.Column(db.Boolean, nullable=False, default=False) 
     roles = db.relationship('Role', back_populates="direct_manager")
     teammates = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
+    # TODO: make organization unique
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.organization_id'), nullable=True)
+    organization = db.relationship('Organization', back_populates='accounts')
     interviews = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
     metric_history = db.relationship("MetricHistory", back_populates="account")
 
@@ -50,6 +60,7 @@ class Skill(db.Model):
     def __repr__(self):
         return f'<Skill {self.skill_name}>'
 
+
 class Role(db.Model):
     role_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     role_name = db.Column(db.String, nullable=False)
@@ -61,11 +72,16 @@ class Role(db.Model):
     years_of_experience_max = db.Column(db.Integer) 
     target_years_of_experience = db.Column(db.Integer)
     direct_manager_id = db.Column(db.Integer, db.ForeignKey('account.account_id'))
+    position_type = db.Column(db.String)
+    department = db.Column(db.String)
+    responsibilities = db.Column(db.String)
+    requirements = db.Column(db.String)
     direct_manager = db.relationship("Account", foreign_keys=[direct_manager_id], back_populates="roles") 
 
     # Many-to-many relationship for skills and teammates
     applications = db.relationship('Application', back_populates='role')
     teammates = db.relationship('Account', secondary="role_teammate", back_populates='teammates')
+    # TODO: write queries to get skills by skill type
     skills = db.relationship('Skill', secondary="role_skill", back_populates='roles')
 
     def __repr__(self):
