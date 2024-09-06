@@ -22,6 +22,7 @@ declare global {
       Home: undefined;
       Login: undefined;
       Interview: { interview: InterviewData };
+      Onboarding: undefined;
       [key: string]: undefined | { interview: InterviewData }; // Index signature
     }
   }

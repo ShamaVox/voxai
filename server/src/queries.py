@@ -1,4 +1,4 @@
-from .database import db, Application, Role, MetricHistory, Interview, Account, interview_interviewer_speaking_table
+from .database import db, Application, Role, MetricHistory, Interview, Account, TranscriptLine, interview_interviewer_speaking_table
 from datetime import datetime, timedelta
 from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
 
@@ -198,3 +198,6 @@ def get_account_interviews(account_id, interviewer=True):
         })
 
     return interview_data
+
+def get_transcript_lines_in_order(interview_id):
+    return TranscriptLine.query.filter_by(interview_id=interview_id).order_by(TranscriptLine.start).all()

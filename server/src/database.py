@@ -1,6 +1,6 @@
 from .app import app as app
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+import datetime
 from os import environ
 
 EXPERIENCE_LEVELS = {
@@ -23,17 +23,28 @@ if 'TEST' in environ:
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://ubuntu:voxai@localhost:5432/voxai_db_integration_test"
     print("Server using integration test database")
 else:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://ubuntu:voxai@localhost:5432/voxai_db"
+    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://linux:password@localhost:5432/voxai_db"
 db = SQLAlchemy(app)
+
+class Organization(db.Model):
+    organization_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
+    name = db.Column(db.String)
+    accounts = db.relationship('Account', back_populates='organization')
+    hiring_document_url = db.Column(db.String)
+    website_url = db.Column(db.String)
+    size = db.Column(db.Integer)
 
 class Account(db.Model):
     account_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     email = db.Column(db.String, nullable=False, unique=True)
     name = db.Column(db.String, nullable=False, default="Default Name")
     account_type = db.Column(db.String, nullable=False, default="Recruiter")
-    organization = db.Column(db.String, default="Default Company")
+    onboarded = db.Column(db.Boolean, nullable=False, default=False) 
     roles = db.relationship('Role', back_populates="direct_manager")
     teammates = db.relationship('Role', secondary="role_teammate", back_populates='teammates')
+    # TODO: make organization unique
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.organization_id'), nullable=True)
+    organization = db.relationship('Organization', back_populates='accounts')
     interviews = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
     metric_history = db.relationship("MetricHistory", back_populates="account")
 
@@ -49,6 +60,7 @@ class Skill(db.Model):
     def __repr__(self):
         return f'<Skill {self.skill_name}>'
 
+
 class Role(db.Model):
     role_id = db.Column(db.Integer, primary_key=True, autoincrement=True, unique=True)
     role_name = db.Column(db.String, nullable=False)
@@ -60,11 +72,16 @@ class Role(db.Model):
     years_of_experience_max = db.Column(db.Integer) 
     target_years_of_experience = db.Column(db.Integer)
     direct_manager_id = db.Column(db.Integer, db.ForeignKey('account.account_id'))
+    position_type = db.Column(db.String)
+    department = db.Column(db.String)
+    responsibilities = db.Column(db.String)
+    requirements = db.Column(db.String)
     direct_manager = db.relationship("Account", foreign_keys=[direct_manager_id], back_populates="roles") 
 
     # Many-to-many relationship for skills and teammates
     applications = db.relationship('Application', back_populates='role')
     teammates = db.relationship('Account', secondary="role_teammate", back_populates='teammates')
+    # TODO: write queries to get skills by skill type
     skills = db.relationship('Skill', secondary="role_skill", back_populates='roles')
 
     def __repr__(self):
@@ -87,7 +104,7 @@ class Application(db.Model):
     role_id = db.Column(db.Integer, db.ForeignKey('role.role_id'), nullable=False)
     candidate_id = db.Column(db.Integer, db.ForeignKey('candidate.candidate_id'), nullable=False)
     candidate_match = db.Column(db.Integer)  # Resume score
-    application_time = db.Column(db.DateTime, default=datetime.utcnow)
+    application_time = db.Column(db.DateTime, default=datetime.datetime.now(datetime.UTC))
 
     role = db.relationship("Role", back_populates="applications")
     candidate = db.relationship("Candidate", back_populates="applications")
@@ -123,23 +140,47 @@ class Interview(db.Model):
     video_url = db.Column(db.String)
     audio_url_preprocessed = db.Column(db.String)
     video_url_preprocessed = db.Column(db.String)
-    recall_id = db.Column(db.String(36))
+    recall_id = db.Column(db.String(36)) # Should be unique eventually, but duplicates can exist for now for testing
     score = db.Column(db.Integer)
-    engagement = db.Column(db.Integer)
-    sentiment = db.Column(db.Integer)
+    engagement_json = db.Column(db.JSON)
+    engagement = db.Column(db.Integer) # Summary score over the entire interview
+    sentiment = db.Column(db.Integer) # Summary score over the entire interview
     speaking_time = db.Column(db.Integer)
     wpm = db.Column(db.Integer)
     keywords = db.Column(db.ARRAY(db.String)) 
     under_review = db.Column(db.Boolean)
+    summary = db.Column(db.Text)
 
     # Relationships
     skill_scores = db.relationship("Skill", secondary="interview_skill_score", back_populates="interviews")
     applications = db.relationship("Application", back_populates="interviews") # TODO: change to "application"
     candidate = db.relationship("Candidate", back_populates="interviews")
     interviewer_speaking_metrics = db.relationship("Account", secondary="interview_interviewer_speaking", back_populates="interviews")
+    transcript_lines = db.relationship('TranscriptLine', back_populates='interview', order_by='TranscriptLine.start')
 
     def __repr__(self):
         return f'<Interview {self.interview_id} - Application: {self.application_id}, Time: {self.interview_time}>'
+
+class TranscriptLine(db.Model):
+    __tablename__ = 'transcript_lines'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    interview_id = db.Column(db.Integer, db.ForeignKey('interview.interview_id'), nullable=False)
+    text = db.Column(db.Text)
+    start = db.Column(db.Integer)
+    end = db.Column(db.Integer)
+    confidence = db.Column(db.Float)
+    sentiment = db.Column(db.String)
+    # TODO: Remove engagement from TranscriptLine
+    engagement = db.Column(db.String)
+    speaker = db.Column(db.String)
+    labels = db.Column(db.Text)
+
+    # Relationships
+    interview = db.relationship('Interview', back_populates='transcript_lines')
+
+    def __repr__(self):
+        return f'<TranscriptLine {self.id} - Interview: {self.interview_id}, Start: {self.start}>'
 
 # Skill Scores
 interview_skill_score_table = db.Table(
