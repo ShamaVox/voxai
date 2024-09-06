@@ -17,6 +17,8 @@ from sqlalchemy import func
 from operator import attrgetter
 from flask import request, jsonify, Blueprint
 from bs4 import BeautifulSoup
+import requests
+from urllib.parse import urlparse
 
 # Configure S3 settings and create an S3 client
 S3_BUCKET_NAME = 'voxai-test-audio-video'
@@ -87,9 +89,23 @@ def get_engagement(url, video=False):
     """
     return get_analysis(url, "engagement", video)
 
-import requests
-from urllib.parse import urlparse
+# TODO: move to utils
+def upload_file(output_key, file_content):
+    """Uploads a file to s3."""
+    try:
+        # Upload to the new location
+        s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
+        
+        # Return the new S3 URL
+        return f's3://{S3_BUCKET_NAME}/{output_key}'
+    except (BotoCoreError, ClientError) as e:
+        print(f"Error in S3 operation: {str(e)}")
+        return None
+    except ValueError as e:
+        print(str(e))
+        return None
 
+# TODO: move to utils
 def download_and_reupload_file(input_url, output_key):
     """Download a file from input_url (S3 or HTTP) and re-upload it to a new S3 key."""
     try:

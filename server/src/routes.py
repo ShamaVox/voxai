@@ -6,8 +6,9 @@ from .app import app as app
 from os import environ
 from faker import Faker
 from sqlalchemy import func
+from .apis import upload_file
 from .constants import DEBUG_OKTA
-from .database import Skill
+from .database import Skill, Organization, Role, Account, db
 from .queries import fitting_job_applications_percentage, average_interview_pace, average_compensation_range, get_account_interviews
 from .sessions import sessions
 from .synthetic_data import fake_interview, generate_synthetic_data_on_account_creation
@@ -19,6 +20,7 @@ from urllib.parse import urlencode
 from threading import Lock
 import time 
 import random
+import re
 
 isAccepted = False
 
@@ -140,7 +142,8 @@ def validate_code():
                 "account_type": existing_account.account_type,
                 "email": email,
                 "authToken": auth_token,
-                "onboarded": existing_account.onboarded
+                "onboarded": existing_account.onboarded,
+                "okta": False,
             }
             return_code = 200
             
@@ -164,7 +167,11 @@ def validate_code():
                 }
                 return_code = 401
             else: 
-                new_account = database.Account(email=email, name=request.json.get('name'),  organization=request.json.get('organization'), account_type=request.json.get('accountType'))
+                new_account = database.Account(email=email, name=request.json.get('name'), account_type=request.json.get('accountType'))
+                organization = Organization(name=request.json.get('organization'))
+                # TODO: reject requests where organization already exists
+                database.db.session.add(organization)
+                new_account.organization = organization
                 database.db.session.add(new_account)
                 database.db.session.flush()
 
@@ -181,7 +188,8 @@ def validate_code():
                     "account_type": request.json.get('accountType'),
                     "email": email,
                     "authToken": auth_token,
-                    "onboarded": False
+                    "onboarded": False,
+                    "okta": False,
                 }
                 return_code = 201 
 
@@ -306,7 +314,8 @@ def okta_login():
                     "success": True,
                     "email": email,
                     "name": name,
-                    "authToken": auth_token
+                    "authToken": auth_token,
+                    "okta": True
                 })
                 response.set_cookie("authToken", value=auth_token, httponly=True, samesite="Strict")
                 return response
@@ -368,7 +377,6 @@ def process_okta():
             new_account = database.Account(
                 email=email,
                 name=userinfo.get('name', 'Default Name').replace("  ", " "),
-                organization=userinfo.get('organization', 'Default Organization'),
                 account_type='Recruiter' 
             )
             database.db.session.add(new_account)
@@ -412,23 +420,23 @@ def process_okta():
         else:
             raise
 
-@app.route('/api/onboarding', methods=['POST'])
-def process_onboarding():
-    """Marks the onboarding process as complete for the current user."""
-    current_user_id = handle_auth_token(sessions)
-    if current_user_id is None:
-        return valid_token_response(False)
+# @app.route('/api/onboarding', methods=['POST'])
+# def process_onboarding():
+#     """Marks the onboarding process as complete for the current user."""
+#     current_user_id = handle_auth_token(sessions)
+#     if current_user_id is None:
+#         return valid_token_response(False)
     
-    # Fetch the account from the database
-    user_account = database.Account.query.filter_by(account_id=current_user_id).first()
-    if not user_account:
-        return jsonify({"success": False, "message": "User not found"}), 404
+#     # Fetch the account from the database
+#     user_account = database.Account.query.filter_by(account_id=current_user_id).first()
+#     if not user_account:
+#         return jsonify({"success": False, "message": "User not found"}), 404
     
-    # Mark onboarding as complete
-    user_account.onboarded = True
-    database.db.session.commit()
+#     # Mark onboarding as complete
+#     user_account.onboarded = True
+#     database.db.session.commit()
     
-    return jsonify({"success": True}), 200
+#     return jsonify({"success": True}), 200
 
 @app.route('/api/skills', methods=['GET'])
 def get_skills():
@@ -440,3 +448,106 @@ def get_skills():
     skill_types = ['hard', 'soft', 'behavioral']
     skill_list = [{"skill_id": skill.skill_id, "skill_name": skill.skill_name, "type": random.choice(skill_types)} for skill in skills]
     return jsonify({"skills": skill_list}), 200
+
+
+def validate_field(field, value):
+    if field in ['jobDescriptionFile', 'hiringDocument']:
+        return None if value else f"{field} is required"
+    elif field == 'companyWebsite':
+        if not value:
+            return "Company website is required"
+        if not re.match(r'^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$', value):
+            return "Invalid website URL"
+    elif field == 'companySize':
+        if not value:
+            return "Company size is required"
+        try:
+            int(value)
+        except ValueError:
+            return "Company size must be a number"
+    elif field in ['jobTitle', 'positionType', 'department', 'jobSummary', 'responsibilities', 'jobRequirements']:
+        return None if value else f"{field.replace('job', 'Job ')} is required"
+    elif field in ['hardSkills', 'softSkills', 'behavioralSkills']:
+        # TODO: check if skills are in the database
+        return None if value and len(value) > 0 else f"At least one {field} is required"
+    return None
+
+@app.route('/api/onboarding', methods=['POST'])
+def onboarding():
+    current_user_id = handle_auth_token(sessions)
+    if current_user_id is None:
+        return valid_token_response(False) 
+    try:
+        data = request.json
+
+        # Validate all fields
+        errors = {}
+        for field in ['jobDescriptionFile', 'companyWebsite', 'companySize', 
+        'hiringDocument', 'jobTitle', 'positionType', 'department', 'jobSummary', 
+        'responsibilities', 'jobRequirements', 'hardSkills', 'softSkills', 
+        'behavioralSkills']:
+            error = validate_field(field, data.get(field))
+            if error:
+                errors[field] = error
+
+        if errors:
+            return jsonify({"success": False, "errors": errors}), 400
+
+        # If validation passes, proceed with data processing
+        if 'companyName' in data:
+            organization = Organization.query.filter_by(name=data['companyName']).first()
+            if not organization:
+                # Create a new organization if it doesn't exist
+                organization = Organization(name=data['companyName'])
+                db.session.add(organization)
+        else:
+            # If companyName is not provided, get the organization from the account
+            account = Account.query.get(account_id)
+            organization = account.organization
+        
+        organization.website_url = data['companyWebsite']
+        organization.size = int(data['companySize'])
+        
+        # Handle hiring document upload
+        if data['hiringDocument']:
+            hiring_doc = data['hiringDocument'][0]['uri']
+            # TODO: use organization.name + "_hiring_document" as name
+            # Currently uploading all files to the same location to avoid wasting S3 space
+            upload_file("hiring_document", hiring_doc)
+
+        db.session.add(organization)
+
+        # Create Role
+        role = Role(
+            role_name=data['jobTitle'],
+            position_type=data['positionType'],
+            department=data['department'],
+            responsibilities=data['responsibilities'],
+            requirements=data['jobRequirements']
+        )
+
+        # Add skills to the role
+        for skill_data in data['hardSkills'] + data['softSkills'] + data['behavioralSkills']:
+            skill_name = skill_data['skill_name']
+            skill = Skill.query.filter_by(skill_name=skill_name).first()
+            if not skill:
+                skill = Skill(skill_name=skill_name)
+                db.session.add(skill)
+            role.skills.append(skill)
+
+        db.session.add(role)
+
+        # Update Account (assuming the account already exists and we're updating it)
+        account = Account.query.filter_by(account_id=current_user_id).first()
+        if account:
+            account.organization = organization
+            account.onboarded = True
+            db.session.add(account)
+
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Onboarding completed successfully"}), 200
+
+    except NameError as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
