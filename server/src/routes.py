@@ -21,6 +21,9 @@ from threading import Lock
 import time 
 import random
 import re
+import base64
+from pdfminer.high_level import extract_text
+import io
 
 isAccepted = False
 
@@ -450,9 +453,15 @@ def get_skills():
     return jsonify({"skills": skill_list}), 200
 
 
-def validate_field(field, value):
+def validate_field_onboarding(field, value):
     if field in ['jobDescriptionFile', 'hiringDocument']:
-        return None if value else f"{field} is required"
+        url_field = f"{field}Url"
+        return None if value or data.get(url_field) else f"{field} or URL is required"
+    elif field in ['jobDescriptionUrl', 'hiringDocumentUrl']:
+        if not value:
+            return None  # URL is optional if file is provided
+        if not re.match(r'^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$', value):
+            return "Invalid URL"
     elif field == 'companyWebsite':
         if not value:
             return "Company website is required"
@@ -466,10 +475,9 @@ def validate_field(field, value):
         except ValueError:
             return "Company size must be a number"
     elif field in ['jobTitle', 'positionType', 'department', 'jobSummary', 'responsibilities', 'jobRequirements']:
-        return None if value else f"{field.replace('job', 'Job ')} is required"
+        return None if value else f"{' '.join(re.findall('[A-Z][^A-Z]*', field)).capitalize()} is required"
     elif field in ['hardSkills', 'softSkills', 'behavioralSkills']:
-        # TODO: check if skills are in the database
-        return None if value and len(value) > 0 else f"At least one {field} is required"
+        return None if value and len(value) > 0 else f"At least one {' '.join(re.findall('[A-Z][^A-Z]*', field)).lower()} is required"
     return None
 
 @app.route('/api/onboarding', methods=['POST'])
@@ -486,7 +494,7 @@ def onboarding():
         'hiringDocument', 'jobTitle', 'positionType', 'department', 'jobSummary', 
         'responsibilities', 'jobRequirements', 'hardSkills', 'softSkills', 
         'behavioralSkills']:
-            error = validate_field(field, data.get(field))
+            error = validate_field_onboarding(field, data.get(field))
             if error:
                 errors[field] = error
 
@@ -606,4 +614,119 @@ def sync_google_calendar():
     #     return jsonify({"success": False, "message": f"An error occurred: {error}"}), 500
     except Exception as e:
         db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500
+
+def extract_data_from_pdf(pdf_file, skills):
+    text = extract_text(pdf_file)
+    
+    # Simple regex patterns to extract information
+    company_name = re.search(r'Company:\s*(.*)', text, re.IGNORECASE)
+    job_title = re.search(r'Job Title:\s*(.*)', text, re.IGNORECASE)
+    department = re.search(r'Department:\s*(.*)', text, re.IGNORECASE)
+    responsibilities = re.findall(r'Responsibilities:(.*?)(?:Requirements|\Z)', text, re.DOTALL | re.IGNORECASE)
+    requirements = re.findall(r'Requirements:(.*?)(?:Qualifications|\Z)', text, re.DOTALL | re.IGNORECASE)
+    detected_skills = []
+    for skill in skills:
+        if skill.skill_name.lower() in text.lower():
+            skill_type = random.choice(['hard', 'soft', 'behavioral'])
+            detected_skills.append({
+                "skill_id": skill.skill_id,
+                "skill_name": skill.skill_name,
+                "type": skill_type
+            })
+
+    return {
+        'companyName': company_name.group(1) if company_name else '',
+        'jobTitle': job_title.group(1) if job_title else '',
+        'department': department.group(1) if department else '',
+        'responsibilities': [r.strip() for r in responsibilities[0].split('\n') if r.strip()] if responsibilities else [],
+        'requirements': [r.strip() for r in requirements[0].split('\n') if r.strip()] if requirements else [],
+        'detected_skills': detected_skills,
+    }
+
+def allowed_file(filename):
+    return filename.split(".")[-1] == "pdf"
+
+@app.route('/api/process-files', methods=['POST'])
+def process_files():
+    try:
+        data = request.json
+        extracted_data = {}
+        temp_dir = os.path.expanduser("~/Desktop/temp")
+        os.makedirs(temp_dir, exist_ok=True)
+
+        # Fetch all skills from the database
+        skills = Skill.query.all()
+
+        # Process job description file
+        job_description_file = data.get('jobDescriptionFile')
+        if job_description_file and job_description_file[0].get('uri'):
+            file_content = base64.b64decode(job_description_file[0]['uri'].split(',')[1])
+            file_name = f"job_description_{job_description_file[0]['name']}"
+            file_path = os.path.join(temp_dir, file_name)
+            
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
+            
+            with open(file_path, 'rb') as f:
+                extracted_data.update(extract_data_from_pdf(f, skills))
+            
+            os.remove(file_path)  # Remove the file after processing
+
+        # Process hiring document file
+        hiring_document = data.get('hiringDocument')
+        if hiring_document and hiring_document[0].get('uri'):
+            file_content = base64.b64decode(hiring_document[0]['uri'].split(',')[1])
+            file_name = f"hiring_document_{hiring_document[0]['name']}"
+            file_path = os.path.join(temp_dir, file_name)
+            
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
+            
+            with open(file_path, 'rb') as f:
+                hiring_data = extract_data_from_pdf(f, skills)
+                extracted_data = {**hiring_data, **extracted_data}
+            
+            os.remove(file_path)  # Remove the file after processing
+
+        # Process job description URL
+        job_description_url = data.get('jobDescriptionUrl')
+        if job_description_url:
+            response = requests.get(job_description_url)
+            if response.status_code == 200:
+                pdf_content = io.BytesIO(response.content)
+                extracted_data.update(extract_data_from_pdf(pdf_content, skills))
+
+        # Process hiring document URL
+        hiring_document_url = data.get('hiringDocumentUrl')
+        if hiring_document_url:
+            response = requests.get(hiring_document_url)
+            if response.status_code == 200:
+                pdf_content = io.BytesIO(response.content)
+                hiring_data = extract_data_from_pdf(pdf_content, skills)
+                extracted_data = {**hiring_data, **extracted_data}
+
+        if not extracted_data:
+            return jsonify({"success": False, "message": "No data could be extracted from the provided files or URLs"}), 400
+
+        # Combine detected skills from all sources
+        all_detected_skills = []
+        if 'detected_skills' in extracted_data:
+            all_detected_skills.extend(extracted_data['detected_skills'])
+            del extracted_data['detected_skills']
+
+        # Remove duplicates while preserving order
+        seen = set()
+        unique_detected_skills = []
+        for skill in all_detected_skills:
+            if skill['skill_id'] not in seen:
+                seen.add(skill['skill_id'])
+                unique_detected_skills.append(skill)
+
+        # Add the unique detected skills to the response
+        extracted_data['detected_skills'] = unique_detected_skills
+
+        return jsonify({"success": True, "data": extracted_data}), 200
+
+    except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500

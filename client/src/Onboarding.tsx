@@ -24,10 +24,12 @@ interface Skill {
 
 interface FormData {
   jobDescriptionFile: DocumentPicker.DocumentPickerAsset[] | null;
+  jobDescriptionUrl: string;
   companyName: string;
   companyWebsite: string;
   companySize: string;
   hiringDocument: DocumentPicker.DocumentPickerAsset[] | null;
+  hiringDocumentUrl: string;
   jobTitle: string;
   positionType: string;
   department: string;
@@ -41,9 +43,11 @@ interface FormData {
 
 interface FormErrors {
   jobDescriptionFile?: string;
+  jobDescriptionUrl?: string;
   companyWebsite?: string;
   companySize?: string;
   hiringDocument?: string;
+  hiringDocumentUrl?: string;
   jobTitle?: string;
   positionType?: string;
   department?: string;
@@ -86,10 +90,12 @@ const Onboarding: FC = () => {
   const { finishOnboarding } = useContext(AuthContext);
   const [formData, setFormData] = useState<FormData>({
     jobDescriptionFile: null,
+    jobDescriptionUrl: '',
     companyName: '',
     companyWebsite: '',
     companySize: '',
     hiringDocument: null,
+    hiringDocumentUrl: '',
     jobTitle: '',
     positionType: '',
     department: '',
@@ -190,6 +196,9 @@ const Onboarding: FC = () => {
   const handleNextPage = async () => {
     if (validatePage()) {
       if (currentPage < 3) {
+        if (currentPage == 1) {
+          await handleFileUpload();
+        }
         setCurrentPage(currentPage + 1);
       } else {
         try {
@@ -214,10 +223,16 @@ const Onboarding: FC = () => {
   const validateField = (field: keyof FormData, value: any): string | undefined => {
     switch (field) {
       case 'companyName':
-          return (value || !okta) ? undefined : `${field} is required`;
+        return (value || !okta) ? undefined : `${field} is required`;
       case 'jobDescriptionFile':
-      case 'hiringDocument':
-        return value ? undefined : `${field} is required`;
+        case 'hiringDocument':
+          const correspondingUrl = field === 'jobDescriptionFile' ? 'jobDescriptionUrl' : 'hiringDocumentUrl';
+          return (value && value.length > 0) || formData[correspondingUrl] ? undefined : `${field.replace(/([A-Z])/g, ' $1').trim()} or URL is required`;
+        case 'jobDescriptionUrl':
+        case 'hiringDocumentUrl':
+          if (!value) return undefined; // URL is optional if file is provided
+          return /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value) ? 
+            undefined : 'Invalid URL';
       case 'companyWebsite':
         return value ? 
           (/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/.test(value) ? 
@@ -233,15 +248,15 @@ const Onboarding: FC = () => {
       case 'jobSummary':
       case 'responsibilities':
       case 'jobRequirements':
-        return value ? undefined : `${field} is required`; // TODO: Print this as 'Job Requirements' instead of 'jobRequirements'
+        return value ? undefined : `${field.replace(/([A-Z])/g, ' $1').trim()} is required`;
       case 'hardSkills':
       case 'softSkills':
       case 'behavioralSkills':
-        return (value as Skill[]).length > 0 ? undefined : `At least one ${field} is required`;
+        return (value as Skill[]).length > 0 ? undefined : `At least one ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} is required`;
       default:
         return undefined;
-    }
-  };
+      }
+    };
 
   const handleInputChange = (name: string, value: string) => {
     setFormData(prevData => ({
@@ -269,6 +284,32 @@ const Onboarding: FC = () => {
       <Text style={styles.circleText}>{page}</Text>
     </View>
   );
+
+  const handleFileUpload = async () => {
+    try {
+      const response = await axios.post(SERVER_ENDPOINT('process-files'), formData
+      );
+  
+      if (response.data.success) {
+        // Use the returned data to prefill the form
+        setFormData(prevData => ({
+          ...prevData,
+          companyName: response.data.data.companyName,
+          jobTitle: response.data.data.jobTitle,
+          department: response.data.data.department,
+          responsibilities: response.data.data.responsibilities.join('\n'),
+          jobRequirements: response.data.data.requirements.join('\n'),
+          hardSkills: response.data.data.detected_skills.filter(skill => skill.type === 'hard'),
+          softSkills: response.data.data.detected_skills.filter(skill => skill.type === 'soft'),
+          behavioralSkills: response.data.data.detected_skills.filter(skill => skill.type === 'behavioral'),
+        }));
+      } else {
+        console.error('Failed to process PDFs:', response.data.message);
+      }
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    }
+  };
 
   const handleConnectCalendar = useGoogleLogin({
     onSuccess: async (response) => {
@@ -312,10 +353,16 @@ const Onboarding: FC = () => {
 
       {currentPage === 1 && (
         <View>
-          <Text>Job Description (Upload File)</Text>
+          <Text>Job Description (Upload File or Enter URL)</Text>
           <TouchableOpacity style={styles.uploadButton} onPress={() => handleFileChange('jobDescriptionFile')}>
             <Text>{formData.jobDescriptionFile ? 'File selected' : 'Select file'}</Text>
           </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            value={formData.jobDescriptionUrl}
+            onChangeText={(text) => handleInputChange('jobDescriptionUrl', text)}
+            placeholder="Or enter job description URL"
+          />
 
           {okta && (
             <View>
@@ -342,13 +389,18 @@ const Onboarding: FC = () => {
             onChangeText={(text) => handleInputChange('companySize', text)}
           />
           
-          <Text>Hiring Document (Upload File)</Text>
+          <Text>Hiring Document (Upload File or Enter URL)</Text>
           <TouchableOpacity style={styles.uploadButton} onPress={() => handleFileChange('hiringDocument')}>
             <Text>{formData.hiringDocument ? 'File selected' : 'Select file'}</Text>
           </TouchableOpacity>
+          <TextInput
+            style={styles.input}
+            value={formData.hiringDocumentUrl}
+            onChangeText={(text) => handleInputChange('hiringDocumentUrl', text)}
+            placeholder="Or enter hiring document URL"
+          />
         </View>
       )}
-
       {currentPage === 2 && (
         <View style={styles.twoColumnLayout}>
           <View style={styles.leftColumn}>
