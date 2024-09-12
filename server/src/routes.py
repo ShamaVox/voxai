@@ -551,3 +551,59 @@ def onboarding():
     except NameError as e:
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
+
+@app.route('/api/sync-google-calendar', methods=['POST'])
+def sync_google_calendar():
+    current_user_id = handle_auth_token(sessions)
+    if current_user_id is None:
+        return valid_token_response(False)
+
+    try:
+        data = request.json
+        access_token = data.get('accessToken')
+
+        if not access_token:
+            return jsonify({"success": False, "message": "Access token is required"}), 400
+
+        # Get the current user's account
+        account = Account.query.get(current_user_id)
+        if not account:
+            return jsonify({"success": False, "message": "Account not found"}), 404
+
+        # Update the account with the new access token
+        account.google_calendar_token = access_token
+        db.session.commit()
+
+        return jsonify({"success": True})
+
+        # TODO: Implement something like this utilizing Google Calendar
+        # from google.oauth2.credentials import Credentials
+        # from googleapiclient.discovery import build
+        # from googleapiclient.errors import HttpError
+        # # Use the access token to fetch calendar events
+        # creds = Credentials(token=access_token)
+        # service = build('calendar', 'v3', credentials=creds)
+
+        # # Call the Calendar API
+        # now = datetime.datetime.utcnow().isoformat() + 'Z'  # 'Z' indicates UTC time
+        # events_result = service.events().list(calendarId='primary', timeMin=now,
+        #                                       maxResults=10, singleEvents=True,
+        #                                       orderBy='startTime').execute()
+        # events = events_result.get('items', [])
+
+        # if not events:
+        #     return jsonify({"success": True, "message": "No upcoming events found"}), 200
+
+        # # Process and store the events as needed
+        # # For now, we'll just return the number of events synced
+        # return jsonify({
+        #     "success": True, 
+        #     "message": f"Successfully synced {len(events)} events",
+        #     "events_count": len(events)
+        # }), 200
+
+    # except HttpError as error:
+    #     return jsonify({"success": False, "message": f"An error occurred: {error}"}), 500
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "message": str(e)}), 500

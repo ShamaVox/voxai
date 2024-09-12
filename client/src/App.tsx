@@ -12,6 +12,7 @@ import NavBar from "./NavBar";
 import InterviewScreen, { InterviewData } from "./Interview";
 import { APP_LOGGING } from "./config/Logging";
 import styles from "./styles/AppStyles";
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 // Fixes TypeScript error in my IDE
 declare global {
@@ -42,10 +43,13 @@ interface AppProps {
 const App: FC<AppProps> = ({ enableAnimations = true }) => {
   return (
     <NavigationContainer>
-      <AuthProvider>
-        <AppContent enableAnimations={enableAnimations} />
-      </AuthProvider>
+      <GoogleOAuthProvider clientId="711155308268-cg1kcltrm8mee4nh9s3rcvcaa11dovp6.apps.googleusercontent.com">
+        <AuthProvider>
+          <AppContent enableAnimations={enableAnimations} />
+        </AuthProvider>
+    </GoogleOAuthProvider>
     </NavigationContainer>
+    
   );
 };
 

@@ -1,12 +1,18 @@
 import React, { FC, useState, useContext, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, FlatList, ScrollView, Modal } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
 import * as DocumentPicker from 'expo-document-picker';
 import styles from './styles/OnboardingStyles';
 import errorStyles from './styles/ErrorStyles';
 import axios from 'axios';
 import { SERVER_ENDPOINT } from './utils/Axios';
 import { AuthContext } from './AuthContext';
+import { useGoogleLogin } from '@react-oauth/google';
+
+declare global {
+  interface Window {
+    gapi: any;
+  }
+}
 
 type SkillKey = 'hard' | 'soft' | 'behavioral';
 
@@ -103,7 +109,21 @@ const Onboarding: FC = () => {
 
   useEffect(() => {
     fetchAllSkills();
+    const script = document.createElement('script');
+    script.src = 'https://apis.google.com/js/api.js';
+    script.onload = initializeGoogleApi;
+    document.body.appendChild(script);
   }, []);
+
+  const initializeGoogleApi = () => {
+    window.gapi.load('client', () => {
+      window.gapi.client.init({
+        clientId: '711155308268-cg1kcltrm8mee4nh9s3rcvcaa11dovp6.apps.googleusercontent.com',
+        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest'],
+        scope: 'https://www.googleapis.com/auth/calendar.readonly'
+      });
+    });
+  };
 
   const fetchAllSkills = async () => {
     try {
@@ -250,20 +270,34 @@ const Onboarding: FC = () => {
     </View>
   );
 
-  const handleConnectCalendar = (calendarType: string) => {
-    // TODO: Use Okta to sync with Google Calendar if the option is available
-    // const { okta } = useContext(AuthContext);
-    // if (okta) {
-    //   // Make an API request to Okta to get Google Calendar token
-    //   // User may need to log in again to Okta 
-    // }
-    // else {
-      // Open a Google sign in tab 
-      // Request Google Calendar permissions 
-      // Get the token 
-    // }
-    return; 
-  }
+  const handleConnectCalendar = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        const { access_token } = response;
+        await syncCalendarWithBackend(access_token);
+      } catch (error) {
+        console.error('Error during Google Calendar sync:', error);
+        // Handle error (e.g., show error message to user)
+      }
+    },
+    onError: (error) => console.error('Google Login Error:', error),
+    scope: 'https://www.googleapis.com/auth/calendar.readonly'
+  });
+
+  const syncCalendarWithBackend = async (accessToken: string) => {
+    try {
+      const response = await axios.post(SERVER_ENDPOINT('sync-google-calendar'), { accessToken });
+      if (response.data.success) {
+        console.log('Calendar synced successfully');
+        // Update UI or state to reflect successful sync
+      } else {
+        throw new Error('Calendar sync failed');
+      }
+    } catch (error) {
+      console.error('Error syncing calendar with backend:', error);
+      // Handle error (e.g., show error message to user)
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -414,15 +448,9 @@ const Onboarding: FC = () => {
           <Text>Connect Your Calendars</Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => handleConnectCalendar('Google')}
+            onPress={() => handleConnectCalendar()}
           >
             <Text style={styles.buttonText}>Connect Google Calendar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => handleConnectCalendar('Calendly')}
-          >
-            <Text style={styles.buttonText}>Connect Calendly</Text>
           </TouchableOpacity>
         </View>
       )}
