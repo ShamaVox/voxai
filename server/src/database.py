@@ -47,6 +47,7 @@ class Account(db.Model):
     organization = db.relationship('Organization', back_populates='accounts')
     interviews = db.relationship("Interview", secondary="interview_interviewer_speaking", back_populates="interviewer_speaking_metrics")
     metric_history = db.relationship("MetricHistory", back_populates="account")
+    google_calendar_token = db.Column(db.String, nullable=True)
 
     def __repr__(self):
         return f'<Account {self.email}>'
