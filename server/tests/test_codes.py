@@ -50,7 +50,13 @@ def test_send_code(client, init_database, email, expected_message, expected_stat
 def test_validate_code_existing_account(client, init_database, email, code, expected_message, expected_status_code):
     # Create a test account in the database
     with flask_app.app_context():
-        test_account = Account(email=email, name="Test User", organization="Test Org", account_type="Test Type")
+        org_name = "New Org" 
+        org_obj = Organization.query.filter_by(name=org_name).first()
+        if org_obj is None:
+            org_obj = Organization(name=org_name)
+            db.session.add(org_obj) 
+            db.session.flush()
+        test_account = Account(email=email, name="Test User", organization=org_obj, account_type="Test Type")
         db.session.add(test_account)
         db.session.commit()
 
@@ -69,24 +75,19 @@ def test_validate_code_existing_account(client, init_database, email, code, expe
 @pytest.mark.parametrize(
     "email, code, name, organization, account_type, expected_message, expected_status_code",
     [
-        ("new@example.com", "123123", "New User", "New Org", "New Type", "Account created", 201),
-        ("new2@example.com", "123123", None, "New Org", "New Type", "A name is needed to create an account", 401),
+        ("new@example.com", "123123", "New User", "New Org 1", "New Type", "Account created", 201),
+        ("new2@example.com", "123123", None, "New Org 2", "New Type", "A name is needed to create an account", 401),
         ("new3@example.com", "123123", "New User", None, "New Type", "An organization is needed to create an account", 401),
-        ("new4@example.com", "123123", "New User", "New Org", None, "An account type is needed to create an account", 401),
+        ("new4@example.com", "123123", "New User", "New Org 3", None, "An account type is needed to create an account", 401),
     ],
 )
 def test_validate_code_new_account(client, init_database, email, code, name, organization, account_type, expected_message, expected_status_code):
     create_synthetic_data(10)
     # Send a POST request to the endpoint
 
-    org_name = "New Org"  # Or whatever organization you are testing with
-    org_obj = Organization.query.filter_by(name=org_name).first()
-    if org_obj is None:
-        org_obj = Organization(name=org_name)
-        db.session.add(org_obj) # Add to the database
-        db.session.flush()
-
     response = client.post("/api/validate_code", json={"email": email, "code": code, "name": name, "organization": organization, "accountType": account_type})
+    with flask_app.app_context():
+        org_obj = Organization.query.filter_by(name=organization).first()
 
     # Assert the response
     assert json.loads(response.data)["message"] == expected_message
@@ -103,5 +104,5 @@ def test_validate_code_new_account(client, init_database, email, code, name, org
             new_account = Account.query.filter_by(email=email).first()
             assert new_account is not None
             assert new_account.name == name
-            assert new_account.organization == organization
+            assert new_account.organization == org_obj
             assert new_account.account_type == account_type

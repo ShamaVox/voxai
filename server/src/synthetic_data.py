@@ -12,7 +12,16 @@ from datetime import datetime, timedelta
 data_generator = Faker()
 
 def generate_account_data(num, specified_email=None, specified_account_type=None):
-    """Generates synthetic data for the Account model."""
+    """Generates synthetic data for the Account model.
+
+    Args:
+        num_records (int): The number of account records to generate.
+        specified_email (str, optional): A specific email to use for the first account.
+        specified_account_type (str, optional): The account type to use for the first account.
+
+    Returns:
+        list: A list of generated Account objects.
+    """
     account_types = ["Recruiter", "Hiring Manager"]
     accounts = []
     emails = set()
@@ -34,21 +43,19 @@ def generate_account_data(num, specified_email=None, specified_account_type=None
         else:
             account_type = data_generator.random_element(account_types)
 
-        # Create Organization object:  THIS IS THE KEY CHANGE
         organization_name = data_generator.company()
-        organization = Organization(name=organization_name) # Create the object
-        db.session.add(organization) # Add to the session. No need to call flush() before the account is created since the session is only committed later
-        # db.session.flush()
+        organization = Organization(name=organization_name) 
+        db.session.add(organization)
 
         account = Account(
             email=email,
             name=name,
             account_type=account_type,
-            organization=organization  # Assign the Organization object
+            organization=organization  
         )
         accounts.append(account)
 
-    db.session.add_all(accounts) # accounts will now cascade-save organizations
+    db.session.add_all(accounts)
     return accounts
 
 def generate_role_data(num_records, accounts, skills, direct_manager=None):
