@@ -1,5 +1,5 @@
 from faker import Faker
-from .database import Account, Role, Application, Candidate, Interview, Skill, MetricHistory, db, interview_skill_score_table, interview_interviewer_speaking_table
+from .database import Account, Role, Application, Candidate, Interview, Skill, MetricHistory, Organization, db, interview_skill_score_table, interview_interviewer_speaking_table
 from .utils import get_random_time, get_random_date
 from .queries import fitting_job_applications_percentage
 from os import environ
@@ -12,47 +12,43 @@ from datetime import datetime, timedelta
 data_generator = Faker()
 
 def generate_account_data(num, specified_email=None, specified_account_type=None):
-    """Generates synthetic data for the Account model.
-
-    Args:
-        num_records (int): The number of account records to generate.
-        specified_email (str, optional): A specific email to use for the first account.
-        specified_account_type (str, optional): The account type to use for the first account.
-
-    Returns:
-        list: A list of generated Account objects.
-    """
+    """Generates synthetic data for the Account model."""
     account_types = ["Recruiter", "Hiring Manager"]
-
     accounts = []
     emails = set()
+
     for i in range(num):
         while True:
-            if i == 0 and specified_email:  # Use the specified email for the first account if provided
+            if i == 0 and specified_email:
                 email = specified_email
             else:
                 email = data_generator.email()
                 email = email.split("@")[0] + "_" + data_generator.name() + "_" + data_generator.company() + "@" + email.split("@")[1]
-            # Ensure unique emails
             if email not in emails:
                 emails.add(email)
-                break  
+                break
+
         name = data_generator.name()
         if i == 0 and specified_account_type:
             account_type = specified_account_type
         else:
             account_type = data_generator.random_element(account_types)
-        organization = data_generator.company()
+
+        # Create Organization object:  THIS IS THE KEY CHANGE
+        organization_name = data_generator.company()
+        organization = Organization(name=organization_name) # Create the object
+        db.session.add(organization) # Add to the session. No need to call flush() before the account is created since the session is only committed later
+        # db.session.flush()
 
         account = Account(
             email=email,
             name=name,
             account_type=account_type,
-            organization=organization
+            organization=organization  # Assign the Organization object
         )
         accounts.append(account)
 
-    db.session.add_all(accounts)
+    db.session.add_all(accounts) # accounts will now cascade-save organizations
     return accounts
 
 def generate_role_data(num_records, accounts, skills, direct_manager=None):
