@@ -6,7 +6,8 @@ from os import environ
 from .app import app as app
 from sqlalchemy import inspect, or_, func
 from .constants import SYNTHETIC_DATA_ENTRIES, SYNTHETIC_DATA_BATCHES, DEBUG_SYNTHETIC_DATA, ENABLE_SYNTHETIC_PREPROCESSING, ENABLE_SYNTHETIC_ENGAGEMENT, ENABLE_SYNTHETIC_SENTIMENT, SYNTHETIC_INTERVIEW_PROCESSING_PERCENTAGE, SKILL_LIST
-from .apis import preprocess, get_sentiment, get_engagement
+from .apis.preprocess import preprocess
+from .apis.analysis import get_sentiment, get_engagement
 from datetime import datetime, timedelta
 
 data_generator = Faker()

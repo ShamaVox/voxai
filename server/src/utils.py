@@ -1,10 +1,20 @@
-import random
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 from datetime import date, timedelta
-import string
-import json
 from flask import jsonify, make_response, request
-from .constants import RECALL_CREDENTIAL_FILEPATH
+import json
 from os import environ
+import random
+import requests
+import string
+from urllib.parse import urlparse
+
+from .constants import RECALL_CREDENTIAL_FILEPATH, AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE, DEBUG_RECALL_RECORDING_RETRIEVAL
+
+# Configure S3 settings and create an S3 client
+S3_BUCKET_NAME = 'voxai-test-audio-video'
+aws_credentials = json.load(open(AWS_CREDENTIAL_FILEPATH))
+s3_client = boto3.client('s3', aws_access_key_id=aws_credentials['aws_access_key_id'], aws_secret_access_key=aws_credentials['aws_secret_access_key'])
 
 def get_random(max_value, negative=False):
     """Generates a random integer within a specified range."""
@@ -125,3 +135,53 @@ def handle_auth_token(sessions):
         current_user_id = sessions[auth_token]
 
     return current_user_id
+
+# TODO: move to utils
+def upload_file(output_key, file_content):
+    """Uploads a file to s3."""
+    try:
+        # Upload to the new location
+        s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
+        
+        # Return the new S3 URL
+        return f's3://{S3_BUCKET_NAME}/{output_key}'
+    except (BotoCoreError, ClientError) as e:
+        print(f"Error in S3 operation: {str(e)}")
+        return None
+    except ValueError as e:
+        print(str(e))
+        return None
+
+# TODO: move to utils
+def download_and_reupload_file(input_url, output_key):
+    """Download a file from input_url (S3 or HTTP) and re-upload it to a new S3 key."""
+    try:
+        parsed_url = urlparse(input_url)
+        
+        if parsed_url.scheme in ['http', 'https']:
+            # Handle HTTP/HTTPS URL
+            response = requests.get(input_url)
+            response.raise_for_status()  # Raise an exception for bad status codes
+            file_content = response.content
+        elif parsed_url.scheme == 's3':
+            # Handle S3 URL
+            bucket_name = parsed_url.netloc
+            input_key = parsed_url.path.lstrip('/')
+            file_content = s3_client.get_object(Bucket=bucket_name, Key=input_key)['Body'].read()
+        else:
+            raise ValueError(f"Unsupported URL scheme: {parsed_url.scheme}")
+        
+        # Upload to the new location
+        s3_client.put_object(Bucket=S3_BUCKET_NAME, Key=output_key, Body=file_content)
+        
+        # Return the new S3 URL
+        return f's3://{S3_BUCKET_NAME}/{output_key}'
+    except (BotoCoreError, ClientError) as e:
+        print(f"Error in S3 operation: {str(e)}")
+        return None
+    except requests.RequestException as e:
+        print(f"Error downloading file from URL: {str(e)}")
+        return None
+    except ValueError as e:
+        print(str(e))
+        return None
