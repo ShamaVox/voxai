@@ -1,4 +1,4 @@
-from server.src.routes import sessions 
+from server.src.sessions import sessions 
 from server.src.synthetic_data import generate_synthetic_data, generate_synthetic_data_on_account_creation, data_generator, generate_account_data, generate_skill_data, generate_role_data, generate_candidate_data, generate_application_data, generate_interview_data, generate_metric_history
 from server.app import app as flask_app
 from server.src.database import Account, Role, Application, Candidate, MetricHistory, Interview, db

@@ -1,6 +1,7 @@
 import pytest
 from flask import json
-from server.src import input_validation, verification, database
+from server.src import input_validation, database
+from server.src.routes import auth
 from server.app import app as flask_app
 from server.src.database import db, Interview, TranscriptLine
 from server.src.apis.preprocess import preprocess

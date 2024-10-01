@@ -1,6 +1,7 @@
 import pytest
 from flask import json
-from server.src import input_validation, verification, database
+from server.src import input_validation, database
+from server.src.routes import auth
 from server.src.database import db, Account, Organization
 from server.app import app as flask_app
 from .utils.synthetic_data import create_synthetic_data
@@ -20,7 +21,7 @@ def test_send_code(client, init_database, email, expected_message, expected_stat
 
     # Set up the mocked return values
     input_validation.is_valid_email.return_value = expected_status_code == 200
-    verification.generate_verification_code.return_value = "123456"
+    generate_verification_code.return_value = "123456"
 
     # Send a POST request to the endpoint
     response = client.post("/api/send_code", json={"email": email})
@@ -32,8 +33,8 @@ def test_send_code(client, init_database, email, expected_message, expected_stat
     # Assert the function calls
     input_validation.is_valid_email.assert_called_once_with(email)
     if expected_status_code == 200:
-        verification.generate_verification_code.assert_called_once()
-        verification.send_verification_code.assert_called_once_with(email, "123456")
+        generate_verification_code.assert_called_once()
+        send_verification_code.assert_called_once_with(email, "123456")
 
         # Check if the account exists in the test database
         with flask_app.app_context():

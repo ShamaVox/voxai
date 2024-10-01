@@ -1,7 +1,8 @@
-import pytest
 from flask import json
-from .utils.synthetic_data import create_test_account_and_set_token
+import pytest
 import requests
+
+from .utils.synthetic_data import create_test_account_and_set_token
 
 def test_get_interviews(client):
     create_test_account_and_set_token(client, "test_interviews@test.com", "AUTHTOKENINTERVIEWS", 10, 3)
