@@ -106,7 +106,7 @@ Create a role:
 
 In a new terminal, create a database for the application:
 
-    psql POSTGRES
+    psql postgres
     CREATE DATABASE voxai_db;
 
 Edit the database URI in server/src/database.py to match the database credentials:
@@ -116,6 +116,8 @@ Edit the database URI in server/src/database.py to match the database credential
 If you set up a different postgres user than the default, the line will look something like this:
 
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://username:password@localhost:5432/voxai_db"
+
+The above steps will need to be repeated to set up the integration testing, which uses a separate database (voxai_db_integration_test by default).
 
 ### AWS / Recall Setup:
 

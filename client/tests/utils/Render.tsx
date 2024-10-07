@@ -52,6 +52,9 @@ export const renderLoginFromMock: (
         email: "",
         authToken: "",
         handleLogout: async () => {},
+        onboarded: false,
+        okta: false,
+        finishOnboarding: () => {},
       }}
     >
       <Login />
