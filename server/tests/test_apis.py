@@ -520,7 +520,7 @@ def test_delete_nonexistent_transcript_line(client):
     assert response.status_code == 404
 
 @patch('requests.get')
-@patch('server.src.utils.download_and_reupload_file')
+@patch('server.src.apis.recall.download_and_reupload_file')
 def test_save_recording_success(mock_download, mock_requests_get, client, sample_data):
     mock_response = Mock()
     mock_response.status_code = 200

@@ -3,7 +3,7 @@ import json
 import requests
 
 from ..app import app
-from ..constants import DEBUG_RECALL_INTELLIGENCE
+from ..constants import DEBUG_RECALL_INTELLIGENCE, DEBUG_RECALL_RECORDING_RETRIEVAL
 from ..database import db, Interview, TranscriptLine
 from ..sessions import sessions
 from ..utils import get_recall_headers, api_error_response, valid_token_response, handle_auth_token, download_and_reupload_file

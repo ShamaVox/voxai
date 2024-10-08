@@ -152,7 +152,7 @@ def upload_file(output_key, file_content):
         print(str(e))
         return None
 
-# TODO: move to utils
+
 def download_and_reupload_file(input_url, output_key):
     """Download a file from input_url (S3 or HTTP) and re-upload it to a new S3 key."""
     try:
