@@ -8,6 +8,7 @@ import Login from "../../src/Login";
 import NavBar from "../../src/NavBar";
 import { setCookies } from "./Cookies";
 import { mockTokenValidation } from "./MockRequests";
+// import { GoogleOAuthProvider } from '@react-oauth/google';
 
 /**
  * Renders a component with the specified login state.
@@ -20,8 +21,8 @@ export const renderComponent = (
   component: FC,
   isLoggedIn: boolean,
   username: string = "Test User",
-  // onboarded: boolean = true, // TODO: fix this to disable onboarding for Home unit tests
-  tokenCheckSuccess: boolean = true
+  tokenCheckSuccess: boolean = true,
+  onboarded: boolean = true,
 ) => {
   if (isLoggedIn) {
     mockTokenValidation("check_token", tokenCheckSuccess);
@@ -30,6 +31,7 @@ export const renderComponent = (
         username: username,
         email: "test@email.com",
         authToken: "AUTHTOKEN",
+        onboarded: onboarded,
       },
     });
   }
