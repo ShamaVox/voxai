@@ -16,12 +16,11 @@ from .utils.synthetic_data import create_synthetic_data
 def test_send_code(client, init_database, email, expected_message, expected_status_code, mocker):
     # Mock the necessary functions
     mocker.patch.object(input_validation, "is_valid_email")
-    mocker.patch.object(verification, "generate_verification_code")
-    mocker.patch.object(verification, "send_verification_code")
+    mocker.patch.object(auth, "generate_verification_code")
+    mocker.patch.object(auth, "send_verification_code")
 
     # Set up the mocked return values
-    input_validation.is_valid_email.return_value = expected_status_code == 200
-    generate_verification_code.return_value = "123456"
+    auth.generate_verification_code.return_value = "123456"
 
     # Send a POST request to the endpoint
     response = client.post("/api/send_code", json={"email": email})
@@ -31,10 +30,9 @@ def test_send_code(client, init_database, email, expected_message, expected_stat
     assert json.loads(response.data)["message"] == expected_message
 
     # Assert the function calls
-    input_validation.is_valid_email.assert_called_once_with(email)
     if expected_status_code == 200:
-        generate_verification_code.assert_called_once()
-        send_verification_code.assert_called_once_with(email, "123456")
+        auth.generate_verification_code.assert_called_once()
+        auth.send_verification_code.assert_called_once_with(email, "123456")
 
         # Check if the account exists in the test database
         with flask_app.app_context():

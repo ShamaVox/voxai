@@ -535,7 +535,7 @@ def test_save_recording_success(mock_download, mock_requests_get, client, sample
     response = client.get('/api/save_recording/test_bot_id')
     
     assert response.status_code == 200
-    data = json.loads(response.data)
+    data = response.get_json()
     assert data['bot_id'] == 'test_bot_id'
     assert data['meeting_url'] == 'https://zoom.us/j/123456789'
     
