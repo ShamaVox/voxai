@@ -103,5 +103,5 @@ def test_validate_code_new_account(client, init_database, email, code, name, org
             new_account = Account.query.filter_by(email=email).first()
             assert new_account is not None
             assert new_account.name == name
-            assert new_account.organization == org_obj
+            assert new_account.organization.organization_id == org_obj.organization_id
             assert new_account.account_type == account_type
