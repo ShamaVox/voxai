@@ -20,6 +20,7 @@ export const renderComponent = (
   component: FC,
   isLoggedIn: boolean,
   username: string = "Test User",
+  // onboarded: boolean = true, // TODO: fix this to disable onboarding for Home unit tests
   tokenCheckSuccess: boolean = true
 ) => {
   if (isLoggedIn) {
@@ -52,7 +53,7 @@ export const renderLoginFromMock: (
         email: "",
         authToken: "",
         handleLogout: async () => {},
-        onboarded: false,
+        onboarded: true,
         okta: false,
         finishOnboarding: () => {},
       }}
