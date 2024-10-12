@@ -18,7 +18,7 @@
     "migrate": "cd server && ALEMBIC=migrate authbind --deep  venv/bin/flask  run --host=0.0.0.0 --port=80",
     "upgrade": "cd server && ALEMBIC=upgrade authbind --deep  venv/bin/flask  run --host=0.0.0.0 --port=80",
     "downgrade": "cd server && ALEMBIC=downgrade authbind --deep  venv/bin/flask  run --host=0.0.0.0 --port=80",
-    "synthetic": "cd server && SYNTHETIC=1000 authbind --deep  venv/bin/flask  run --host=0.0.0.0 --port=80",
+    "synthetic": "cd server && SYNTHETIC=1000 authbind --deep  venv/bin/flask  run --host=0.0.0.0 --port=80"
   },
   "keywords": [],
   "author": "",
