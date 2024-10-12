@@ -1,7 +1,12 @@
 module.exports = {
-  preset: "jest-expo",
+  testEnvironment: 'jsdom',
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transform: {
-    "\\.[jt]sx?$": "babel-jest",
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
+  moduleNameMapper: {
+    '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+  },
+  preset: "jest-expo",
   setupFiles: ["<rootDir>/tests/jest-setup.js"],
 };
