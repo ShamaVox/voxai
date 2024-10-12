@@ -94,6 +94,12 @@ Create a Python virtual environment and install the required Python libraries:
 
 To avoid running the nvm commands every time the virtual environment is initialized, add them to the bottom of server/venv/bin/activate.
 
+On Linux, authbind also needs to be set up:
+
+    sudo touch /etc/authbind/byport/80
+    sudo chmod 500 /etc/authbind/port/80
+    sudo chown <your username> /etc/authbind/byport/80
+
 ### Database Setup:
 
 Start the postgres server:

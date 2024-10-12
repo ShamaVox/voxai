@@ -2,6 +2,11 @@ from .app import app as app
 from flask_sqlalchemy import SQLAlchemy
 import datetime
 from os import environ
+from pathlib import Path 
+from sqlalchemy import create_engine
+from sqlalchemy_utils import database_exists, create_database, drop_database
+import os 
+import subprocess
 
 EXPERIENCE_LEVELS = {
     0: "Entry",
@@ -19,11 +24,62 @@ CANDIDATE_STATUS = {
 }
 
 # Insecure; should load password from an environment variable and use a more secure password eventually
-if 'TEST' in environ:
-    app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://linux:password@localhost:5432/voxai_db_integration_test"
-    print("Server using integration test database")
+
+def setup_pgpass():
+    pgpass_path = Path.home() / '.pgpass'
+    pgpass_content = """
+localhost:5432:voxai_db:linux:password
+localhost:5432:voxai_db_integration_test:linux:password
+"""
+    pgpass_path.write_text(pgpass_content.strip())
+    pgpass_path.chmod(0o600)
+
+def setup_test_database():
+    main_db_url = "postgresql://linux:password@localhost:5432/voxai_db"
+    test_db_url = "postgresql://linux:password@localhost:5432/voxai_db_integration_test"
+    
+    engine = create_engine(test_db_url)
+    
+    if database_exists(test_db_url):
+        drop_database(test_db_url)
+    
+    create_database(test_db_url)
+    
+    # Clone the main database to the test database
+    subprocess.run([
+        "pg_dump",
+        "-h", "localhost",
+        "-U", "linux",
+        "-d", "voxai_db",
+        "-f", "db_dump.sql"
+    ], check=True)
+    
+    subprocess.run([
+        "psql",
+        "-h", "localhost",
+        "-U", "linux",
+        "-d", "voxai_db_integration_test",
+        "-f", "db_dump.sql"
+    ], check=True)
+    
+    os.remove("db_dump.sql")
+    
+    return test_db_url
+
+def teardown_test_database():
+    test_db_url = "postgresql://linux:password@localhost:5432/voxai_db_integration_test"
+    if database_exists(test_db_url):
+        drop_database(test_db_url)
+
+setup_pgpass()
+
+if 'TEST' in os.environ:
+    teardown_test_database()
+    app.config['SQLALCHEMY_DATABASE_URI'] = setup_test_database()
+    print("Server using cloned integration test database")
 else:
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://linux:password@localhost:5432/voxai_db"
+
 db = SQLAlchemy(app)
 
 class Organization(db.Model):
