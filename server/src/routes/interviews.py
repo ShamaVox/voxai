@@ -1,7 +1,7 @@
 from flask import jsonify, request
 from os import environ
 
-from .auth import sessions
+from ..sessions import sessions
 
 from ..app import app as app
 from ..queries import get_account_interviews
@@ -11,7 +11,7 @@ from ..utils import handle_auth_token, valid_token_response
 @app.route("/api/interviews")
 def get_interviews():
     """Provides interview data for a specific candidate or interviewer."""
-    current_user_id = handle_auth_token(sessions)
+    current_user_id = handle_auth_token(sessions, request.cookies.get('authToken', None))
     if current_user_id is None:
         return valid_token_response(False) 
 

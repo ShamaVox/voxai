@@ -3,11 +3,12 @@ import json
 from os import environ
 
 from ..app import app as app
+from ..constants import DEBUG_SESSIONS
 from ..database import Account, db, Organization
 from ..input_validation import is_valid_email
 from ..sessions import sessions
 from ..synthetic_data import generate_synthetic_data_on_account_creation
-from ..utils import get_random_string, valid_token_response
+from ..utils import get_random_string, valid_token_response, handle_auth_token
 
 def generate_verification_code():
     """Generates a placeholder verification code (currently always 123123)."""
@@ -20,41 +21,6 @@ def send_verification_code(email, code):
 def is_valid_verification_code(email, code): 
     """Validates a verification code (currently only checks for a specific value)."""
     return code == "123123"
-
-def handle_auth_token(sessions):
-    """
-    Handles the authentication token and returns the current user's ID.
-
-    This function retrieves the authentication token from the request cookies and determines
-    the current user's ID based on the token. If the environment is set to "Integration" testing,
-    it assigns a default user ID of 0 (temporary workaround for Jest). Otherwise, it retrieves
-    the user ID from the sessions object using the authentication token.
-
-    Args:
-        sessions (dict): A dictionary mapping authentication tokens to user IDs.
-
-    Returns:
-        int: The current user's ID.
-
-    Notes:
-        - This function requires that the authentication token is stored in the 'authToken' cookie.
-        - If the environment is set to "Integration" testing (using the 'TEST' environment variable),
-          a default user ID of 0 is returned as a temporary workaround for Jest.
-        - If the authentication token is invalid or not found in the sessions object, the function
-          should handle the case appropriately (e.g., send a logout response).
-    """
-    auth_token = request.cookies.get('authToken', None)
-    if 'TEST' in environ and environ['TEST'] == "Integration":
-        # Temporary Jest workaround
-        current_user_id = 0
-    else:
-        if auth_token not in sessions: 
-            # Session is invalid, tell user to log out
-            return None 
-        current_user_id = sessions[auth_token]
-
-    return current_user_id
-
 
 @app.route('/api/send_code', methods=['POST'])
 def send_code():
@@ -185,5 +151,8 @@ def logout():
 def check_token():
     """Checks if a provided authentication token is valid.""" 
 
+    if DEBUG_SESSIONS:
+        print("Sessions are: ", sessions, flush=True)
+        print("Request auth token is: ", request.json.get('authToken'), flush=True)
     valid_token = request.json.get('authToken') in sessions or ('TEST' in environ and environ['TEST'] == 'Integration' and request.json.get('authToken') == 'AUTHTOKEN')
     return valid_token_response(valid_token)

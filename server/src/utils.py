@@ -9,7 +9,7 @@ import requests
 import string
 from urllib.parse import urlparse
 
-from .constants import RECALL_CREDENTIAL_FILEPATH, AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE, DEBUG_RECALL_RECORDING_RETRIEVAL
+from .constants import RECALL_CREDENTIAL_FILEPATH, AWS_CREDENTIAL_FILEPATH, DEBUG_RECALL_INTELLIGENCE, DEBUG_RECALL_RECORDING_RETRIEVAL, DEBUG_SESSIONS
 
 # Configure S3 settings and create an S3 client
 S3_BUCKET_NAME = 'voxai-test-audio-video'
@@ -102,10 +102,11 @@ def api_error_response(message, status_code):
 def valid_token_response(valid_token):
     """Returns a response informing the client of whether the auth token is valid."""
     response = make_response(jsonify({"validToken": valid_token}))
-    response.delete_cookie('authToken')
+    if valid_token is False:
+        response.delete_cookie('authToken')
     return response, 200 if valid_token else 401
 
-def handle_auth_token(sessions):
+def handle_auth_token(sessions, auth_token=None):
     """
     Handles the authentication token and returns the current user's ID.
 
@@ -124,7 +125,11 @@ def handle_auth_token(sessions):
         - If the authentication token is invalid or not found in the sessions object, the function
           should handle the case appropriately (e.g., send a logout response).
     """
-    auth_token = request.cookies.get('authToken', None)
+    if auth_token is None: 
+        auth_token = request.cookies.get('authToken', None)
+    if DEBUG_SESSIONS:
+        print("Sessions are: ", sessions, flush=True)
+        print("Request auth token is: ", auth_token, flush=True)
     if 'TEST' in environ and environ['TEST'] == "Integration":
         # Temporary Jest workaround
         current_user_id = 0
@@ -133,6 +138,7 @@ def handle_auth_token(sessions):
             # Session is invalid, tell user to log out
             return None 
         current_user_id = sessions[auth_token]
+
 
     return current_user_id
 

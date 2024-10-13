@@ -75,19 +75,22 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
     if (!isLoggedIn && firstLoad) {
       // Log in if there are cookies on first load
-      if (cookies["voxai"] && cookies["voxai"]["auth"]) {
+      if (AUTH_LOGGING) {
+        console.log("Cookies: ", cookies);
+      }
+      if (cookies.voxai && cookies.voxai.auth) {
         axios
           .post(SERVER_ENDPOINT("check_token"), {
-            authToken: cookies["voxai"]["auth"]["authToken"],
+            authToken: cookies.voxai.auth.authToken,
           })
           .then((response) => {
             if (response.data.validToken === true) {
               handleLogin(
-                cookies["voxai"]["auth"]["email"],
-                cookies["voxai"]["auth"]["username"],
-                cookies["voxai"]["auth"]["authToken"],
-                Boolean(cookies["voxai"]["auth"]["onboarded"]),
-                Boolean(cookies["voxai"]["auth"]["okta"]),
+                cookies.voxai.auth.email,
+                cookies.voxai.auth.username,
+                cookies.voxai.auth.authToken,
+                Boolean(cookies.voxai.auth.onboarded),
+                Boolean(cookies.voxai.auth.okta),
               );
             }
           })
@@ -108,11 +111,12 @@ export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
         email: email,
         username: username,
         authToken: authToken,
-        onboarded: String(onboarded)
+        onboarded: String(onboarded),
+        okta: String(okta),
       };
       if (
-        cookies["voxai"] == undefined ||
-        !arraysEqual(cookies["voxai"]["auth"], currentAuthCookie)
+        cookies.voxai == undefined ||
+        !arraysEqual(cookies.voxai.auth, currentAuthCookie)
       ) {
         setCookie("voxai", { auth: currentAuthCookie });
       }
