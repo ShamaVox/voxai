@@ -1,6 +1,9 @@
-from .database import db, Application, Role, MetricHistory, Interview, Account, TranscriptLine, interview_interviewer_speaking_table
 from datetime import datetime, timedelta
+
 from .constants import MATCH_THRESHOLD, METRIC_HISTORY_DAYS_TO_AVERAGE, INTERVIEW_PACE_DAYS_TO_AVERAGE, INTERVIEW_PACE_CHANGE_DAYS_TO_AVERAGE
+from .database import db, Application, Role, MetricHistory, Interview, Account, TranscriptLine, interview_interviewer_speaking_table
+
+# TODO: Refactor inline queries to be functions in this file
 
 def fitting_job_applications_percentage(current_user_id, match_threshold=MATCH_THRESHOLD, days=METRIC_HISTORY_DAYS_TO_AVERAGE):
     """

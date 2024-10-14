@@ -14,7 +14,7 @@ declare global {
   }
 }
 
-type SkillKey = 'hard' | 'soft' | 'behavioral';
+type SkillKey = 'hardSkills' | 'softSkills' | 'behavioralSkills';
 
 interface Skill {
   skill_id: string;
@@ -41,24 +41,11 @@ interface FormData {
   behavioralSkills: Skill[];
 }
 
-interface FormErrors {
-  jobDescriptionFile?: string;
-  jobDescriptionUrl?: string;
-  companyWebsite?: string;
-  companySize?: string;
-  hiringDocument?: string;
-  hiringDocumentUrl?: string;
-  jobTitle?: string;
-  positionType?: string;
-  department?: string;
-  jobSummary?: string;
-  responsibilities?: string;
-  jobRequirements?: string;
-  hardSkills?: string;
-  softSkills?: string;
-  behavioralSkills?: string;
+type FormErrors = {
+  [K in keyof FormData]?: string;
+} & {
   submission?: string;
-}
+};
 
 const ErrorModal: FC<{ visible: boolean; errors: string[]; onClose: () => void }> = ({ visible, errors, onClose }) => (
   <Modal
@@ -157,21 +144,22 @@ const Onboarding: FC = () => {
   };
 
   const addSkill = (skill: Skill) => {
-    const skillType = `${skill.type}Skills` as SkillKey;
-    if (!formData[skillType].some(s => s.skill_id === skill.skill_id)) {
-      setFormData(prevData => ({
+    const skillType = `${skill.type}Skills` as SkillKey; 
+  
+    if (!formData[skillType].some((s: Skill) => s.skill_id === skill.skill_id)) {
+      setFormData((prevData) => ({
         ...prevData,
-        [skillType]: [...prevData[skillType], skill]
+        [skillType]: [...prevData[skillType], skill],
       }));
     }
     setCurrentSkillInput('');
     setCurrentSkillType(null);
   };
 
-  const removeSkill = (skillToRemove: Skill, type: SkillKey) => {
-    setFormData(prevData => ({
+  const removeSkill = (skillToRemove: Skill, skillType: SkillKey) => {
+    setFormData((prevData) => ({
       ...prevData,
-      [type]: prevData[type].filter(skill => skill.skill_id !== skillToRemove.skill_id)
+      [skillType]: prevData[skillType].filter((skill: Skill) => skill.skill_id !== skillToRemove.skill_id),
     }));
   };
 
@@ -299,9 +287,9 @@ const Onboarding: FC = () => {
           department: response.data.data.department,
           responsibilities: response.data.data.responsibilities.join('\n'),
           jobRequirements: response.data.data.requirements.join('\n'),
-          hardSkills: response.data.data.detected_skills.filter(skill => skill.type === 'hard'),
-          softSkills: response.data.data.detected_skills.filter(skill => skill.type === 'soft'),
-          behavioralSkills: response.data.data.detected_skills.filter(skill => skill.type === 'behavioral'),
+          hardSkills: response.data.data.detected_skills.filter((skill: Skill) => skill.type === 'hard'),
+          softSkills: response.data.data.detected_skills.filter((skill: Skill) => skill.type === 'soft'),
+          behavioralSkills: response.data.data.detected_skills.filter((skill: Skill) => skill.type === 'behavioral'),
         }));
       } else {
         console.error('Failed to process PDFs:', response.data.message);
@@ -480,14 +468,14 @@ const Onboarding: FC = () => {
                   />
                 )}
                 <View style={styles.skillTags}>
-                  {formData[`${skillType}Skills` as SkillKey].map(skill => (
-                    <View key={skill.skill_id} style={styles.skillTag}>
-                      <Text style={styles.skillTagText}>{skill.skill_name}</Text>
-                      <TouchableOpacity onPress={() => removeSkill(skill, `${skillType}Skills` as SkillKey)}>
-                        <Text style={styles.removeSkillButton}>×</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
+                {formData[`${skillType}Skills` as SkillKey].map((skill: Skill) => (
+                  <View key={skill.skill_id} style={styles.skillTag}>
+                    <Text style={styles.skillTagText}>{skill.skill_name}</Text>
+                    <TouchableOpacity onPress={() => removeSkill(skill, `${skillType}Skills` as SkillKey)}>
+                      <Text style={styles.removeSkillButton}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                ))}
                 </View>
               </View>
             ))}

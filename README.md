@@ -94,6 +94,12 @@ Create a Python virtual environment and install the required Python libraries:
 
 To avoid running the nvm commands every time the virtual environment is initialized, add them to the bottom of server/venv/bin/activate.
 
+On Linux, authbind also needs to be set up:
+
+    sudo touch /etc/authbind/byport/80
+    sudo chmod 500 /etc/authbind/port/80
+    sudo chown <your username> /etc/authbind/byport/80
+
 ### Database Setup:
 
 Start the postgres server:
@@ -106,7 +112,7 @@ Create a role:
 
 In a new terminal, create a database for the application:
 
-    psql POSTGRES
+    psql postgres
     CREATE DATABASE voxai_db;
 
 Edit the database URI in server/src/database.py to match the database credentials:
@@ -116,6 +122,8 @@ Edit the database URI in server/src/database.py to match the database credential
 If you set up a different postgres user than the default, the line will look something like this:
 
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://username:password@localhost:5432/voxai_db"
+
+The above steps will need to be repeated to set up the integration testing, which uses a separate database (voxai_db_integration_test by default).
 
 ### AWS / Recall Setup:
 

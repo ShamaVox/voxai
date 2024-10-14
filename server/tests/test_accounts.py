@@ -1,8 +1,7 @@
 import pytest
-from server.src.database import Account, db
+from server.src.database import Account, Organization, db
 from server.app import app as flask_app
 from sqlalchemy.exc import IntegrityError
-
 
 def test_account_repr(init_database):
     """Test the __repr__ method of the Account model."""
@@ -18,7 +17,7 @@ def test_default_values(init_database):
     retrieved_account = Account.query.filter_by(email="test2@example.com").first()
     assert retrieved_account.name == "Default Name"
     assert retrieved_account.account_type == "Recruiter"
-    assert retrieved_account.organization == "Default Company"
+    assert retrieved_account.organization_id is None
 
 def test_account_query_by_email(init_database):
     """Test querying for an account by email."""
@@ -53,21 +52,30 @@ def test_unique_email_constraint():
         with pytest.raises(IntegrityError):
             db.session.commit()
 
-
-def test_account_update():
+def test_account_update(init_database):
     """Test updating an account's information."""
     with flask_app.app_context():
-        account = Account(email="update@example.com", name="Original Name")
+        initial_org = Organization(name="Initial Org")
+        db.session.add(initial_org)
+        db.session.flush()
+        account = Account(email="update@example.com", name="Original Name", organization=initial_org)
         db.session.add(account)
         db.session.commit()
 
+
+        new_org = Organization.query.filter_by(name="New Company").first()
+        if new_org is None:
+            new_org = Organization(name="New Company") 
+            db.session.add(new_org)
+            
+
         account.name = "Updated Name"
-        account.organization = "New Company"
+        account.organization = new_org  # Assign the object
         db.session.commit()
 
         updated_account = Account.query.filter_by(email="update@example.com").first()
         assert updated_account.name == "Updated Name"
-        assert updated_account.organization == "New Company"
+        assert updated_account.organization.name == "New Company"  
 
 def test_account_delete():
     """Test deleting an account."""
