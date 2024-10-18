@@ -25,7 +25,50 @@ Database: PostgreSQL
 Frontend: React Native (TypeScript)
 AI APIs: Recall.ai (for meeting recording, transcription, and analysis)
 
-# Installation and Setup
+# Installation and Setup (Docker)
+
+## Prerequisites
+
+Install Docker Desktop. You can find instructions here:
+
+    https://docs.docker.com/desktop/install/
+
+## Load and run docker image
+
+The latest docker image is included with this repository.
+
+    docker image load -i voxai-docker.tar.gz
+    docker run -it --network host --entrypoint /bin/bash voxai
+
+If you're running the repository or any other locally, Docker's postgres service may conflict with the external one. In this case, you'll need to disable the postgres service on the host machine (not Docker):
+
+    service postgresql stop
+
+From within docker, start the postgresql service:
+
+    service postgresql restart
+
+This is currently required at login for the database to work within the instance.
+
+## Make changes within Docker
+
+The copy of the repository inside docker does not automatically sync with your changes outside of docker. The VSCode Dev Containers extension can be used to edit files within the container once it is running and sync it with Git: https://code.visualstudio.com/docs/devcontainers/attach-container
+
+## Recompile docker image
+
+The credentials.json file containing AWS and Recall AI credentials is not included with the repository but is required for the image to function. Obtain this file and copy it to the outermost voxai directory before updating the docker image.
+
+Then, copy the Dockerfile to the directory containing the repository and run docker build:
+
+    cp Dockerfile ../
+    cd ../
+    docker build -t voxai .
+
+Then, use the docker export command to export the docker image:
+
+    docker image save voxai -o voxai-docker.tar.gz
+
+# Installation and Setup (Manual)
 
 ## Prerequisites
 
@@ -122,8 +165,6 @@ Edit the database URI in server/src/database.py to match the database credential
 If you set up a different postgres user than the default, the line will look something like this:
 
     app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://username:password@localhost:5432/voxai_db"
-
-The above steps will need to be repeated to set up the integration testing, which uses a separate database (voxai_db_integration_test by default).
 
 ### AWS / Recall Setup:
 
