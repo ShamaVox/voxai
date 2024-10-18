@@ -35,7 +35,7 @@ Then, copy the Dockerfile to the directory containing the repository and run doc
     cd ../
     docker build -t voxai .
 
-If you're running the repository or any other locally, Docker's postgres service may conflict with the external one. In this case, you'll need to disable the postgres service on the host machine before building the image:
+If you're running the repository or any other application using postgres locally, Docker's postgres service may conflict with the external one. In this case, you'll need to disable the postgres service on the host machine before building the image:
 
     service postgresql stop
 
