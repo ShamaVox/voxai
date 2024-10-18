@@ -33,30 +33,24 @@ Install Docker Desktop. You can find instructions here:
 
     https://docs.docker.com/desktop/install/
 
-## Load and run docker image
+## Clone the Repository:
 
-The latest docker image is included with this repository.
+git clone https://github.com/ShamaVox/voxai/voxai.git
+cd voxai
 
-    docker image load -i voxai-docker.tar.gz
-    docker run -it --network host --entrypoint /bin/bash voxai
+If this doesn't work, try cloning via ssh:
 
-If you're running the repository or any other locally, Docker's postgres service may conflict with the external one. In this case, you'll need to disable the postgres service on the host machine (not Docker):
+    ssh-keygen -t ed25519 -C <your email>
+    git clone git@github.com:ShamaVox/voxai.git
 
-    service postgresql stop
+After cloning, check out the dev branch:
 
-From within docker, start the postgresql service:
+    cd voxai
+    git checkout dev
 
-    service postgresql restart
+## Build docker image
 
-This is currently required at login for the database to work within the instance.
-
-## Make changes within Docker
-
-The copy of the repository inside docker does not automatically sync with your changes outside of docker. The VSCode Dev Containers extension can be used to edit files within the container once it is running and sync it with Git: https://code.visualstudio.com/docs/devcontainers/attach-container
-
-## Recompile docker image
-
-The credentials.json file containing AWS and Recall AI credentials is not included with the repository but is required for the image to function. Obtain this file and copy it to the outermost voxai directory before updating the docker image.
+The credentials.json file containing AWS and Recall AI credentials is not included with the repository but is required for the image to function. Obtain this file and copy it to the voxai directory before creating the docker image.
 
 Then, copy the Dockerfile to the directory containing the repository and run docker build:
 
@@ -64,9 +58,81 @@ Then, copy the Dockerfile to the directory containing the repository and run doc
     cd ../
     docker build -t voxai .
 
-Then, use the docker export command to export the docker image:
+If you're running the repository or any other locally, Docker's postgres service may conflict with the external one. In this case, you'll need to disable the postgres service on the host machine before building the image:
 
-    docker image save voxai -o voxai-docker.tar.gz
+    service postgresql stop
+
+## Run docker image
+
+You can run the docker image with the following command:
+
+    docker run -it --network host --entrypoint /bin/bash voxai
+
+From within docker, start the postgresql service:
+
+    service postgresql restart
+
+This is currently required at each login for postgres to function correctly within the instance (this is a bug).
+
+## Make changes within Docker
+
+The copy of the repository inside the docker image does not automatically sync with your changes outside of it. The VSCode Dev Containers extension can be used to edit files within the container once it is running and sync it with Git, avoiding rebuilding every time a change is made.
+
+More information here: https://code.visualstudio.com/docs/devcontainers/attach-container
+
+## Running the Application
+
+Run in Development mode on the AWS server:
+
+    npm run dev
+
+This command also runs in development mode:
+
+    npm start
+
+Run locally (server will be on localhost):
+
+    npm run local
+
+### Running Backend and Frontend Separately:
+
+Backend:
+
+    npm run server
+
+Frontend:
+
+    npm run client
+
+### Running Tests
+
+Run the integration tests:
+
+    npm run test
+
+Run the integration tests, excluding intensive tests:
+
+    npm run test:light
+
+Run the backend test suite:
+
+    cd server
+    pytest
+
+Run the frontend test suite:
+
+    cd client
+    npm run test
+
+### Database Migrations
+
+Generate a new migration (runs the migration by default after asking for confirmation, can be prevented with Ctrl-C):
+
+    npm run migrate
+
+Run the existing migrations:
+
+    npm run upgrade
 
 # Installation and Setup (Manual)
 
@@ -198,47 +264,3 @@ To run the server on AWS:
 
     cd client
     npm run config:aws
-
-### Running the Application
-
-Run in Development mode on the AWS server:
-
-    npm run dev
-
-This command also runs in development mode:
-
-    npm start
-
-Run locally (server will be on localhost):
-
-    npm run local
-
-### Running Backend and Frontend Separately:
-
-Backend:
-
-    npm run server
-
-Frontend:
-
-    npm run client
-
-### Running Tests
-
-Run the integration tests:
-
-    npm run test
-
-Run the integration tests, excluding intensive tests:
-
-    npm run test:light
-
-Run the backend test suite:
-
-    cd server
-    pytest
-
-Run the frontend test suite:
-
-    cd client
-    npm run test
