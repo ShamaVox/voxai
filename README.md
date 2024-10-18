@@ -2,29 +2,6 @@
 
 VoxAI is a comprehensive recruitment platform that leverages cutting-edge AI technologies to streamline the hiring process and enhance decision-making. It integrates seamlessly with popular video conferencing platforms, such as Zoom, to provide valuable insights from interview recordings.
 
-# Features
-
-## Automated Interview Recording and Transcription:
-
-- Generate accurate transcripts with speaker identification from interviews conducted through platforms like Zoom, Google Meet, Microsoft Teams, and Slack.
-
-## Advanced Interview Analysis
-
-Gain deeper insights into candidate performance through:
-
-- Sentiment Analysis: Understand the emotional tone of candidates throughout the interview.
-- Engagement Analysis: Assess candidate engagement levels and enthusiasm.
-- Topic Extraction: Identify key topics discussed during the interview, allowing for quick review and comparison.
-- Summarization: Get a concise overview of the interview, highlighting important points.
-- Actionable Insights Dashboard: Track key metrics and trends, such as average interview pace, fitting job application percentage, and compensation ranges, to make data-driven decisions.
-
-# Technology Stack
-
-Backend: Python, Flask, SQLAlchemy
-Database: PostgreSQL
-Frontend: React Native (TypeScript)
-AI APIs: Recall.ai (for meeting recording, transcription, and analysis)
-
 # Installation and Setup (Docker)
 
 ## Prerequisites
@@ -264,3 +241,26 @@ To run the server on AWS:
 
     cd client
     npm run config:aws
+
+# Features
+
+## Automated Interview Recording and Transcription:
+
+- Generate accurate transcripts with speaker identification from interviews conducted through platforms like Zoom, Google Meet, Microsoft Teams, and Slack.
+
+## Advanced Interview Analysis
+
+Gain deeper insights into candidate performance through:
+
+- Sentiment Analysis: Understand the emotional tone of candidates throughout the interview.
+- Engagement Analysis: Assess candidate engagement levels and enthusiasm.
+- Topic Extraction: Identify key topics discussed during the interview, allowing for quick review and comparison.
+- Summarization: Get a concise overview of the interview, highlighting important points.
+- Actionable Insights Dashboard: Track key metrics and trends, such as average interview pace, fitting job application percentage, and compensation ranges, to make data-driven decisions.
+
+# Technology Stack
+
+Backend: Python, Flask, SQLAlchemy
+Database: PostgreSQL
+Frontend: React Native (TypeScript)
+AI APIs: Recall.ai (for meeting recording, transcription, and analysis)
