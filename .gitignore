@@ -6,3 +6,4 @@ client/src/ServerUrl.ts
 coverage.xml
 htmlcov
 .coverage 
+calendar_server/calendar_venv
