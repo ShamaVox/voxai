@@ -7,3 +7,5 @@ coverage.xml
 htmlcov
 .coverage 
 calendar_server/calendar_venv
+calendar_server/client_secret.json
+calendar_server/tokens
