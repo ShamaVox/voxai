@@ -4,7 +4,8 @@ import os
 import requests
 import sys
 import time
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional, Tuple, List
+import subprocess
 
 class RecallAPI:
     def __init__(self, api_key: Optional[str] = None):
@@ -15,8 +16,14 @@ class RecallAPI:
         
     @staticmethod
     def get_recall_api_key() -> Optional[str]:
-        """Gets the recall.ai API key from the credentials file."""
-        return os.environ.get("RECALL_API_KEY")
+        """Gets the recall.ai API key from the credentials.json file."""
+        try:
+            with open("credentials.json", "r") as f:
+                credentials = json.loads(f.read())
+                return credentials.get("recall_api_key")
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            print("FileNotFoundError")
+            return None
 
     def get_headers(self) -> Dict[str, str]:
         """Returns headers for the recall.ai API."""
@@ -130,6 +137,123 @@ class RecallAPI:
             headers=self.get_headers()
         )
         return response.json(), response.status_code
+
+    
+    def create_calendar(self, oauth_client_id: str, oauth_client_secret: str, 
+                    oauth_refresh_token: str, platform: str = "google_calendar", 
+                    oauth_email: Optional[str] = None) -> Tuple[Dict[str, Any], int]:
+        """
+        Creates a new calendar in the Recall API.
+        
+        Args:
+            oauth_client_id: OAuth client ID
+            oauth_client_secret: OAuth client secret
+            oauth_refresh_token: OAuth refresh token
+            platform: "google_calendar" or "microsoft_outlook"
+            oauth_email: Optional email associated with the OAuth account
+            
+        Returns:
+            Tuple of response data and status code
+        """
+        data = {
+            "oauth_client_id": oauth_client_id,
+            "oauth_client_secret": oauth_client_secret,
+            "oauth_refresh_token": oauth_refresh_token,
+            "platform": platform
+        }
+        
+        if oauth_email:
+            data["oauth_email"] = oauth_email
+        
+        # Using the specific URL for the calendar API endpoint
+        calendar_api_url = "https://us-west-2.recall.ai/api/v2/calendars/"
+        
+        response = requests.post(
+            calendar_api_url,
+            headers=self.get_headers(),
+            json=data
+        )
+        
+        return self.handle_response(response)
+
+    def check_bot_status(self, bot_id: str) -> Tuple[Dict[str, Any], int]:
+        """Check the status of a bot and whether it has a video available."""
+        url = f"{self.base_url}/v1/bot/{bot_id}/"
+        response = requests.get(url, headers=self.get_headers())
+        return self.handle_response(response)
+
+    def list_finished_bots(self, bot_ids: List[str]) -> Dict[str, Dict]:
+        """
+        Check multiple bots and return those that have finished with their video URLs.
+        
+        Args:
+            bot_ids: List of bot IDs to check
+            
+        Returns:
+            Dictionary mapping finished bot IDs to their details including video_url
+        """
+        finished_bots = {}
+        
+        for bot_id in bot_ids:
+            bot_details, status_code = self.get_bot_details(bot_id)
+            print("Bot details:", bot_details)
+            
+            if status_code == 200 and bot_details and 'video_url' in bot_details and bot_details['video_url']:
+                finished_bots[bot_id] = bot_details
+        
+        return finished_bots
+
+    def process_recording(self, bot_id: str, output_dir: str, bitrate: str = '192k') -> Optional[Tuple[str, List[str]]]:
+        """
+        Download a meeting recording, convert to MP3, and return the path to the MP3 file and participant list.
+        
+        Args:
+            bot_id: The bot ID to process
+            output_dir: Directory to save files
+            bitrate: MP3 bitrate
+            
+        Returns:
+            Tuple of (mp3_path, participants) or None if processing failed
+        """
+        try:
+            # Download the video
+            video_path, participants = download_video(bot_id, os.path.join(output_dir, bot_id))
+            
+            if not video_path:
+                print(f"Failed to download video for bot {bot_id}")
+                return None
+            
+            # Convert to MP3
+            mp3_path = video_path.replace('.mp4', '.mp3')
+            
+            # Use ffmpeg for conversion
+            command = [
+                'ffmpeg',
+                '-i', video_path,
+                '-vn',  # No video
+                '-ar', '44100',  # Audio sample rate
+                '-ac', '2',  # Audio channels
+                '-b:a', bitrate,  # Audio bitrate
+                '-f', 'mp3',  # Format
+                mp3_path
+            ]
+            
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+            
+            if process.returncode != 0:
+                print(f"Error converting video to MP3: {stderr.decode()}")
+                return None
+            
+            # Delete the original video to save space
+            os.remove(video_path)
+            
+            return mp3_path, participants
+        except Exception as e:
+            print(f"Error processing recording: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None
 
 def join_meeting(MEETING_URL: str):
     if MEETING_URL:
