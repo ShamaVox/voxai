@@ -11,3 +11,6 @@ calendar_server/client_secret.json
 calendar_server/tokens
 calendar_server/data
 credentials.json
+*.mp4
+*.mp3
+*.log

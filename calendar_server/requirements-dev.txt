@@ -1,0 +1,16 @@
+# Core application dependencies (repeat from main requirements if not managed elsewhere)
+flask
+requests
+google-auth-oauthlib
+google-api-python-client
+boto3
+schedule
+# Recall API might have its own dependencies if installed as a package
+
+# Testing dependencies
+pytest
+pytest-mock
+pytest-flask
+pytest-freezer
+freezegun # For controlling time in tests
+coverage # For test coverage reports (optional)
