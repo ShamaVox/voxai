@@ -119,7 +119,9 @@ test("handles successful login", async () => {
   expect(mockHandleLogin).toHaveBeenCalledWith(
     "existing@email.com",
     "Test Name",
-    "AUTHTOKEN"
+    "AUTHTOKEN",
+    undefined,
+    undefined
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });
@@ -135,7 +137,9 @@ test("handles successful account creation and login", async () => {
   expect(mockHandleLogin).toHaveBeenCalledWith(
     "new" + accountNumber + "@email.com",
     "New User",
-    "AUTHTOKEN"
+    "AUTHTOKEN",
+    undefined,
+    undefined
   );
   expect(mockNavigate).toHaveBeenCalledWith("Home");
 });

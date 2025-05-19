@@ -1,9 +1,11 @@
 import pytest
 from flask import json
-from server.src import input_validation, verification, database
+from server.src import input_validation, database
+from server.src.routes import auth
 from server.app import app as flask_app
 from server.src.database import db, Interview, TranscriptLine
-from server.src.apis import preprocess, get_sentiment, get_engagement
+from server.src.apis.preprocess import preprocess
+from server.src.apis.analysis import get_sentiment, get_engagement
 import server.src.utils 
 from .utils.synthetic_data import create_synthetic_data
 from unittest.mock import patch, Mock
@@ -518,7 +520,7 @@ def test_delete_nonexistent_transcript_line(client):
     assert response.status_code == 404
 
 @patch('requests.get')
-@patch('server.src.apis.download_and_reupload_file')
+@patch('server.src.apis.recall.download_and_reupload_file')
 def test_save_recording_success(mock_download, mock_requests_get, client, sample_data):
     mock_response = Mock()
     mock_response.status_code = 200
@@ -533,7 +535,7 @@ def test_save_recording_success(mock_download, mock_requests_get, client, sample
     response = client.get('/api/save_recording/test_bot_id')
     
     assert response.status_code == 200
-    data = json.loads(response.data)
+    data = response.get_json()
     assert data['bot_id'] == 'test_bot_id'
     assert data['meeting_url'] == 'https://zoom.us/j/123456789'
     

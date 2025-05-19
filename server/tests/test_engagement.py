@@ -1,7 +1,7 @@
 import pytest
 from server.src.database import TranscriptLine, Interview, db
 from server.app import app as flask_app
-from server.src.apis import (
+from server.src.apis.transcript import (
     count_all_words,
     calculate_talk_duration,
     calculate_speaking_rate_variations,

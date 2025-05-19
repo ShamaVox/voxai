@@ -31,6 +31,9 @@ DEBUG_OKTA = True
 # Print debug data for recall upload API
 DEBUG_RECALL_RECORDING_RETRIEVAL = False
 
+# Print debug data for sessions
+DEBUG_SESSIONS = True
+
 # Whether to preprocess audio and video during synthetic data generation
 ENABLE_SYNTHETIC_PREPROCESSING = "pytest" not in sys.modules and 'TEST' not in os.environ
 
